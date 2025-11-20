@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>朴素帝国 - Minimalist Empire</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -16,14 +17,19 @@
             display: flex;
             flex-direction: column;
         }
-        
+
         #game-wrapper {
             position: relative;
             flex: 1;
             overflow: hidden;
             background: #262626;
         }
-        canvas { display: block; width: 100%; height: 100%; }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
 
         /* 基地位置垂直居中 */
         .base {
@@ -40,42 +46,87 @@
             z-index: 10;
             pointer-events: none;
         }
-        .base-player { left: 0; background: #3b82f6; border-right: 4px solid #1d4ed8; }
-        .base-enemy { right: 0; background: #ef4444; border-left: 4px solid #b91c1c; }
+
+        .base-player {
+            left: 0;
+            background: #3b82f6;
+            border-right: 4px solid #1d4ed8;
+        }
+
+        .base-enemy {
+            right: 0;
+            background: #ef4444;
+            border-left: 4px solid #b91c1c;
+        }
 
         /* 炮台视觉装饰 */
         .turret-addon {
-            position: absolute; top: -20px; width: 40px; height: 20px;
-            background: #555; border: 2px solid #ccc; border-radius: 5px 5px 0 0;
-            display: none; /* 默认隐藏 */
+            position: absolute;
+            top: -20px;
+            width: 40px;
+            height: 20px;
+            background: #555;
+            border: 2px solid #ccc;
+            border-radius: 5px 5px 0 0;
+            display: none;
         }
-        .has-turret .turret-addon { display: block; }
 
-        .hp-bar-bg { width: 80%; height: 6px; background: rgba(0,0,0,0.5); margin-top: 5px; }
-        .hp-bar-fill { height: 100%; background: #22c55e; width: 100%; transition: width 0.2s; }
+        .has-turret .turret-addon {
+            display: block;
+        }
+
+        .hp-bar-bg {
+            width: 80%;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.5);
+            margin-top: 5px;
+        }
+
+        .hp-bar-fill {
+            height: 100%;
+            background: #22c55e;
+            width: 100%;
+            transition: width 0.2s;
+        }
 
         /* UI 组件 */
         .top-bar {
             position: absolute;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             display: flex;
             justify-content: space-between;
             padding: 10px 20px;
             pointer-events: none;
             z-index: 20;
         }
-        .top-item { font-weight: bold; font-size: 1.2rem; text-shadow: 1px 1px 2px black; }
-        .text-blue { color: #60a5fa; }
-        .text-red { color: #f87171; }
+
+        .top-item {
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        .text-blue {
+            color: #60a5fa;
+        }
+
+        .text-red {
+            color: #f87171;
+        }
 
         .tactics-bar {
             position: absolute;
-            top: 10px; left: 50%; transform: translateX(-50%);
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
             gap: 10px;
             z-index: 30;
             pointer-events: auto;
         }
+
         .tactic-btn {
             background: rgba(30, 30, 30, 0.6);
             border: 1px solid #555;
@@ -88,13 +139,23 @@
             transition: all 0.2s;
             font-size: 0.85rem;
         }
-        .tactic-btn:hover { background: #444; color: white; }
-        .tactic-btn.active { background: #2563eb; border-color: #60a5fa; color: white; box-shadow: 0 0 8px #2563eb; }
+
+        .tactic-btn:hover {
+            background: #444;
+            color: white;
+        }
+
+        .tactic-btn.active {
+            background: #2563eb;
+            border-color: #60a5fa;
+            color: white;
+            box-shadow: 0 0 8px #2563eb;
+        }
 
         /* 资源面板 */
         .resource-widget {
             position: absolute;
-            bottom: 20px;
+            bottom: 100px;
             left: 20px;
             width: 280px;
             background: rgba(31, 41, 55, 0.95);
@@ -105,28 +166,80 @@
             z-index: 40;
             backdrop-filter: blur(8px);
         }
+
+        @media (max-height: 500px) {
+            .resource-widget {
+                bottom: 90px;
+                left: 10px;
+                transform: scale(0.9);
+                transform-origin: bottom left;
+            }
+        }
+
         .status-header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid #4b5563;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #4b5563;
             font-size: 1rem;
         }
-        .status-group { display: flex; align-items: center; gap: 6px; }
-        .icon-house { color: #f59e0b; } .pop-text { font-weight: bold; font-family: monospace; transition: color 0.2s; }
-        .icon-sleep { color: #9ca3af; } .idle-text { color: #9ca3af; font-weight: bold; font-family: monospace; }
-        .idle-text.warning { color: #ef4444; animation: pulse 1s infinite; }
 
-        .res-grid { 
-            display: grid; 
-            grid-template-columns: 24px 1fr 24px 50px 24px; 
-            gap: 4px; 
-            align-items: center; 
-            font-size: 0.9rem; 
+        .status-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        .res-icon { text-align: center; font-size: 1rem; }
-        .res-val { font-family: monospace; text-align: right; padding-right: 10px; color: #e5e5e5; font-weight: bold; }
-        
+
+        .icon-house {
+            color: #f59e0b;
+        }
+
+        .pop-text {
+            font-weight: bold;
+            font-family: monospace;
+            transition: color 0.2s;
+        }
+
+        .icon-sleep {
+            color: #9ca3af;
+        }
+
+        .idle-text {
+            color: #9ca3af;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .idle-text.warning {
+            color: #ef4444;
+            animation: pulse 1s infinite;
+        }
+
+        .res-grid {
+            display: grid;
+            grid-template-columns: 24px 1fr 24px 50px 24px;
+            gap: 4px;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .res-icon {
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .res-val {
+            font-family: monospace;
+            text-align: right;
+            padding-right: 10px;
+            color: #e5e5e5;
+            font-weight: bold;
+        }
+
         .worker-box {
-            background: rgba(0,0,0,0.3);
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 4px;
             display: flex;
             align-items: center;
@@ -134,16 +247,44 @@
             gap: 4px;
             height: 24px;
         }
-        .res-w-icon { color: #9ca3af; font-size: 0.7rem; }
-        .res-w-val { color: #60a5fa; font-family: monospace; font-weight: bold; }
 
-        .tiny-btn { 
-            width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; 
-            background: #374151; border: 1px solid #4b5563; border-radius: 4px; cursor: pointer; color: #ccc;
-            font-size: 0.9rem; line-height: 0; transition: background 0.1s;
+        .res-w-icon {
+            color: #9ca3af;
+            font-size: 0.7rem;
         }
-        .tiny-btn:hover { background: #4b5563; color: white; }
-        .tiny-btn.disabled { opacity: 0.2; cursor: default; pointer-events: none; }
+
+        .res-w-val {
+            color: #60a5fa;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .tiny-btn {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 0;
+            transition: background 0.1s;
+        }
+
+        .tiny-btn:hover {
+            background: #4b5563;
+            color: white;
+        }
+
+        .tiny-btn.disabled {
+            opacity: 0.2;
+            cursor: default;
+            pointer-events: none;
+        }
 
         /* Dock 栏 */
         .dock-container {
@@ -161,82 +302,256 @@
             z-index: 50;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
-        
+
         .dock-icon {
-            width: 56px; height: 56px;
-            background: #2d2d2d; 
+            width: 56px;
+            height: 56px;
+            background: #2d2d2d;
             border-radius: 12px;
-            display: flex; justify-content: center; align-items: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             font-size: 28px;
-            cursor: pointer; position: relative;
+            cursor: pointer;
+            position: relative;
             transition: transform 0.2s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             border: 1px solid #444;
         }
-        .dock-icon:hover { transform: translateY(-5px) scale(1.1); background: #3d3d3d; z-index: 60; }
-        .dock-icon.active { background: #333; box-shadow: 0 0 0 2px #3b82f6; transform: translateY(-5px); }
-        .dock-icon.build-icon { background: #eab308; color: #000; border-color: #ca8a04; }
-        .dock-icon.build-icon:hover { background: #facc15; }
 
-        .dock-icon.constructing { opacity: 0.7; border-style: dashed; background: #1f2937; }
+        .dock-icon:hover {
+            transform: translateY(-5px) scale(1.1);
+            background: #3d3d3d;
+            z-index: 60;
+        }
+
+        .dock-icon.active {
+            background: #333;
+            box-shadow: 0 0 0 2px #3b82f6;
+            transform: translateY(-5px);
+        }
+
+        .dock-icon.build-icon {
+            background: #eab308;
+            color: #000;
+            border-color: #ca8a04;
+        }
+
+        .dock-icon.build-icon:hover {
+            background: #facc15;
+        }
+
+        .dock-icon.constructing {
+            opacity: 0.7;
+            border-style: dashed;
+            background: #1f2937;
+        }
+
         .dock-icon.constructing .const-overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            display: flex; justify-content: center; align-items: center;
-            background: rgba(0,0,0,0.4); border-radius: 12px;
-            font-size: 12px; color: #eab308; font-weight: bold;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            font-size: 12px;
+            color: #eab308;
+            font-weight: bold;
         }
 
         .icon-progress-bg {
-            position: absolute; bottom: 0; left: 0; right: 0; height: 4px;
-            background: rgba(0,0,0,0.3); border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; overflow: hidden;
-            display: none; /* 默认隐藏 */
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            overflow: hidden;
+            display: none;
         }
-        .icon-progress-fill { height: 100%; width: 0%; background: #3b82f6; transition: width linear 0.1s; }
-        .constructing .icon-progress-fill { background: #eab308; }
+
+        .icon-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #3b82f6;
+            transition: width linear 0.1s;
+        }
+
+        .constructing .icon-progress-fill {
+            background: #eab308;
+        }
 
         .icon-badge {
-            position: absolute; top: -5px; right: -5px; background: #ef4444; color: white;
-            font-size: 10px; font-weight: bold; width: 16px; height: 16px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px black;
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 2px black;
         }
-        .icon-badge.house-badge { background: #eab308; color: #000; }
+
+        .icon-badge.house-badge {
+            background: #eab308;
+            color: #000;
+        }
 
         /* Popover Menu */
         .popover-menu {
-            position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
-            background: rgba(31, 41, 55, 0.95); border: 1px solid #4b5563; border-radius: 8px;
-            padding: 10px; min-width: 180px; display: none; flex-direction: column; gap: 8px;
-            z-index: 60; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px);
+            position: absolute;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(31, 41, 55, 0.95);
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            padding: 10px;
+            min-width: 180px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 60;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
         }
-        .popover-menu::after {
-            content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%) rotate(45deg);
-            width: 12px; height: 12px; background: rgba(31, 41, 55, 0.95); border-right: 1px solid #4b5563; border-bottom: 1px solid #4b5563;
-        }
-        .popover-title { font-size: 0.8rem; color: #9ca3af; text-transform: uppercase; border-bottom: 1px solid #4b5563; padding-bottom: 4px; margin-bottom: 4px; text-align: center; }
-        
-        .menu-btn {
-            background: #374151; border: 1px solid #4b5563; color: white; padding: 10px; border-radius: 6px;
-            cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; transition: all 0.1s;
-        }
-        .menu-btn:hover:not(:disabled) { background: #4b5563; }
-        .menu-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
-        .btn-icon { font-size: 1.4rem; }
-        .btn-info { display: flex; flex-direction: column; line-height: 1.2; text-align: left; }
-        .btn-cost { font-size: 0.75rem; color: #9ca3af; }
 
-        /* Tech Item */
-        .menu-btn.tech-btn { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1); }
-        .menu-btn.tech-btn:hover:not(:disabled) { background: rgba(139, 92, 246, 0.3); }
+        .popover-menu::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%) rotate(45deg);
+            width: 12px;
+            height: 12px;
+            background: rgba(31, 41, 55, 0.95);
+            border-right: 1px solid #4b5563;
+            border-bottom: 1px solid #4b5563;
+        }
+
+        .popover-title {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            text-transform: uppercase;
+            border-bottom: 1px solid #4b5563;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        .menu-btn {
+            background: #374151;
+            border: 1px solid #4b5563;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            transition: all 0.1s;
+        }
+
+        .menu-btn:hover:not(:disabled) {
+            background: #4b5563;
+        }
+
+        .menu-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .btn-icon {
+            font-size: 1.4rem;
+        }
+
+        .btn-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+            text-align: left;
+        }
+
+        .btn-cost {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        .menu-btn.tech-btn {
+            border-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .menu-btn.tech-btn:hover:not(:disabled) {
+            background: rgba(139, 92, 246, 0.3);
+        }
 
         #game-over {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85);
-            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            display: none;
         }
-        .floater { position: absolute; color: white; font-weight: bold; pointer-events: none; animation: floatUp 1s forwards; text-shadow: 1px 1px 2px black; }
-        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-30px); opacity: 0; } }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .floater {
+            position: absolute;
+            color: white;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 1s forwards;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
     </style>
 </head>
+
 <body>
 
     <div id="toast-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"></div>
@@ -250,18 +565,23 @@
         <div class="tactics-bar">
             <button id="btn-stance-defend" class="tactic-btn" onclick="game.setPlayerStance('defend')">🛡️ 防守</button>
             <button id="btn-stance-hold" class="tactic-btn" onclick="game.setPlayerStance('hold')">✋ 待命</button>
-            <button id="btn-stance-attack" class="tactic-btn active" onclick="game.setPlayerStance('attack')">⚔️ 进攻</button>
+            <button id="btn-stance-attack" class="tactic-btn active" onclick="game.setPlayerStance('attack')">⚔️
+                进攻</button>
         </div>
         <canvas id="gameCanvas"></canvas>
         <div id="p-base" class="base base-player">
             <div class="turret-addon"></div>
             <div>基地</div>
-            <div class="hp-bar-bg"><div id="p-base-hp" class="hp-bar-fill"></div></div>
+            <div class="hp-bar-bg">
+                <div id="p-base-hp" class="hp-bar-fill"></div>
+            </div>
         </div>
         <div id="e-base" class="base base-enemy">
             <div class="turret-addon"></div>
             <div>电脑</div>
-            <div class="hp-bar-bg"><div id="e-base-hp" class="hp-bar-fill"></div></div>
+            <div class="hp-bar-bg">
+                <div id="e-base-hp" class="hp-bar-fill"></div>
+            </div>
         </div>
     </div>
 
@@ -276,28 +596,32 @@
                 </div>
             </div>
             <div class="res-grid">
-                <div class="res-icon">🥩</div> 
+                <div class="res-icon">🥩</div>
                 <div class="res-val" id="res-stock-food">0</div>
                 <div class="tiny-btn" id="sub-food" onclick="game.modWork('food',-1)">-</div>
-                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val" id="res-workers-food">0</span></div>
+                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val"
+                        id="res-workers-food">0</span></div>
                 <div class="tiny-btn" id="add-food" onclick="game.modWork('food',1)">+</div>
 
-                <div class="res-icon">🌲</div> 
+                <div class="res-icon">🌲</div>
                 <div class="res-val" id="res-stock-wood">0</div>
                 <div class="tiny-btn" id="sub-wood" onclick="game.modWork('wood',-1)">-</div>
-                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val" id="res-workers-wood">0</span></div>
+                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val"
+                        id="res-workers-wood">0</span></div>
                 <div class="tiny-btn" id="add-wood" onclick="game.modWork('wood',1)">+</div>
 
-                <div class="res-icon">🪙</div> 
+                <div class="res-icon">🪙</div>
                 <div class="res-val" id="res-stock-gold">0</div>
                 <div class="tiny-btn" id="sub-gold" onclick="game.modWork('gold',-1)">-</div>
-                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val" id="res-workers-gold">0</span></div>
+                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val"
+                        id="res-workers-gold">0</span></div>
                 <div class="tiny-btn" id="add-gold" onclick="game.modWork('gold',1)">+</div>
 
-                <div class="res-icon">🪨</div> 
+                <div class="res-icon">🪨</div>
                 <div class="res-val" id="res-stock-stone">0</div>
                 <div class="tiny-btn" id="sub-stone" onclick="game.modWork('stone',-1)">-</div>
-                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val" id="res-workers-stone">0</span></div>
+                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val"
+                        id="res-workers-stone">0</span></div>
                 <div class="tiny-btn" id="add-stone" onclick="game.modWork('stone',1)">+</div>
             </div>
         </div>
@@ -314,48 +638,59 @@
     <div id="game-over">
         <h1 id="end-title" class="text-5xl font-bold mb-4 text-white">GAME OVER</h1>
         <p id="end-reason" class="text-xl text-gray-300 mb-8">Reason</p>
-        <button onclick="location.reload()" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded">再来一局</button>
+        <button onclick="location.reload()"
+            class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded">再来一局</button>
     </div>
 
     <script>
-        const TICK_RATE = 100; 
+        const TICK_RATE = 100;
         const MAX_QUEUE_SIZE = 5;
-        const MAX_TOTAL_POP = 200; 
+        const MAX_TOTAL_POP = 200;
 
         const CONSTANTS = {
             INITIAL_RES: { food: 200, wood: 100, gold: 0, stone: 0 },
-            BASE_HP: 2000, INITIAL_POP_CAP: 20, 
-            MAP_WIDTH_PERCENT: 100, 
-            UNIT_SIZE_PERCENT: 0.8, 
-            ATTACK_RANGE_PERCENT: 8, 
+            BASE_HP: 2000, INITIAL_POP_CAP: 20,
+            MAP_WIDTH_PERCENT: 100,
+            UNIT_SIZE_PERCENT: 0.8,
+            ATTACK_RANGE_PERCENT: 8,
             UNITS: {
-                worker: { cost: { food: 50, wood: 0 }, time: 120, hp: 10, dmg: 0, type: 'eco', label: '农民' }, 
-                clubman: { cost: { food: 80, wood: 20 }, time: 50, hp: 60, dmg: 5, speed: 1.0, type: 'mil', label: '棒子兵' } 
+                worker: { cost: { food: 50, wood: 0 }, time: 120, hp: 10, dmg: 0, def: 0, type: 'eco', label: '农民' },
+                clubman: { cost: { food: 80, wood: 20 }, time: 50, hp: 60, dmg: 5, def: 0, speed: 1.0, type: 'mil', label: '棒子兵' }
             },
             BUILDINGS: {
-                house: { cost: { food: 0, wood: 50, stone: 0 }, pop: 10, time: 100, label: '房屋', icon: '🏠' }, 
+                house: { cost: { food: 0, wood: 50, stone: 0 }, pop: 10, time: 100, label: '房屋', icon: '🏠' },
                 barracks: { cost: { food: 0, wood: 150, stone: 0 }, time: 200, label: '兵营', icon: '⚔️' },
-                towncenter: { cost: { food: 0, wood: 0, stone: 350 }, pop: 20, time: 400, label: '基地', icon: '🏛️' } 
+                towncenter: { cost: { food: 0, wood: 0, stone: 350 }, pop: 20, time: 400, label: '基地', icon: '🏛️' },
+                // 新增铁匠铺
+                blacksmith: { cost: { food: 0, wood: 150, stone: 0 }, time: 300, label: '铁匠铺', icon: '⚒️' }
             },
-            // 新增: 科技
             TECHS: {
-                turret_tech: { 
-                    cost: { food: 0, wood: 0, gold: 100, stone: 50 }, 
-                    time: 240, // 2个农民的时间 (120 * 2)
-                    label: '防御炮台', 
-                    icon: '🏯',
-                    desc: '基地获得强大防御力'
-                }
+                turret_tech: { cost: { food: 0, wood: 0, gold: 100, stone: 50 }, time: 240, label: '防御炮台', icon: '🏯', desc: '基地获得强大防御力' },
+                // 铁匠铺科技：攻击
+                tech_atk_1: { cost: { food: 0, wood: 50, gold: 100, stone: 0 }, time: 500, label: '近战攻击 I', icon: '🗡️', level: 1, type: 'atk' },
+                // ↓↓↓ 修改这里：time 从 500 改为 1000
+                tech_atk_2: { cost: { food: 0, wood: 100, gold: 200, stone: 0 }, time: 1000, label: '近战攻击 II', icon: '🗡️', level: 2, type: 'atk' },
+                
+                // 铁匠铺科技：防御
+                tech_def_1: { cost: { food: 50, wood: 0, gold: 100, stone: 0 }, time: 500, label: '近战防御 I', icon: '🛡️', level: 1, type: 'def' },
+                // ↓↓↓ 修改这里：time 从 500 改为 1000
+                tech_def_2: { cost: { food: 100, wood: 0, gold: 200, stone: 0 }, time: 1000, label: '近战防御 II', icon: '🛡️', level: 2, type: 'def' }
             }
         };
 
         class Entity {
             constructor(type, owner, id) {
                 this.id = id; this.type = type; this.owner = owner;
-                this.maxHp = CONSTANTS.UNITS[type].hp; this.hp = this.maxHp;
-                this.dmg = CONSTANTS.UNITS[type].dmg || 0;
-                this.speed = (CONSTANTS.UNITS[type].speed || 0) / (1000 / TICK_RATE); 
-                this.pos = owner === 'player' ? 5 : 95; this.state = 'move'; 
+                const uData = CONSTANTS.UNITS[type];
+                this.maxHp = uData.hp; 
+                this.hp = this.maxHp;
+                
+                // 基础属性
+                this.dmg = uData.dmg || 0;
+                this.def = uData.def || 0;
+                
+                this.speed = (uData.speed || 0) / (1000 / TICK_RATE);
+                this.pos = owner === 'player' ? 5 : 95; this.state = 'move';
                 this.width = CONSTANTS.UNIT_SIZE_PERCENT;
                 this.attackCooldown = Math.floor(Math.random() * 10); this.attackAnimTimer = 0;
             }
@@ -376,8 +711,9 @@
                     enemy: this.createFactionState('enemy'),
                     units: [],
                     playerStance: 'attack',
-                    selectedDockId: null, 
-                    turretShots: [] // 用于存储当帧的炮台激光特效
+                    enemyStance: 'attack',
+                    selectedDockId: null,
+                    turretShots: []
                 };
 
                 window.addEventListener('click', (e) => {
@@ -385,63 +721,30 @@
                 });
 
                 this.renderDock();
-
                 this.logicInterval = setInterval(() => this.updateLogic(), TICK_RATE);
-                
-                // --- 调试: 每3秒打印一次敌人状态 ---
-                setInterval(() => this.debugEnemyState(), 3000);
-
+                setInterval(() => this.debugAI(), 3000);
                 requestAnimationFrame(() => this.loop());
             }
-            
-            // --- 调试: 详细的敌人状态输出函数 ---
-            debugEnemyState() {
+
+            debugAI() {
                 if (this.gameOver) return;
-                const e = this.state.enemy;
-                const tcs = e.buildingInstances.filter(b => b.type === 'towncenter').length;
-                const barracks = e.buildingInstances.filter(b => b.type === 'barracks').length;
-                const currentPop = e.workers + e.armyCount;
-                
-                console.group(`🔴 敌人状态监控 (Tick: ${this.state.tick})`);
-                console.log(`💰 资源: 🥩${Math.floor(e.food)} 🌲${Math.floor(e.wood)} 🪙${Math.floor(e.gold)} 🪨${Math.floor(e.stone)}`);
-                console.log(`👷 人口: ${currentPop}/${e.popCap} (农民: ${e.workers}, 军队: ${e.armyCount})`);
-                console.log(`🏗️ 建筑: 基地 x${tcs}, 兵营 x${barracks}`);
-                
-                // 检查生产队列
-                const producing = e.buildingInstances
-                    .filter(b => b.queue.length > 0)
-                    .map(b => {
-                        const item = b.queue[0];
-                        const label = CONSTANTS.UNITS[item.type] ? CONSTANTS.UNITS[item.type].label : item.type;
-                        return `${CONSTANTS.BUILDINGS[b.type].label}正在造->${label}`;
-                    });
-                
-                if (producing.length > 0) {
-                    console.log('⚙️ 生产线:', producing.join(', '));
-                } else {
-                    console.log('💤 生产线: 空闲');
-                }
-                console.groupEnd();
+                // const e = this.state.enemy;
+                // console.log(`[AI] 姿态: ${this.state.enemyStance} | 资源: 🥩${Math.floor(e.food)} 🌲${Math.floor(e.wood)} | 人口: ${e.workers + e.armyCount}`);
             }
 
             createFactionState(name) {
                 const initialBuildings = [{ id: `${name}-b-${this.buildingIdCounter++}`, type: 'towncenter', queue: [] }];
                 let initialWorkers = 4;
-                
-                if (name === 'enemy') {
-                    initialWorkers = 6; 
-                }
-
+                if (name === 'enemy') initialWorkers = 6;
                 return {
                     name: name,
                     food: CONSTANTS.INITIAL_RES.food, wood: CONSTANTS.INITIAL_RES.wood, gold: CONSTANTS.INITIAL_RES.gold, stone: CONSTANTS.INITIAL_RES.stone,
-                    idleWorkers: 0, assignments: { food: initialWorkers, wood: 0, gold: 0, stone: 0 }, workers: initialWorkers, 
+                    idleWorkers: 0, assignments: { food: initialWorkers, wood: 0, gold: 0, stone: 0 }, workers: initialWorkers,
                     popCap: CONSTANTS.INITIAL_POP_CAP, baseHp: CONSTANTS.BASE_HP,
-                    buildingInstances: initialBuildings,
-                    constructions: [], 
-                    armyCount: 0,
-                    hasTurret: false, // 是否拥有炮台科技
-                    turretCooldown: 0 // 炮台射击冷却
+                    buildingInstances: initialBuildings, constructions: [], armyCount: 0,
+                    hasTurret: false, turretCooldown: 0,
+                    // 新增：科技等级记录
+                    techLevels: { atk: 0, def: 0 }
                 };
             }
 
@@ -473,75 +776,82 @@
             updateLogic() {
                 if (this.gameOver) return;
                 this.state.tick++;
-                if (this.state.tick % 10 === 0) { this.gatherResources(this.state.player); this.gatherResources(this.state.enemy); this.runAI(); }
+                if (this.state.tick % 10 === 0) {
+                    this.gatherResources(this.state.player);
+                    this.gatherResources(this.state.enemy);
+                    this.runAI();
+                }
                 this.processBuildingQueues(this.state.player); this.processBuildingQueues(this.state.enemy);
                 this.processConstructions(this.state.player); this.processConstructions(this.state.enemy);
-                
-                // 清空上一帧的激光特效
+
                 this.state.turretShots = [];
                 this.processBaseDefense(this.state.player);
                 this.processBaseDefense(this.state.enemy);
 
                 this.updateUnits();
-                this.updateUI(); 
+                this.updateUI();
             }
 
-            gatherResources(f) { 
-                f.food += f.assignments.food;
-                f.wood += f.assignments.wood; 
-                f.gold += f.assignments.gold; 
-                f.stone += f.assignments.stone; 
+            gatherResources(f) {
+                f.food += f.assignments.food; f.wood += f.assignments.wood;
+                f.gold += f.assignments.gold; f.stone += f.assignments.stone;
             }
 
             processBuildingQueues(f) {
                 f.buildingInstances.forEach(b => {
                     if (b.queue.length > 0) {
                         b.queue[0].ticksLeft--;
-                        if (b.queue[0].ticksLeft <= 0) { 
+                        if (b.queue[0].ticksLeft <= 0) {
                             const item = b.queue[0];
-                            if (item.type === 'turret_tech') {
-                                f.hasTurret = true;
-                                if(f.name === 'player') this.showToast("炮台系统升级完成!", "#8b5cf6");
-                                this.closePopover(); // 刷新菜单以隐藏选项
+                            // 处理科技完成
+                            if (CONSTANTS.TECHS[item.type]) {
+                                const tech = CONSTANTS.TECHS[item.type];
+                                if (item.type === 'turret_tech') {
+                                    f.hasTurret = true;
+                                    if (f.name === 'player') this.showToast("炮台系统升级完成!", "#8b5cf6");
+                                } 
+                                else if (tech.type === 'atk' || tech.type === 'def') {
+                                    // 升级 攻击 或 防御
+                                    f.techLevels[tech.type] = tech.level;
+                                    if (f.name === 'player') this.showToast(`${tech.label} 研发完成!`, "#8b5cf6");
+                                    
+                                    // 立即更新全场现有兵种属性
+                                    this.state.units.filter(u => u.owner === f.name && CONSTANTS.UNITS[u.type].type === 'mil').forEach(u => {
+                                        if(tech.type === 'atk') u.dmg += 1;
+                                        if(tech.type === 'def') u.def += 1;
+                                    });
+                                }
+                                // 如果当前正在看这个建筑，刷新菜单以显示下一级科技
+                                if(this.state.selectedDockId === b.id) this.buildPopover();
+                                else this.closePopover();
                             } else {
-                                this.spawnUnit(f, item.type); 
+                                this.spawnUnit(f, item.type);
                             }
-                            b.queue.shift(); 
+                            b.queue.shift();
                         }
                     }
                 });
             }
-            
-            // 新增: 基地炮台防御逻辑
+
             processBaseDefense(f) {
                 if (!f.hasTurret) return;
                 if (f.turretCooldown > 0) { f.turretCooldown--; return; }
-
-                // 参数: 射程两倍(16%), 攻速1.75倍(约6tick冷却)
                 const RANGE = CONSTANTS.ATTACK_RANGE_PERCENT * 2;
                 const DAMAGE = CONSTANTS.UNITS.clubman.dmg * 1.5;
-                const COOLDOWN = Math.floor(10 / 1.25); 
-
+                const COOLDOWN = Math.floor(10 / 1.25);
                 const basePos = f.name === 'player' ? 0 : 100;
                 const enemies = this.state.units.filter(u => u.owner !== f.name);
-                
-                // 筛选范围内敌人
                 const targets = enemies.filter(e => Math.abs(e.pos - basePos) <= RANGE);
-                
                 if (targets.length > 0) {
                     f.turretCooldown = COOLDOWN;
-                    // 随机攻击最多3个
                     const shotCount = Math.min(targets.length, 3);
-                    for(let i=0; i<shotCount; i++) {
+                    for (let i = 0; i < shotCount; i++) {
                         const target = targets[Math.floor(Math.random() * targets.length)];
-                        target.hp -= DAMAGE;
-                        this.spawnFloater(target.pos, `-${DAMAGE.toFixed(1)}`, '#f0f');
-                        // 记录射击用于绘图
-                        this.state.turretShots.push({
-                            start: basePos,
-                            end: target.pos,
-                            color: f.name === 'player' ? '#60a5fa' : '#f87171'
-                        });
+                        // 基地炮台伤害也受防御力减免（简单起见，或者设定为真实伤害？这里暂且计算防御）
+                        let actualDmg = Math.max(1, DAMAGE - target.def); 
+                        target.hp -= actualDmg;
+                        this.spawnFloater(target.pos, `-${actualDmg.toFixed(1)}`, '#f0f');
+                        this.state.turretShots.push({ start: basePos, end: target.pos, color: f.name === 'player' ? '#60a5fa' : '#f87171' });
                     }
                 }
             }
@@ -564,7 +874,16 @@
             spawnUnit(f, type) {
                 if (f.name !== 'enemy' && f.workers + f.armyCount >= MAX_TOTAL_POP) return;
                 if (CONSTANTS.UNITS[type].type === 'eco') { f.workers++; f.idleWorkers++; }
-                else { f.armyCount++; this.state.units.push(new Entity(type, f.name, this.entityIdCounter++)); }
+                else { 
+                    f.armyCount++; 
+                    const u = new Entity(type, f.name, this.entityIdCounter++);
+                    // 初始属性 + 科技加成
+                    if (CONSTANTS.UNITS[type].type === 'mil') {
+                        u.dmg += f.techLevels.atk;
+                        u.def += f.techLevels.def;
+                    }
+                    this.state.units.push(u);
+                }
             }
 
             playerQueueUnit(bid, type) {
@@ -572,31 +891,29 @@
                 if (!b) return;
                 const unitData = CONSTANTS.UNITS[type];
                 if (b.queue.length >= MAX_QUEUE_SIZE) { this.showToast("队列已满"); return; }
-                let totalPop = f.workers + f.armyCount; f.buildingInstances.forEach(bb => totalPop += bb.queue.length); // 简单计算，未排除科技队列，但误差可接受
-                if (totalPop >= MAX_TOTAL_POP || totalPop >= f.popCap) { this.showToast("人口不足，建造更多房屋！"); return; }
+                let totalPop = f.workers + f.armyCount; f.buildingInstances.forEach(bb => totalPop += bb.queue.length);
+                if (totalPop >= MAX_TOTAL_POP || totalPop >= f.popCap) { this.showToast("人口不足"); return; }
                 if (f.food < unitData.cost.food || f.wood < unitData.cost.wood) { this.showToast("资源不足"); return; }
                 f.food -= unitData.cost.food; f.wood -= unitData.cost.wood;
                 b.queue.push({ type: type, ticksLeft: unitData.time, totalTicks: unitData.time });
                 this.refreshPopoverState();
             }
 
-            // 新增: 玩家科技研发队列
             playerQueueTech(bid, techId) {
                 const f = this.state.player; const b = f.buildingInstances.find(i => i.id === bid);
                 if (!b) return;
                 const tech = CONSTANTS.TECHS[techId];
+                if (b.queue.length > 0) { this.showToast("队列不为空"); return; }
+                if (f.food < tech.cost.food || f.wood < tech.cost.wood || f.gold < tech.cost.gold || f.stone < tech.cost.stone) { this.showToast("资源不足"); return; }
                 
-                if (b.queue.length > 0) { this.showToast("队列不为空，无法研发"); return; } // 科技通常建议空队列研发，这里简化处理，允许排队
-                if (b.queue.length >= MAX_QUEUE_SIZE) { this.showToast("队列已满"); return; }
+                f.food -= (tech.cost.food || 0);
+                f.wood -= (tech.cost.wood || 0);
+                f.gold -= (tech.cost.gold || 0);
+                f.stone -= (tech.cost.stone || 0);
 
-                if (f.gold < tech.cost.gold || f.stone < tech.cost.stone) { this.showToast("资源不足"); return; }
-                
-                f.gold -= tech.cost.gold; 
-                f.stone -= tech.cost.stone;
-                
                 b.queue.push({ type: techId, ticksLeft: tech.time, totalTicks: tech.time });
-                this.showToast("开始研发: " + tech.label, "#8b5cf6");
-                this.closePopover(); // 关闭菜单，因为研发后该选项会消失
+                this.showToast("研发: " + tech.label, "#8b5cf6");
+                this.closePopover(); // 刷新或关闭
             }
 
             playerBuildStructure(type) {
@@ -607,8 +924,7 @@
                 f.food -= d.cost.food; f.wood -= d.cost.wood; f.stone -= sCost;
                 f.constructions.push({ id: this.constructionIdCounter++, type: type, ticksLeft: d.time, totalTicks: d.time });
                 this.showToast(`开始建造 ${d.label}`);
-                this.closePopover();
-                this.renderDock();
+                this.closePopover(); this.renderDock();
             }
 
             setPlayerStance(s) {
@@ -621,10 +937,12 @@
 
             runAI() {
                 const ai = this.state.enemy;
+                // 1. 资源管理 
                 ai.assignments = { food: 0, wood: 0, gold: 0, stone: 0 };
                 ai.idleWorkers = 0; 
-                if (ai.food < ai.wood) { ai.assignments.food = ai.workers; } else { ai.assignments.wood = ai.workers; }
+                if (ai.food < ai.wood) ai.assignments.food = ai.workers; else ai.assignments.wood = ai.workers;
 
+                // 2. 生产管理
                 let pendingWorkers = 0;
                 ai.buildingInstances.forEach(b => { b.queue.forEach(q => { if (q.type === 'worker') pendingWorkers++; }); });
 
@@ -633,51 +951,76 @@
                     if (b.queue.length < 5) { 
                         if (b.type === 'towncenter') { 
                             if (ai.workers + pendingWorkers < 60) {
-                                this.aiQueue(ai, b, 'worker'); 
-                                pendingWorkers++;
+                                this.aiQueue(ai, b, 'worker'); pendingWorkers++;
                             }
                         } else if (b.type === 'barracks') { this.aiQueue(ai, b, 'clubman'); }
                     }
                 });
                 const barracksCost = CONSTANTS.BUILDINGS.barracks.cost;
                 if (ai.wood >= barracksCost.wood) { this.aiBuild(ai, 'barracks'); }
+
+                // 3. 战术姿态逻辑
+                const pUnits = this.state.units.filter(u => u.owner === 'player');
+                const eUnits = this.state.units.filter(u => u.owner === 'enemy');
+                
+                let playerFront = 0; 
+                if (pUnits.length > 0) playerFront = Math.max(...pUnits.map(u => u.pos));
+                let enemyFront = 100; 
+                if (eUnits.length > 0) enemyFront = Math.min(...eUnits.map(u => u.pos));
+
+                const distance = enemyFront - playerFront;
+                const battleLine = (playerFront + enemyFront) / 2;
+
+                let newStance = 'attack'; 
+                if (distance > 30) {
+                    newStance = 'attack';
+                } else {
+                    if (battleLine > 65) {
+                        newStance = 'defend';
+                    } else {
+                        newStance = 'attack';
+                    }
+                }
+                if (this.state.enemyStance !== newStance) {
+                    this.state.enemyStance = newStance;
+                }
+            }
+            
+            aiBuild(f, t) {
+                const d = CONSTANTS.BUILDINGS[t]; const s = d.cost.stone || 0;
+                if (f.food >= d.cost.food && f.wood >= d.cost.wood && f.stone >= s) {
+                    f.food -= d.cost.food; f.wood -= d.cost.wood; f.stone -= s;
+                    f.constructions.push({ id: Math.random(), type: t, ticksLeft: d.time, totalTicks: d.time });
+                }
             }
 
-            aiBuild(f, t) { 
-                const d = CONSTANTS.BUILDINGS[t]; const s = d.cost.stone || 0; 
-                if (f.food >= d.cost.food && f.wood >= d.cost.wood && f.stone >= s) { 
-                    f.food -= d.cost.food; f.wood -= d.cost.wood; f.stone -= s; 
-                    f.constructions.push({ id: Math.random(), type: t, ticksLeft: d.time, totalTicks: d.time }); 
-                } 
-            }
-
-            aiQueue(f, b, u) { 
-                const d = CONSTANTS.UNITS[u]; 
-                if (f.food >= d.cost.food && f.wood >= d.cost.wood) { 
-                    f.food -= d.cost.food; f.wood -= d.cost.wood; 
-                    b.queue.push({ type: u, ticksLeft: d.time, totalTicks: d.time }); 
-                } 
+            aiQueue(f, b, u) {
+                const d = CONSTANTS.UNITS[u];
+                if (f.food >= d.cost.food && f.wood >= d.cost.wood) {
+                    f.food -= d.cost.food; f.wood -= d.cost.wood;
+                    b.queue.push({ type: u, ticksLeft: d.time, totalTicks: d.time });
+                }
             }
 
             updateUI() {
                 const p = this.state.player; const e = this.state.enemy;
                 document.getElementById('p-base-hp').style.width = Math.max(0, (p.baseHp / CONSTANTS.BASE_HP * 100)) + '%';
                 document.getElementById('e-base-hp').style.width = Math.max(0, (e.baseHp / CONSTANTS.BASE_HP * 100)) + '%';
-                
-                if(p.hasTurret) document.getElementById('p-base').classList.add('has-turret');
-                if(e.hasTurret) document.getElementById('e-base').classList.add('has-turret');
+
+                if (p.hasTurret) document.getElementById('p-base').classList.add('has-turret');
+                if (e.hasTurret) document.getElementById('e-base').classList.add('has-turret');
 
                 const currentPop = p.workers + p.armyCount;
                 const popEl = document.getElementById('disp-pop');
                 popEl.innerText = `${currentPop}/${p.popCap}`;
-                popEl.style.color = '#e5e5e5'; 
-                if (currentPop >= p.popCap) popEl.style.color = '#ef4444'; 
-                else if (currentPop >= p.popCap * 0.8) popEl.style.color = '#eab308'; 
+                popEl.style.color = '#e5e5e5';
+                if (currentPop >= p.popCap) popEl.style.color = '#ef4444';
+                else if (currentPop >= p.popCap * 0.8) popEl.style.color = '#eab308';
 
                 const idleEl = document.getElementById('disp-idle'); idleEl.innerText = p.idleWorkers;
                 if (p.idleWorkers > 0) idleEl.classList.add('warning'); else idleEl.classList.remove('warning');
 
-                ['food','wood','gold','stone'].forEach(r => {
+                ['food', 'wood', 'gold', 'stone'].forEach(r => {
                     document.getElementById(`res-stock-${r}`).innerText = Math.floor(p[r]);
                     document.getElementById(`res-workers-${r}`).innerText = p.assignments[r];
                     const btnAdd = document.getElementById(`add-${r}`);
@@ -691,58 +1034,26 @@
             }
 
             renderDock() {
-                const dock = document.getElementById('dock');
-                dock.innerHTML = ''; 
-                const p = this.state.player;
-
+                const dock = document.getElementById('dock'); dock.innerHTML = ''; const p = this.state.player;
                 const houses = p.buildingInstances.filter(b => b.type === 'house');
-                const others = p.buildingInstances.filter(b => b.type !== 'house');
-                const sortedOthers = others.sort((a, b) => (a.type === 'towncenter' ? -1 : 1));
-                
-                sortedOthers.forEach(b => {
-                    const icon = this.createDockIcon(b.id, CONSTANTS.BUILDINGS[b.type].icon, false);
-                    icon.onclick = () => this.toggleDockItem(b.id);
-                    dock.appendChild(icon);
+                // 排序：基地 -> 兵营 -> 铁匠铺
+                const others = p.buildingInstances.filter(b => b.type !== 'house').sort((a, b) => {
+                    const order = { towncenter: 1, barracks: 2, blacksmith: 3 };
+                    return (order[a.type] || 99) - (order[b.type] || 99);
                 });
-
-                if (houses.length > 0) {
-                    const icon = this.createDockIcon('group-house', CONSTANTS.BUILDINGS['house'].icon, false);
-                    icon.onclick = () => this.toggleDockItem('group-house');
-                    const badge = icon.querySelector('.icon-badge');
-                    badge.style.display = 'flex';
-                    badge.classList.add('house-badge'); 
-                    badge.innerText = houses.length;
-                    dock.appendChild(icon);
-                }
-
-                p.constructions.forEach(task => {
-                    const icon = this.createDockIcon(`const-${task.id}`, CONSTANTS.BUILDINGS[task.type].icon, true);
-                    dock.appendChild(icon);
-                });
-
-                const hammer = this.createDockIcon('dock-build_menu', '🔨', false);
-                hammer.classList.add('build-icon');
-                hammer.onclick = () => this.toggleDockItem('build_menu');
-                dock.appendChild(hammer);
-
+                others.forEach(b => { const icon = this.createDockIcon(b.id, CONSTANTS.BUILDINGS[b.type].icon, false); icon.onclick = () => this.toggleDockItem(b.id); dock.appendChild(icon); });
+                if (houses.length > 0) { const icon = this.createDockIcon('group-house', CONSTANTS.BUILDINGS['house'].icon, false); icon.onclick = () => this.toggleDockItem('group-house'); icon.querySelector('.icon-badge').style.display = 'flex'; icon.querySelector('.icon-badge').classList.add('house-badge'); icon.querySelector('.icon-badge').innerText = houses.length; dock.appendChild(icon); }
+                p.constructions.forEach(task => { const icon = this.createDockIcon(`const-${task.id}`, CONSTANTS.BUILDINGS[task.type].icon, true); dock.appendChild(icon); });
+                const hammer = this.createDockIcon('dock-build_menu', '🔨', false); hammer.classList.add('build-icon'); hammer.onclick = () => this.toggleDockItem('build_menu'); dock.appendChild(hammer);
                 this.updateDockVisuals();
             }
 
             createDockIcon(id, emoji, isConstructing) {
-                const icon = document.createElement('div');
-                icon.className = `dock-icon ${isConstructing ? 'constructing' : ''}`;
-                icon.id = `dock-elem-${id}`; 
-                icon.dataset.refId = id;     
-                icon.innerHTML = emoji;
-                if (isConstructing) {
-                    const overlay = document.createElement('div'); overlay.className = 'const-overlay';
-                    icon.appendChild(overlay);
-                }
-                const barBg = document.createElement('div'); barBg.className = 'icon-progress-bg';
-                const barFill = document.createElement('div'); barFill.className = 'icon-progress-fill';
-                barBg.appendChild(barFill); icon.appendChild(barBg);
-                const badge = document.createElement('div'); badge.className = 'icon-badge'; badge.style.display = 'none';
-                icon.appendChild(badge);
+                const icon = document.createElement('div'); icon.className = `dock-icon ${isConstructing ? 'constructing' : ''}`;
+                icon.id = `dock-elem-${id}`; icon.dataset.refId = id; icon.innerHTML = emoji;
+                if (isConstructing) { const overlay = document.createElement('div'); overlay.className = 'const-overlay'; icon.appendChild(overlay); }
+                const barBg = document.createElement('div'); barBg.className = 'icon-progress-bg'; const barFill = document.createElement('div'); barFill.className = 'icon-progress-fill'; barBg.appendChild(barFill); icon.appendChild(barBg);
+                const badge = document.createElement('div'); badge.className = 'icon-badge'; badge.style.display = 'none'; icon.appendChild(badge);
                 return icon;
             }
 
@@ -752,38 +1063,19 @@
                     if (b.type === 'house') return;
                     const el = document.getElementById(`dock-elem-${b.id}`);
                     if (el) {
-                        const barBg = el.querySelector('.icon-progress-bg'); 
-                        const bar = el.querySelector('.icon-progress-fill');
-                        const badge = el.querySelector('.icon-badge');
-                        if (b.queue.length > 0) {
-                            const t = b.queue[0];
-                            bar.style.width = (100 - (t.ticksLeft / t.totalTicks * 100)) + '%';
-                            badge.style.display = 'flex'; badge.innerText = b.queue.length;
-                            barBg.style.display = 'block'; 
-                        } else {
-                            bar.style.width = '0%'; badge.style.display = 'none';
-                            barBg.style.display = 'none'; 
-                        }
+                        const barBg = el.querySelector('.icon-progress-bg'); const bar = el.querySelector('.icon-progress-fill'); const badge = el.querySelector('.icon-badge');
+                        if (b.queue.length > 0) { const t = b.queue[0]; bar.style.width = (100 - (t.ticksLeft / t.totalTicks * 100)) + '%'; badge.style.display = 'flex'; badge.innerText = b.queue.length; barBg.style.display = 'block'; }
+                        else { bar.style.width = '0%'; badge.style.display = 'none'; barBg.style.display = 'none'; }
                     }
                 });
                 const houseCount = p.buildingInstances.filter(b => b.type === 'house').length;
-                const houseGroupIcon = document.getElementById('dock-elem-group-house');
-                if (houseGroupIcon) {
-                    const badge = houseGroupIcon.querySelector('.icon-badge');
-                    badge.innerText = houseCount;
-                    const barBg = houseGroupIcon.querySelector('.icon-progress-bg');
-                    if(barBg) barBg.style.display = 'none';
-                }
+                const hIcon = document.getElementById('dock-elem-group-house');
+                if (hIcon) { hIcon.querySelector('.icon-badge').innerText = houseCount; if (hIcon.querySelector('.icon-progress-bg')) hIcon.querySelector('.icon-progress-bg').style.display = 'none'; }
                 p.constructions.forEach(task => {
                     const el = document.getElementById(`dock-elem-const-${task.id}`);
                     if (el) {
-                        const barBg = el.querySelector('.icon-progress-bg');
-                        const bar = el.querySelector('.icon-progress-fill');
-                        const overlay = el.querySelector('.const-overlay');
-                        const pct = Math.floor(100 - (task.ticksLeft / task.totalTicks * 100));
-                        bar.style.width = pct + '%';
-                        overlay.innerText = pct + '%';
-                        barBg.style.display = 'block';
+                        const bar = el.querySelector('.icon-progress-fill'); const overlay = el.querySelector('.const-overlay');
+                        const pct = Math.floor(100 - (task.ticksLeft / task.totalTicks * 100)); bar.style.width = pct + '%'; overlay.innerText = pct + '%'; el.querySelector('.icon-progress-bg').style.display = 'block';
                     }
                 });
             }
@@ -792,8 +1084,7 @@
                 const dock = document.getElementById('dock');
                 Array.from(dock.children).forEach(el => {
                     const logicalId = el.id === 'dock-elem-dock-build_menu' ? 'build_menu' : el.dataset.refId;
-                    if (this.state.selectedDockId === logicalId) el.classList.add('active');
-                    else el.classList.remove('active');
+                    if (this.state.selectedDockId === logicalId) el.classList.add('active'); else el.classList.remove('active');
                 });
             }
 
@@ -802,112 +1093,128 @@
                 const id = this.state.selectedDockId;
                 if (!id) { container.style.display = 'none'; return; }
                 container.innerHTML = ''; container.style.display = 'flex';
-                
                 const domId = id === 'build_menu' ? 'dock-elem-dock-build_menu' : `dock-elem-${id}`;
                 const icon = document.getElementById(domId);
-                if (icon) {
-                    const rect = icon.getBoundingClientRect();
-                    container.style.left = (rect.left + rect.width / 2) + 'px';
-                }
+                if (icon) { const rect = icon.getBoundingClientRect(); container.style.left = (rect.left + rect.width / 2) + 'px'; }
 
+                const p = this.state.player;
                 if (id === 'build_menu') {
                     container.innerHTML = `<div class="popover-title">建造</div>`;
-                    const types = ['house', 'barracks', 'towncenter'];
-                    types.forEach(t => {
+                    ['house', 'barracks', 'blacksmith', 'towncenter'].forEach(t => {
                         const d = CONSTANTS.BUILDINGS[t];
-                        const btn = document.createElement('div');
-                        btn.className = 'menu-btn build-action-btn'; btn.dataset.type = t;
+                        const btn = document.createElement('div'); btn.className = 'menu-btn build-action-btn'; btn.dataset.type = t;
                         btn.onclick = () => this.playerBuildStructure(t);
                         let cost = []; 
-                        if(d.cost.wood) cost.push(`${d.cost.wood}木`);
+                        if(d.cost.food) cost.push(`${d.cost.food}肉`);
+                        if(d.cost.wood) cost.push(`${d.cost.wood}木`); 
                         if(d.cost.stone) cost.push(`${d.cost.stone}石`);
                         btn.innerHTML = `<span class="btn-icon">${d.icon}</span><div class="btn-info"><span>${d.label}</span><span class="btn-cost">${cost.join(' ')}</span></div>`;
                         container.appendChild(btn);
                     });
                 } else if (id === 'group-house') {
-                    container.innerHTML = `<div class="popover-title">房屋 (House)</div>`;
-                    const info = document.createElement('div');
-                    info.className = 'p-2 text-sm text-gray-300 text-center';
-                    info.innerText = '房屋用于增加人口';
-                    container.appendChild(info);
+                    container.innerHTML = `<div class="popover-title">房屋</div><div class="p-2 text-sm text-gray-300 text-center">房屋用于增加人口</div>`;
                 } else {
-                    const b = this.state.player.buildingInstances.find(x => x.id === id);
+                    const b = p.buildingInstances.find(x => x.id === id);
                     if (b) {
                         container.innerHTML = `<div class="popover-title">${CONSTANTS.BUILDINGS[b.type].label}</div>`;
                         
-                        // Unit production buttons
-                        const uType = b.type === 'towncenter' ? 'worker' : 'clubman';
-                        const u = CONSTANTS.UNITS[uType];
-                        const btn = document.createElement('div');
-                        btn.className = 'menu-btn produce-action-btn'; btn.dataset.type = uType;
-                        btn.onclick = () => this.playerQueueUnit(id, uType);
-                        let cost = []; 
-                        if(u.cost.food) cost.push(`${u.cost.food}肉`);
-                        if(u.cost.wood) cost.push(`${u.cost.wood}木`);
-                        btn.innerHTML = `<span class="btn-icon">${uType==='worker'?'👷':'⚔️'}</span><div class="btn-info"><span>训练${u.label}</span><span class="btn-cost">${cost.join(' ')}</span></div>`;
-                        container.appendChild(btn);
+                        // 基地和兵营的生产逻辑
+                        if (b.type === 'towncenter' || b.type === 'barracks') {
+                            const uType = b.type === 'towncenter' ? 'worker' : 'clubman'; const u = CONSTANTS.UNITS[uType];
+                            const btn = document.createElement('div'); btn.className = 'menu-btn produce-action-btn'; btn.dataset.type = uType;
+                            btn.onclick = () => this.playerQueueUnit(id, uType);
+                            let cost = []; if (u.cost.food) cost.push(`${u.cost.food}肉`); if (u.cost.wood) cost.push(`${u.cost.wood}木`);
+                            btn.innerHTML = `<span class="btn-icon">${uType === 'worker' ? '👷' : '⚔️'}</span><div class="btn-info"><span>训练${u.label}</span><span class="btn-cost">${cost.join(' ')}</span></div>`;
+                            container.appendChild(btn);
+                        }
 
-                        // Tech buttons (Town Center only)
+                        // 基地科技：炮台
                         if (b.type === 'towncenter') {
-                            const p = this.state.player;
-                            // Check global tech state: not owned, not currently queuing in ANY base
                             const isQueuingTurret = p.buildingInstances.some(bi => bi.queue.some(q => q.type === 'turret_tech'));
-                            
                             if (!p.hasTurret && !isQueuingTurret) {
                                 const tech = CONSTANTS.TECHS.turret_tech;
-                                const techBtn = document.createElement('div');
-                                techBtn.className = 'menu-btn tech-btn'; 
-                                techBtn.dataset.tech = 'turret_tech';
+                                const techBtn = document.createElement('div'); techBtn.className = 'menu-btn tech-btn'; techBtn.dataset.tech = 'turret_tech';
                                 techBtn.onclick = () => this.playerQueueTech(id, 'turret_tech');
-                                let tCost = [];
-                                if(tech.cost.gold) tCost.push(`${tech.cost.gold}金`);
-                                if(tech.cost.stone) tCost.push(`${tech.cost.stone}石`);
+                                let tCost = []; if (tech.cost.gold) tCost.push(`${tech.cost.gold}金`); if (tech.cost.stone) tCost.push(`${tech.cost.stone}石`);
                                 techBtn.innerHTML = `<span class="btn-icon">${tech.icon}</span><div class="btn-info"><span>研发${tech.label}</span><span class="btn-cost">${tCost.join(' ')}</span></div>`;
                                 container.appendChild(techBtn);
                             }
                         }
 
-                        const q = document.createElement('div'); q.id = 'popover-queue-info'; q.className = 'text-xs text-gray-400 text-center mt-1';
-                        container.appendChild(q);
+                        // 铁匠铺科技逻辑
+                        if (b.type === 'blacksmith') {
+                            // 检查是否有其他铁匠铺正在研究攻击/防御
+                            const researchingAtk = p.buildingInstances.some(bi => bi.queue.some(q => q.type.startsWith('tech_atk')));
+                            const researchingDef = p.buildingInstances.some(bi => bi.queue.some(q => q.type.startsWith('tech_def')));
+
+                            const techLevels = p.techLevels;
+
+                            // 攻击科技按钮
+                            if (techLevels.atk < 2 && !researchingAtk) {
+                                const nextLvl = techLevels.atk + 1;
+                                const techId = `tech_atk_${nextLvl}`;
+                                const tech = CONSTANTS.TECHS[techId];
+                                const techBtn = document.createElement('div'); techBtn.className = 'menu-btn tech-btn'; techBtn.dataset.tech = techId;
+                                techBtn.onclick = () => this.playerQueueTech(id, techId);
+                                let tCost = []; 
+                                if (tech.cost.wood) tCost.push(`${tech.cost.wood}木`);
+                                if (tech.cost.food) tCost.push(`${tech.cost.food}肉`);
+                                if (tech.cost.gold) tCost.push(`${tech.cost.gold}金`);
+                                techBtn.innerHTML = `<span class="btn-icon">${tech.icon}</span><div class="btn-info"><span>${tech.label}</span><span class="btn-cost">${tCost.join(' ')}</span></div>`;
+                                container.appendChild(techBtn);
+                            }
+
+                            // 防御科技按钮
+                            if (techLevels.def < 2 && !researchingDef) {
+                                const nextLvl = techLevels.def + 1;
+                                const techId = `tech_def_${nextLvl}`;
+                                const tech = CONSTANTS.TECHS[techId];
+                                const techBtn = document.createElement('div'); techBtn.className = 'menu-btn tech-btn'; techBtn.dataset.tech = techId;
+                                techBtn.onclick = () => this.playerQueueTech(id, techId);
+                                let tCost = []; 
+                                if (tech.cost.wood) tCost.push(`${tech.cost.wood}木`);
+                                if (tech.cost.food) tCost.push(`${tech.cost.food}肉`);
+                                if (tech.cost.gold) tCost.push(`${tech.cost.gold}金`);
+                                techBtn.innerHTML = `<span class="btn-icon">${tech.icon}</span><div class="btn-info"><span>${tech.label}</span><span class="btn-cost">${tCost.join(' ')}</span></div>`;
+                                container.appendChild(techBtn);
+                            }
+                            
+                            if(techLevels.atk >= 2 && techLevels.def >= 2) {
+                                container.innerHTML += `<div class="text-xs text-gray-400 text-center mt-2">科技已升至顶级</div>`;
+                            }
+                        }
+
+                        const q = document.createElement('div'); q.id = 'popover-queue-info'; q.className = 'text-xs text-gray-400 text-center mt-1'; container.appendChild(q);
                     }
                 }
                 this.refreshPopoverState();
             }
 
             refreshPopoverState() {
-                const id = this.state.selectedDockId; if (!id) return;
+                const id = this.state.selectedDockId; if (!id || id === 'group-house') return;
                 const p = this.state.player;
-                if (id === 'group-house') return; 
-
                 if (id === 'build_menu') {
                     document.querySelectorAll('.build-action-btn').forEach(btn => {
-                        const t = btn.dataset.type; const d = CONSTANTS.BUILDINGS[t]; const sc = d.cost.stone||0;
-                        if (p.food >= d.cost.food && p.wood >= d.cost.wood && p.stone >= sc) btn.removeAttribute('disabled');
-                        else btn.setAttribute('disabled', 'true');
+                        const t = btn.dataset.type; const d = CONSTANTS.BUILDINGS[t]; 
+                        const s = d.cost.stone || 0; const f = d.cost.food || 0; const w = d.cost.wood || 0;
+                        if (p.food >= f && p.wood >= w && p.stone >= s) btn.removeAttribute('disabled'); else btn.setAttribute('disabled', 'true');
                     });
                 } else {
                     const b = p.buildingInstances.find(x => x.id === id);
                     if (!b) { this.closePopover(); return; }
-                    
-                    // Unit Buttons
                     document.querySelectorAll('.produce-action-btn').forEach(btn => {
                         const t = btn.dataset.type; const u = CONSTANTS.UNITS[t];
-                        if (p.food >= u.cost.food && p.wood >= u.cost.wood) btn.removeAttribute('disabled');
-                        else btn.setAttribute('disabled', 'true');
+                        if (p.food >= u.cost.food && p.wood >= u.cost.wood) btn.removeAttribute('disabled'); else btn.setAttribute('disabled', 'true');
                     });
-
-                    // Tech Buttons
                     document.querySelectorAll('.tech-btn').forEach(btn => {
                         const tId = btn.dataset.tech; const t = CONSTANTS.TECHS[tId];
-                        if (p.gold >= t.cost.gold && p.stone >= t.cost.stone) btn.removeAttribute('disabled');
-                        else btn.setAttribute('disabled', 'true');
+                        const f = t.cost.food || 0; const w = t.cost.wood || 0; const g = t.cost.gold || 0; const s = t.cost.stone || 0;
+                        if (p.food >= f && p.wood >= w && p.gold >= g && p.stone >= s) btn.removeAttribute('disabled'); else btn.setAttribute('disabled', 'true');
                     });
-
-                    const qInfo = document.getElementById('popover-queue-info');
-                    if (qInfo) qInfo.innerText = `队列: ${b.queue.length}`;
+                    const qInfo = document.getElementById('popover-queue-info'); if (qInfo) qInfo.innerText = `队列: ${b.queue.length}`;
                 }
             }
-            
+
             updateUnits() {
                 let p = this.state.units.filter(u => u.owner === 'player'); let e = this.state.units.filter(u => u.owner === 'enemy').sort((a, b) => a.pos - b.pos);
                 if (this.state.playerStance === 'attack') p.sort((a, b) => b.pos - a.pos); else p.sort((a, b) => a.pos - b.pos);
@@ -925,10 +1232,9 @@
                     if (f.workers > 0) {
                         f.workers--;
                         if (f.idleWorkers > 0) f.idleWorkers--;
-                        else if (f.assignments.stone > 0) f.assignments.stone--;
-                        else if (f.assignments.gold > 0) f.assignments.gold--;
-                        else if (f.assignments.wood > 0) f.assignments.wood--;
-                        else if (f.assignments.food > 0) f.assignments.food--;
+                        else {
+                            for (const r of ['stone', 'gold', 'wood', 'food']) if (f.assignments[r] > 0) { f.assignments[r]--; break; }
+                        }
                     }
                 } else { f.armyCount = Math.max(0, f.armyCount - 1); }
             }
@@ -943,51 +1249,72 @@
                     u.state = 'attack'; u.targetId = (t === "base") ? "base" : t.id;
                     if (u.attackCooldown <= 0) {
                         u.attackCooldown = 10; u.attackAnimTimer = 3; const dmg = u.dmg;
-                        if (t === "base") { if (u.owner === 'player') this.state.enemy.baseHp -= dmg; else this.state.player.baseHp -= dmg; this.spawnFloater(dir === 1 ? 95 : 5, `-${dmg}`, '#f00'); }
-                        else { t.hp -= dmg; this.spawnFloater(t.pos, `-${dmg}`, '#fff'); }
+                        if (t === "base") { 
+                            // 攻击基地
+                            if (u.owner === 'player') this.state.enemy.baseHp -= dmg; 
+                            else this.state.player.baseHp -= dmg; 
+                            this.spawnFloater(dir === 1 ? 95 : 5, `-${dmg}`, '#f00'); 
+                        }
+                        else { 
+                            // 攻击单位，计算防御减伤（最少1点伤害）
+                            let actualDmg = Math.max(1, dmg - t.def);
+                            t.hp -= actualDmg; 
+                            this.spawnFloater(t.pos, `-${actualDmg}`, '#fff'); 
+                        }
                     }
                 } else { u.state = 'move'; }
             }
-            processMovement(u, friends, enemies, i, dir) { 
-                let d = u.pos; const s = u.owner === 'player' ? this.state.playerStance : 'attack';
-                let speed = u.speed; if (dir === -1) speed = -speed;
+
+            processMovement(u, friends, enemies, i, dir) {
+                let d = u.pos;
+                const s = u.owner === 'player' ? this.state.playerStance : this.state.enemyStance;
+                let speed = u.speed;
+                if (dir === -1) speed = -speed;
+
                 if (s === 'attack') {
                     d += speed;
-                    if (i > 0) { const l = friends[i-1].pos - (dir * u.width); if (dir === 1 ? d > l : d < l) d = l; }
-                    if (enemies.length > 0) { const l = enemies[0].pos - (dir * u.width); if (dir === 1 ? d > l : d < l) d = l; }
-                    else if (dir === 1 ? d > 95 : d < 5) d = dir === 1 ? 95 : 5;
+                    if (i > 0) {
+                        const l = friends[i - 1].pos - (dir * u.width);
+                        if (dir === 1 ? d > l : d < l) d = l;
+                    }
+                    if (enemies.length > 0) {
+                        const l = enemies[0].pos - (dir * u.width);
+                        if (dir === 1 ? d > l : d < l) d = l;
+                    } else if (dir === 1 ? d > 95 : d < 5) {
+                        d = dir === 1 ? 95 : 5;
+                    }
                 } else {
-                    let limit = 5; 
-                    if (s === 'defend') d -= u.speed; 
-                    if (i > 0) limit = friends[i-1].pos + u.width; 
-                    if (d < limit) d = limit;
+                    if (s === 'defend') {
+                        d -= speed;
+                    }
+                    if (dir === 1) {
+                        let limit = 5;
+                        if (i > 0) limit = friends[i - 1].pos + u.width;
+                        if (d < limit) d = limit;
+                    } else {
+                        let limit = 95;
+                        if (i < friends.length - 1) {
+                             limit = friends[i+1].pos - u.width;
+                        }
+                        if (d > limit) d = limit;
+                    }
                 }
                 u.pos = Math.min(100, Math.max(0, d));
             }
+
             spawnFloater(x, t, c) { const el = document.createElement('div'); el.className = 'floater'; const r = document.getElementById('game-wrapper').getBoundingClientRect(); el.style.left = (x / 100 * r.width) + 'px'; el.style.top = (r.height / 2 - 20) + 'px'; el.style.color = c; el.innerText = t; document.getElementById('game-wrapper').appendChild(el); setTimeout(() => el.remove(), 1000); }
-            showToast(msg, c='#ef4444') { const el = document.createElement('div'); el.className = 'toast text-white px-4 py-2 rounded shadow-lg font-bold'; el.style.background = c; el.innerText = msg; document.getElementById('toast-container').appendChild(el); setTimeout(() => el.remove(), 2000); }
+            showToast(msg, c = '#ef4444') { const el = document.createElement('div'); el.className = 'toast text-white px-4 py-2 rounded shadow-lg font-bold'; el.style.background = c; el.innerText = msg; document.getElementById('toast-container').appendChild(el); setTimeout(() => el.remove(), 2000); }
 
             loop() { if (!this.gameOver) { this.draw(); requestAnimationFrame(() => this.loop()); } }
-            
+
             draw() {
                 const w = this.canvas.width; const h = this.canvas.height; this.ctx.clearRect(0, 0, w, h);
-                this.ctx.strokeStyle = '#444'; this.ctx.beginPath(); this.ctx.moveTo(0, h/2 + 20); this.ctx.lineTo(w, h/2 + 20); this.ctx.stroke();
-                
-                // 绘制炮台激光
+                this.ctx.strokeStyle = '#444'; this.ctx.beginPath(); this.ctx.moveTo(0, h / 2 + 20); this.ctx.lineTo(w, h / 2 + 20); this.ctx.stroke();
+
                 this.state.turretShots.forEach(shot => {
-                    this.ctx.strokeStyle = shot.color;
-                    this.ctx.lineWidth = 3;
-                    this.ctx.beginPath();
-                    // 从基地中心发出
-                    this.ctx.moveTo((shot.start / 100) * w, h/2);
-                    this.ctx.lineTo((shot.end / 100) * w, h/2);
-                    this.ctx.stroke();
-                    
-                    // 闪光效果
-                    this.ctx.fillStyle = 'white';
-                    this.ctx.beginPath();
-                    this.ctx.arc((shot.end / 100) * w, h/2, 5, 0, Math.PI*2);
-                    this.ctx.fill();
+                    this.ctx.strokeStyle = shot.color; this.ctx.lineWidth = 3; this.ctx.beginPath();
+                    this.ctx.moveTo((shot.start / 100) * w, h / 2); this.ctx.lineTo((shot.end / 100) * w, h / 2); this.ctx.stroke();
+                    this.ctx.fillStyle = 'white'; this.ctx.beginPath(); this.ctx.arc((shot.end / 100) * w, h / 2, 5, 0, Math.PI * 2); this.ctx.fill();
                 });
 
                 this.state.units.forEach(u => {
@@ -1010,4 +1337,5 @@
         const game = new Game();
     </script>
 </body>
+
 </html>
