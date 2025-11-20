@@ -97,24 +97,41 @@
             right: 0;
             display: flex;
             justify-content: space-between;
+            align-items: flex-start; /* 顶部对齐 */
             padding: 10px 20px;
             pointer-events: none;
             z-index: 20;
+        }
+
+        .top-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .top-group.right {
+            align-items: flex-end;
         }
 
         .top-item {
             font-weight: bold;
             font-size: 1.2rem;
             text-shadow: 1px 1px 2px black;
+            line-height: 1.2;
+        }
+        
+        /* 新增：科技状态显示 */
+        .tech-status {
+            font-family: monospace;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-top: 2px;
+            text-shadow: 1px 1px 1px black;
+            opacity: 0.9;
         }
 
-        .text-blue {
-            color: #60a5fa;
-        }
-
-        .text-red {
-            color: #f87171;
-        }
+        .text-blue { color: #60a5fa; }
+        .text-red { color: #f87171; }
+        .text-blue-light { color: #93c5fd; }
+        .text-red-light { color: #fca5a5; }
 
         .tactics-bar {
             position: absolute;
@@ -382,9 +399,11 @@
             background: #3b82f6;
             transition: width linear 0.1s;
         }
-
         .constructing .icon-progress-fill {
             background: #eab308;
+        }
+        .dock-icon.researching .icon-progress-fill {
+            background: #22c55e; 
         }
 
         .icon-badge {
@@ -557,8 +576,21 @@
     <div id="toast-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"></div>
 
     <div class="top-bar">
-        <div class="top-item text-blue">玩家</div>
-        <div class="top-item text-red">电脑</div>
+        <div class="top-group">
+            <div class="top-item text-blue">玩家</div>
+            <div class="tech-status text-blue-light">
+                <span id="p-tech-atk">🗡️ 0</span> 
+                <span id="p-tech-def" class="ml-2">🛡️ 0</span>
+            </div>
+        </div>
+        
+        <div class="top-group right">
+            <div class="top-item text-red">电脑</div>
+            <div class="tech-status text-red-light">
+                <span id="e-tech-atk">🗡️ 0</span> 
+                <span id="e-tech-def" class="ml-2">🛡️ 0</span>
+            </div>
+        </div>
     </div>
 
     <div id="game-wrapper">
@@ -668,12 +700,12 @@
                 turret_tech: { cost: { food: 0, wood: 0, gold: 100, stone: 50 }, time: 240, label: '防御炮台', icon: '🏯', desc: '基地获得强大防御力' },
                 // 铁匠铺科技：攻击
                 tech_atk_1: { cost: { food: 0, wood: 50, gold: 100, stone: 0 }, time: 500, label: '近战攻击 I', icon: '🗡️', level: 1, type: 'atk' },
-                // ↓↓↓ 修改这里：time 从 500 改为 1000
+                // time 修改为 1000
                 tech_atk_2: { cost: { food: 0, wood: 100, gold: 200, stone: 0 }, time: 1000, label: '近战攻击 II', icon: '🗡️', level: 2, type: 'atk' },
                 
                 // 铁匠铺科技：防御
                 tech_def_1: { cost: { food: 50, wood: 0, gold: 100, stone: 0 }, time: 500, label: '近战防御 I', icon: '🛡️', level: 1, type: 'def' },
-                // ↓↓↓ 修改这里：time 从 500 改为 1000
+                // time 修改为 1000
                 tech_def_2: { cost: { food: 100, wood: 0, gold: 200, stone: 0 }, time: 1000, label: '近战防御 II', icon: '🛡️', level: 2, type: 'def' }
             }
         };
@@ -847,7 +879,7 @@
                     const shotCount = Math.min(targets.length, 3);
                     for (let i = 0; i < shotCount; i++) {
                         const target = targets[Math.floor(Math.random() * targets.length)];
-                        // 基地炮台伤害也受防御力减免（简单起见，或者设定为真实伤害？这里暂且计算防御）
+                        // 基地炮台伤害也受防御力减免
                         let actualDmg = Math.max(1, DAMAGE - target.def); 
                         target.hp -= actualDmg;
                         this.spawnFloater(target.pos, `-${actualDmg.toFixed(1)}`, '#f0f');
@@ -939,27 +971,90 @@
                 const ai = this.state.enemy;
                 // 1. 资源管理 
                 ai.assignments = { food: 0, wood: 0, gold: 0, stone: 0 };
-                ai.idleWorkers = 0; 
-                if (ai.food < ai.wood) ai.assignments.food = ai.workers; else ai.assignments.wood = ai.workers;
+                ai.idleWorkers = 0;
+                
+                const resources = [
+                    { type: 'food', amount: ai.food },
+                    { type: 'wood', amount: ai.wood },
+                    { type: 'gold', amount: ai.gold }
+                ];
+                resources.sort((a, b) => a.amount - b.amount);
+                ai.assignments[resources[0].type] = ai.workers;
 
-                // 2. 生产管理
-                let pendingWorkers = 0;
-                ai.buildingInstances.forEach(b => { b.queue.forEach(q => { if (q.type === 'worker') pendingWorkers++; }); });
+                // 2. 科技研发决策
+                let savingForTech = false;
+                const blacksmith = ai.buildingInstances.find(b => b.type === 'blacksmith');
+                
+                if (ai.armyCount > 30 && blacksmith && blacksmith.queue.length === 0) {
+                    const levels = ai.techLevels;
+                    let targetTech = null;
 
-                const buildings = [...ai.buildingInstances].sort((a, b) => a.type === 'towncenter' ? -1 : 1);
-                buildings.forEach(b => {
-                    if (b.queue.length < 5) { 
-                        if (b.type === 'towncenter') { 
-                            if (ai.workers + pendingWorkers < 60) {
-                                this.aiQueue(ai, b, 'worker'); pendingWorkers++;
-                            }
-                        } else if (b.type === 'barracks') { this.aiQueue(ai, b, 'clubman'); }
+                    if (levels.atk < 1) targetTech = 'tech_atk_1';
+                    else if (levels.def < 1) targetTech = 'tech_def_1';
+                    else if (levels.atk < 2) targetTech = 'tech_atk_2';
+                    else if (levels.def < 2) targetTech = 'tech_def_2';
+
+                    if (targetTech) {
+                        const techData = CONSTANTS.TECHS[targetTech];
+                        const costF = techData.cost.food || 0;
+                        const costW = techData.cost.wood || 0;
+                        const costG = techData.cost.gold || 0;
+                        const costS = techData.cost.stone || 0;
+
+                        if (ai.food >= costF && ai.wood >= costW && ai.gold >= costG && ai.stone >= costS) {
+                            ai.food -= costF; ai.wood -= costW; ai.gold -= costG; ai.stone -= costS;
+                            blacksmith.queue.push({ type: targetTech, ticksLeft: techData.time, totalTicks: techData.time });
+                        } else {
+                            savingForTech = true;
+                        }
                     }
-                });
-                const barracksCost = CONSTANTS.BUILDINGS.barracks.cost;
-                if (ai.wood >= barracksCost.wood) { this.aiBuild(ai, 'barracks'); }
+                }
 
-                // 3. 战术姿态逻辑
+                // 3. 生产管理
+                if (!savingForTech) {
+                    let pendingWorkers = 0;
+                    ai.buildingInstances.forEach(b => { b.queue.forEach(q => { if (q.type === 'worker') pendingWorkers++; }); });
+
+                    const buildings = [...ai.buildingInstances].sort((a, b) => a.type === 'towncenter' ? -1 : 1);
+                    buildings.forEach(b => {
+                        if (b.queue.length < 5) { 
+                            if (b.type === 'towncenter') { 
+                                if (ai.workers + pendingWorkers < 60) {
+                                    this.aiQueue(ai, b, 'worker'); pendingWorkers++;
+                                }
+                            } else if (b.type === 'barracks') { 
+                                this.aiQueue(ai, b, 'clubman'); 
+                            }
+                        }
+                    });
+                }
+
+                // 4. 建筑规划
+                const countType = (t) => {
+                    const built = ai.buildingInstances.filter(b => b.type === t).length;
+                    const constructing = ai.constructions.filter(c => c.type === t).length;
+                    return built + constructing;
+                };
+                
+                const numBarracks = countType('barracks');
+                const numBlacksmith = countType('blacksmith');
+
+                let structureToBuild = null;
+                if (numBarracks < 2) structureToBuild = 'barracks'; 
+                else if (numBlacksmith < 1) structureToBuild = 'blacksmith'; 
+                else structureToBuild = 'barracks'; 
+                
+                if (structureToBuild) {
+                    const d = CONSTANTS.BUILDINGS[structureToBuild];
+                    const cF = d.cost.food || 0;
+                    const cW = d.cost.wood || 0;
+                    const cS = d.cost.stone || 0;
+                    if (ai.food >= cF && ai.wood >= cW && ai.stone >= cS) {
+                        this.aiBuild(ai, structureToBuild);
+                    }
+                }
+
+                // 5. 战术姿态
                 const pUnits = this.state.units.filter(u => u.owner === 'player');
                 const eUnits = this.state.units.filter(u => u.owner === 'enemy');
                 
@@ -1009,6 +1104,13 @@
 
                 if (p.hasTurret) document.getElementById('p-base').classList.add('has-turret');
                 if (e.hasTurret) document.getElementById('e-base').classList.add('has-turret');
+                
+                // 更新科技显示
+                const toRoman = (n) => n === 0 ? '0' : (n === 1 ? 'I' : 'II');
+                document.getElementById('p-tech-atk').innerText = `🗡️ ${toRoman(p.techLevels.atk)}`;
+                document.getElementById('p-tech-def').innerText = `🛡️ ${toRoman(p.techLevels.def)}`;
+                document.getElementById('e-tech-atk').innerText = `🗡️ ${toRoman(e.techLevels.atk)}`;
+                document.getElementById('e-tech-def').innerText = `🛡️ ${toRoman(e.techLevels.def)}`;
 
                 const currentPop = p.workers + p.armyCount;
                 const popEl = document.getElementById('disp-pop');
@@ -1036,14 +1138,32 @@
             renderDock() {
                 const dock = document.getElementById('dock'); dock.innerHTML = ''; const p = this.state.player;
                 const houses = p.buildingInstances.filter(b => b.type === 'house');
-                // 排序：基地 -> 兵营 -> 铁匠铺
-                const others = p.buildingInstances.filter(b => b.type !== 'house').sort((a, b) => {
+                
+                // 混合渲染：已建成的功能建筑 + 正在建造中的所有建筑
+                const builtBuildings = p.buildingInstances.filter(b => b.type !== 'house').map(b => ({...b, isConstruction: false}));
+                const underConstruction = p.constructions.map(c => ({...c, isConstruction: true}));
+                
+                const mixedList = [...builtBuildings, ...underConstruction];
+                
+                // 排序逻辑：基地 > 兵营 > 铁匠铺
+                mixedList.sort((a, b) => {
                     const order = { towncenter: 1, barracks: 2, blacksmith: 3 };
                     return (order[a.type] || 99) - (order[b.type] || 99);
                 });
-                others.forEach(b => { const icon = this.createDockIcon(b.id, CONSTANTS.BUILDINGS[b.type].icon, false); icon.onclick = () => this.toggleDockItem(b.id); dock.appendChild(icon); });
+
+                mixedList.forEach(item => {
+                    if(item.isConstruction) {
+                        const icon = this.createDockIcon(`const-${item.id}`, CONSTANTS.BUILDINGS[item.type].icon, true); 
+                        dock.appendChild(icon);
+                    } else {
+                        const icon = this.createDockIcon(item.id, CONSTANTS.BUILDINGS[item.type].icon, false); 
+                        icon.onclick = () => this.toggleDockItem(item.id); 
+                        dock.appendChild(icon);
+                    }
+                });
+
                 if (houses.length > 0) { const icon = this.createDockIcon('group-house', CONSTANTS.BUILDINGS['house'].icon, false); icon.onclick = () => this.toggleDockItem('group-house'); icon.querySelector('.icon-badge').style.display = 'flex'; icon.querySelector('.icon-badge').classList.add('house-badge'); icon.querySelector('.icon-badge').innerText = houses.length; dock.appendChild(icon); }
-                p.constructions.forEach(task => { const icon = this.createDockIcon(`const-${task.id}`, CONSTANTS.BUILDINGS[task.type].icon, true); dock.appendChild(icon); });
+                
                 const hammer = this.createDockIcon('dock-build_menu', '🔨', false); hammer.classList.add('build-icon'); hammer.onclick = () => this.toggleDockItem('build_menu'); dock.appendChild(hammer);
                 this.updateDockVisuals();
             }
@@ -1064,8 +1184,21 @@
                     const el = document.getElementById(`dock-elem-${b.id}`);
                     if (el) {
                         const barBg = el.querySelector('.icon-progress-bg'); const bar = el.querySelector('.icon-progress-fill'); const badge = el.querySelector('.icon-badge');
-                        if (b.queue.length > 0) { const t = b.queue[0]; bar.style.width = (100 - (t.ticksLeft / t.totalTicks * 100)) + '%'; badge.style.display = 'flex'; badge.innerText = b.queue.length; barBg.style.display = 'block'; }
-                        else { bar.style.width = '0%'; badge.style.display = 'none'; barBg.style.display = 'none'; }
+                        if (b.queue.length > 0) { 
+                            const t = b.queue[0]; 
+                            bar.style.width = (100 - (t.ticksLeft / t.totalTicks * 100)) + '%'; 
+                            badge.style.display = 'flex'; badge.innerText = b.queue.length; barBg.style.display = 'block'; 
+                            
+                            if (CONSTANTS.TECHS[t.type]) {
+                                el.classList.add('researching');
+                            } else {
+                                el.classList.remove('researching');
+                            }
+
+                        } else { 
+                            bar.style.width = '0%'; badge.style.display = 'none'; barBg.style.display = 'none'; 
+                            el.classList.remove('researching');
+                        }
                     }
                 });
                 const houseCount = p.buildingInstances.filter(b => b.type === 'house').length;
@@ -1116,9 +1249,29 @@
                 } else {
                     const b = p.buildingInstances.find(x => x.id === id);
                     if (b) {
-                        container.innerHTML = `<div class="popover-title">${CONSTANTS.BUILDINGS[b.type].label}</div>`;
+                        const buildingLabel = CONSTANTS.BUILDINGS[b.type].label;
+                        container.innerHTML = `<div class="popover-title">${buildingLabel}</div>`;
                         
-                        // 基地和兵营的生产逻辑
+                        if (b.queue.length > 0) {
+                            const currentItem = b.queue[0];
+                            let itemLabel = '';
+                            let action = '生产';
+                            if (CONSTANTS.UNITS[currentItem.type]) {
+                                itemLabel = CONSTANTS.UNITS[currentItem.type].label;
+                            } else if (CONSTANTS.TECHS[currentItem.type]) {
+                                itemLabel = CONSTANTS.TECHS[currentItem.type].label;
+                                action = '研发';
+                            }
+                            
+                            const statusDiv = document.createElement('div');
+                            statusDiv.className = 'text-xs text-blue-400 text-center mb-2 font-bold';
+                            const progress = Math.floor(100 - (currentItem.ticksLeft / currentItem.totalTicks * 100));
+                            statusDiv.innerText = `正在${action}: ${itemLabel} (${progress}%)`;
+                            if (action === '研发') statusDiv.style.color = '#22c55e'; 
+                            
+                            container.appendChild(statusDiv);
+                        }
+                        
                         if (b.type === 'towncenter' || b.type === 'barracks') {
                             const uType = b.type === 'towncenter' ? 'worker' : 'clubman'; const u = CONSTANTS.UNITS[uType];
                             const btn = document.createElement('div'); btn.className = 'menu-btn produce-action-btn'; btn.dataset.type = uType;
@@ -1128,7 +1281,6 @@
                             container.appendChild(btn);
                         }
 
-                        // 基地科技：炮台
                         if (b.type === 'towncenter') {
                             const isQueuingTurret = p.buildingInstances.some(bi => bi.queue.some(q => q.type === 'turret_tech'));
                             if (!p.hasTurret && !isQueuingTurret) {
@@ -1141,15 +1293,11 @@
                             }
                         }
 
-                        // 铁匠铺科技逻辑
                         if (b.type === 'blacksmith') {
-                            // 检查是否有其他铁匠铺正在研究攻击/防御
                             const researchingAtk = p.buildingInstances.some(bi => bi.queue.some(q => q.type.startsWith('tech_atk')));
                             const researchingDef = p.buildingInstances.some(bi => bi.queue.some(q => q.type.startsWith('tech_def')));
-
                             const techLevels = p.techLevels;
 
-                            // 攻击科技按钮
                             if (techLevels.atk < 2 && !researchingAtk) {
                                 const nextLvl = techLevels.atk + 1;
                                 const techId = `tech_atk_${nextLvl}`;
@@ -1164,7 +1312,6 @@
                                 container.appendChild(techBtn);
                             }
 
-                            // 防御科技按钮
                             if (techLevels.def < 2 && !researchingDef) {
                                 const nextLvl = techLevels.def + 1;
                                 const techId = `tech_def_${nextLvl}`;
