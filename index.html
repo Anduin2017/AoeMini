@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>朴素帝国 - Minimalist Empire</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #111;
+            color: #e5e5e5;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            user-select: none;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #game-wrapper {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+            background: #262626;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* 基地位置垂直居中 */
+        .base {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 80px;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .base-player { left: 0; background: #3b82f6; border-right: 4px solid #1d4ed8; }
+        .base-enemy { right: 0; background: #ef4444; border-left: 4px solid #b91c1c; }
+
+        .hp-bar-bg { width: 80%; height: 6px; background: rgba(0,0,0,0.5); margin-top: 5px; }
+        .hp-bar-fill { height: 100%; background: #22c55e; width: 100%; transition: width 0.2s; }
+
+        /* UI 组件 */
+        .top-bar {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 20px;
+            pointer-events: none;
+            z-index: 20;
+        }
+        .top-item { font-weight: bold; font-size: 1.2rem; text-shadow: 1px 1px 2px black; }
+        .text-blue { color: #60a5fa; }
+        .text-red { color: #f87171; }
+
+        .tactics-bar {
+            position: absolute;
+            top: 10px; left: 50%; transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 30;
+            pointer-events: auto;
+        }
+        .tactic-btn {
+            background: rgba(30, 30, 30, 0.6);
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            backdrop-filter: blur(4px);
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        .tactic-btn:hover { background: #444; color: white; }
+        .tactic-btn.active { background: #2563eb; border-color: #60a5fa; color: white; box-shadow: 0 0 8px #2563eb; }
+
+        /* 资源面板 */
+        .resource-widget {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 280px;
+            background: rgba(31, 41, 55, 0.95);
+            border: 1px solid #374151;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            z-index: 40;
+            backdrop-filter: blur(8px);
+        }
+        .status-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid #4b5563;
+            font-size: 1rem;
+        }
+        .status-group { display: flex; align-items: center; gap: 6px; }
+        .icon-house { color: #f59e0b; } .pop-text { font-weight: bold; font-family: monospace; transition: color 0.2s; }
+        .icon-sleep { color: #9ca3af; } .idle-text { color: #9ca3af; font-weight: bold; font-family: monospace; }
+        .idle-text.warning { color: #ef4444; animation: pulse 1s infinite; }
+
+        .res-grid { 
+            display: grid; 
+            grid-template-columns: 24px 1fr 24px 50px 24px; 
+            gap: 4px; 
+            align-items: center; 
+            font-size: 0.9rem; 
+        }
+        .res-icon { text-align: center; font-size: 1rem; }
+        .res-val { font-family: monospace; text-align: right; padding-right: 10px; color: #e5e5e5; font-weight: bold; }
+        
+        .worker-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 24px;
+        }
+        .res-w-icon { color: #9ca3af; font-size: 0.7rem; }
+        .res-w-val { color: #60a5fa; font-family: monospace; font-weight: bold; }
+
+        .tiny-btn { 
+            width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; 
+            background: #374151; border: 1px solid #4b5563; border-radius: 4px; cursor: pointer; color: #ccc;
+            font-size: 0.9rem; line-height: 0; transition: background 0.1s;
+        }
+        .tiny-btn:hover { background: #4b5563; color: white; }
+        .tiny-btn.disabled { opacity: 0.2; cursor: default; pointer-events: none; }
+
+        /* Dock 栏 */
+        .dock-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 8px;
+            border-radius: 16px;
+            display: flex;
+            gap: 12px;
+            z-index: 50;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .dock-icon {
+            width: 56px; height: 56px;
+            background: #2d2d2d; 
+            border-radius: 12px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 28px;
+            cursor: pointer; position: relative;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 1px solid #444;
+        }
+        .dock-icon:hover { transform: translateY(-5px) scale(1.1); background: #3d3d3d; z-index: 60; }
+        .dock-icon.active { background: #333; box-shadow: 0 0 0 2px #3b82f6; transform: translateY(-5px); }
+        .dock-icon.build-icon { background: #eab308; color: #000; border-color: #ca8a04; }
+        .dock-icon.build-icon:hover { background: #facc15; }
+
+        .dock-icon.constructing { opacity: 0.7; border-style: dashed; background: #1f2937; }
+        .dock-icon.constructing .const-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.4); border-radius: 12px;
+            font-size: 12px; color: #eab308; font-weight: bold;
+        }
+
+        .icon-progress-bg {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 4px;
+            background: rgba(0,0,0,0.3); border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; overflow: hidden;
+            display: none; /* 默认隐藏 */
+        }
+        .icon-progress-fill { height: 100%; width: 0%; background: #3b82f6; transition: width linear 0.1s; }
+        .constructing .icon-progress-fill { background: #eab308; }
+
+        .icon-badge {
+            position: absolute; top: -5px; right: -5px; background: #ef4444; color: white;
+            font-size: 10px; font-weight: bold; width: 16px; height: 16px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px black;
+        }
+        .icon-badge.house-badge { background: #eab308; color: #000; }
+
+        /* Popover Menu */
+        .popover-menu {
+            position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
+            background: rgba(31, 41, 55, 0.95); border: 1px solid #4b5563; border-radius: 8px;
+            padding: 10px; min-width: 160px; display: none; flex-direction: column; gap: 8px;
+            z-index: 60; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px);
+        }
+        .popover-menu::after {
+            content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%) rotate(45deg);
+            width: 12px; height: 12px; background: rgba(31, 41, 55, 0.95); border-right: 1px solid #4b5563; border-bottom: 1px solid #4b5563;
+        }
+        .popover-title { font-size: 0.8rem; color: #9ca3af; text-transform: uppercase; border-bottom: 1px solid #4b5563; padding-bottom: 4px; margin-bottom: 4px; text-align: center; }
+        
+        .menu-btn {
+            background: #374151; border: 1px solid #4b5563; color: white; padding: 10px; border-radius: 6px;
+            cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; transition: all 0.1s;
+        }
+        .menu-btn:hover:not(:disabled) { background: #4b5563; }
+        .menu-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+        .btn-icon { font-size: 1.4rem; }
+        .btn-info { display: flex; flex-direction: column; line-height: 1.2; text-align: left; }
+        .btn-cost { font-size: 0.75rem; color: #9ca3af; }
+
+        #game-over {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85);
+            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; display: none;
+        }
+        .floater { position: absolute; color: white; font-weight: bold; pointer-events: none; animation: floatUp 1s forwards; text-shadow: 1px 1px 2px black; }
+        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-30px); opacity: 0; } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"></div>
+
+    <div class="top-bar">
+        <div class="top-item text-blue">PLAYER</div>
+        <div class="top-item text-red">AI (HARD)</div>
+    </div>
+
+    <div id="game-wrapper">
+        <div class="tactics-bar">
+            <button id="btn-stance-defend" class="tactic-btn" onclick="game.setPlayerStance('defend')">🛡️ 防守</button>
+            <button id="btn-stance-hold" class="tactic-btn" onclick="game.setPlayerStance('hold')">✋ 待命</button>
+            <button id="btn-stance-attack" class="tactic-btn active" onclick="game.setPlayerStance('attack')">⚔️ 进攻</button>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div class="base base-player"><div>BASE</div><div class="hp-bar-bg"><div id="p-base-hp" class="hp-bar-fill"></div></div></div>
+        <div class="base base-enemy"><div>AI</div><div class="hp-bar-bg"><div id="e-base-hp" class="hp-bar-fill"></div></div></div>
+    </div>
+
+    <div id="ui-layer">
+        <!-- 1. 资源面板 -->
+        <div class="resource-widget">
+            <div class="status-header">
+                <div class="status-group" title="人口">
+                    <span class="icon-house">🏠</span> <span id="disp-pop" class="pop-text">0/200</span>
+                </div>
+                <div class="status-group" title="空闲农民">
+                    <span class="icon-sleep">💤</span> <span id="disp-idle" class="idle-text">0</span>
+                </div>
+            </div>
+            <div class="res-grid">
+                <!-- Food -->
+                <div class="res-icon">🥩</div> 
+                <div class="res-val" id="res-stock-food">0</div>
+                <div class="tiny-btn" id="sub-food" onclick="game.modWork('food',-1)">-</div>
+                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val" id="res-workers-food">0</span></div>
+                <div class="tiny-btn" id="add-food" onclick="game.modWork('food',1)">+</div>
+
+                <!-- Wood -->
+                <div class="res-icon">🌲</div> 
+                <div class="res-val" id="res-stock-wood">0</div>
+                <div class="tiny-btn" id="sub-wood" onclick="game.modWork('wood',-1)">-</div>
+                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val" id="res-workers-wood">0</span></div>
+                <div class="tiny-btn" id="add-wood" onclick="game.modWork('wood',1)">+</div>
+
+                <!-- Gold -->
+                <div class="res-icon">🪙</div> 
+                <div class="res-val" id="res-stock-gold">0</div>
+                <div class="tiny-btn" id="sub-gold" onclick="game.modWork('gold',-1)">-</div>
+                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val" id="res-workers-gold">0</span></div>
+                <div class="tiny-btn" id="add-gold" onclick="game.modWork('gold',1)">+</div>
+
+                <!-- Stone -->
+                <div class="res-icon">🪨</div> 
+                <div class="res-val" id="res-stock-stone">0</div>
+                <div class="tiny-btn" id="sub-stone" onclick="game.modWork('stone',-1)">-</div>
+                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val" id="res-workers-stone">0</span></div>
+                <div class="tiny-btn" id="add-stone" onclick="game.modWork('stone',1)">+</div>
+            </div>
+        </div>
+
+        <!-- 2. Dock -->
+        <div class="dock-container" id="dock">
+            <!-- Hammer is hardcoded to prevent flickering issues -->
+            <div class="dock-icon build-icon" id="dock-build_menu" onclick="game.toggleDockItem('build_menu')">
+                🔨
+            </div>
+        </div>
+
+        <!-- 3. Popover -->
+        <div id="popover-container" class="popover-menu"></div>
+    </div>
+
+    <div id="game-over">
+        <h1 id="end-title" class="text-5xl font-bold mb-4 text-white">GAME OVER</h1>
+        <p id="end-reason" class="text-xl text-gray-300 mb-8">Reason</p>
+        <button onclick="location.reload()" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded">再来一局</button>
+    </div>
+
+    <script>
+        const TICK_RATE = 100; 
+        const MAX_QUEUE_SIZE = 5;
+        const MAX_TOTAL_POP = 200; 
+
+        const CONSTANTS = {
+            INITIAL_RES: { food: 200, wood: 100, gold: 0, stone: 0 },
+            BASE_HP: 2000, INITIAL_POP_CAP: 20, 
+            MAP_WIDTH_PERCENT: 100, 
+            UNIT_SIZE_PERCENT: 0.8, 
+            ATTACK_RANGE_PERCENT: 8, 
+            UNITS: {
+                worker: { cost: { food: 50, wood: 0 }, time: 120, hp: 10, dmg: 0, type: 'eco', label: '农民' }, 
+                clubman: { cost: { food: 80, wood: 20 }, time: 50, hp: 60, dmg: 5, speed: 1.0, type: 'mil', label: '棒子兵' } 
+            },
+            BUILDINGS: {
+                house: { cost: { food: 0, wood: 50, stone: 0 }, pop: 10, time: 100, label: '房屋', icon: '🏠' }, 
+                barracks: { cost: { food: 0, wood: 150, stone: 0 }, time: 200, label: '兵营', icon: '⚔️' },
+                towncenter: { cost: { food: 0, wood: 400, stone: 350 }, pop: 20, time: 500, label: '基地', icon: '🏛️' } 
+            }
+        };
+
+        class Entity {
+            constructor(type, owner, id) {
+                this.id = id; this.type = type; this.owner = owner;
+                this.maxHp = CONSTANTS.UNITS[type].hp; this.hp = this.maxHp;
+                this.dmg = CONSTANTS.UNITS[type].dmg || 0;
+                this.speed = (CONSTANTS.UNITS[type].speed || 0) / (1000 / TICK_RATE); 
+                this.pos = owner === 'player' ? 5 : 95; this.state = 'move'; 
+                this.width = CONSTANTS.UNIT_SIZE_PERCENT;
+                this.attackCooldown = Math.floor(Math.random() * 10); this.attackAnimTimer = 0;
+            }
+        }
+
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+
+                this.lastTick = 0; this.entityIdCounter = 0; this.buildingIdCounter = 0; this.constructionIdCounter = 0; this.gameOver = false;
+
+                this.state = {
+                    tick: 0,
+                    player: this.createFactionState('player'),
+                    enemy: this.createFactionState('enemy'),
+                    units: [],
+                    playerStance: 'attack',
+                    selectedDockId: null, 
+                };
+
+                window.addEventListener('click', (e) => {
+                    if (!e.target.closest('.dock-icon') && !e.target.closest('.popover-menu')) this.closePopover();
+                });
+
+                this.renderDock();
+
+                this.logicInterval = setInterval(() => this.updateLogic(), TICK_RATE);
+                requestAnimationFrame(() => this.loop());
+            }
+
+            createFactionState(name) {
+                const initialBuildings = [{ id: `${name}-b-${this.buildingIdCounter++}`, type: 'towncenter', queue: [] }];
+                let initialWorkers = 4;
+                const initialFoodAssign = 4;
+
+                if (name === 'enemy') {
+                    initialBuildings.push({ id: `${name}-b-${this.buildingIdCounter++}`, type: 'towncenter', queue: [] });
+                    initialWorkers = 8;
+                }
+
+                return {
+                    name: name,
+                    food: CONSTANTS.INITIAL_RES.food, wood: CONSTANTS.INITIAL_RES.wood, gold: CONSTANTS.INITIAL_RES.gold, stone: CONSTANTS.INITIAL_RES.stone,
+                    idleWorkers: 0, assignments: { food: initialWorkers, wood: 0, gold: 0, stone: 0 }, workers: initialWorkers, 
+                    popCap: CONSTANTS.INITIAL_POP_CAP, baseHp: CONSTANTS.BASE_HP,
+                    buildingInstances: initialBuildings,
+                    constructions: [], 
+                    armyCount: 0
+                };
+            }
+
+            resizeCanvas() {
+                const wrapper = document.getElementById('game-wrapper');
+                this.canvas.width = wrapper.offsetWidth; this.canvas.height = wrapper.offsetHeight;
+            }
+
+            toggleDockItem(id) {
+                if (this.state.selectedDockId === id) this.closePopover();
+                else { this.state.selectedDockId = id; this.buildPopover(); this.updateDockVisuals(); }
+            }
+            closePopover() {
+                this.state.selectedDockId = null;
+                document.getElementById('popover-container').style.display = 'none';
+                this.updateDockVisuals();
+            }
+
+            modWork(type, change) {
+                const p = this.state.player;
+                if (change > 0) {
+                    if (p.idleWorkers > 0) { p.idleWorkers--; p.assignments[type]++; }
+                    else this.showToast("没有空闲农民");
+                } else {
+                    if (p.assignments[type] > 0) { p.assignments[type]--; p.idleWorkers++; }
+                }
+            }
+
+            updateLogic() {
+                if (this.gameOver) return;
+                this.state.tick++;
+                if (this.state.tick % 10 === 0) { this.gatherResources(this.state.player); this.gatherResources(this.state.enemy); this.runAI(); }
+                this.processBuildingQueues(this.state.player); this.processBuildingQueues(this.state.enemy);
+                this.processConstructions(this.state.player); this.processConstructions(this.state.enemy);
+                this.updateUnits();
+                this.updateUI(); 
+            }
+
+            gatherResources(f) { 
+                f.food += f.assignments.food;
+                f.wood += f.assignments.wood; 
+                f.gold += f.assignments.gold; 
+                f.stone += f.assignments.stone; 
+            }
+
+            processBuildingQueues(f) {
+                f.buildingInstances.forEach(b => {
+                    if (b.queue.length > 0) {
+                        b.queue[0].ticksLeft--;
+                        if (b.queue[0].ticksLeft <= 0) { this.spawnUnit(f, b.queue[0].type); b.queue.shift(); }
+                    }
+                });
+            }
+
+            processConstructions(f) {
+                const activeConstructions = [];
+                let shouldRebuildDock = false;
+                f.constructions.forEach(task => {
+                    task.ticksLeft--;
+                    if (task.ticksLeft <= 0) {
+                        if (task.type === 'house' || task.type === 'towncenter') f.popCap = Math.min(f.popCap + (CONSTANTS.BUILDINGS[task.type].pop || 0), MAX_TOTAL_POP);
+                        f.buildingInstances.push({ id: `${f.name}-b-${this.buildingIdCounter++}`, type: task.type, queue: [] });
+                        if (f.name === 'player') { this.showToast(`${CONSTANTS.BUILDINGS[task.type].label} 建造完成`, '#22c55e'); shouldRebuildDock = true; }
+                    } else { activeConstructions.push(task); }
+                });
+                f.constructions = activeConstructions;
+                if (shouldRebuildDock) { this.closePopover(); this.renderDock(); }
+            }
+
+            spawnUnit(f, type) {
+                if (f.name !== 'enemy' && f.workers + f.armyCount >= MAX_TOTAL_POP) return;
+                if (CONSTANTS.UNITS[type].type === 'eco') { f.workers++; f.idleWorkers++; }
+                else { f.armyCount++; this.state.units.push(new Entity(type, f.name, this.entityIdCounter++)); }
+            }
+
+            playerQueueUnit(bid, type) {
+                const f = this.state.player; const b = f.buildingInstances.find(i => i.id === bid);
+                if (!b) return;
+                const unitData = CONSTANTS.UNITS[type];
+                if (b.queue.length >= MAX_QUEUE_SIZE) { this.showToast("队列已满"); return; }
+                let totalPop = f.workers + f.armyCount; f.buildingInstances.forEach(bb => totalPop += bb.queue.length);
+                if (totalPop >= MAX_TOTAL_POP || totalPop >= f.popCap) { this.showToast("人口不足"); return; }
+                if (f.food < unitData.cost.food || f.wood < unitData.cost.wood) { this.showToast("资源不足"); return; }
+                f.food -= unitData.cost.food; f.wood -= unitData.cost.wood;
+                b.queue.push({ type: type, ticksLeft: unitData.time, totalTicks: unitData.time });
+                this.refreshPopoverState();
+            }
+
+            playerBuildStructure(type) {
+                const f = this.state.player; const d = CONSTANTS.BUILDINGS[type];
+                if (type === 'house' && f.popCap >= MAX_TOTAL_POP) { this.showToast("人口已达上限"); return; }
+                const sCost = d.cost.stone || 0;
+                if (f.food < d.cost.food || f.wood < d.cost.wood || f.stone < sCost) { this.showToast("资源不足"); return; }
+                f.food -= d.cost.food; f.wood -= d.cost.wood; f.stone -= sCost;
+                f.constructions.push({ id: this.constructionIdCounter++, type: type, ticksLeft: d.time, totalTicks: d.time });
+                this.showToast(`开始建造 ${d.label}`);
+                this.closePopover();
+                this.renderDock();
+            }
+
+            setPlayerStance(s) {
+                this.state.playerStance = s;
+                ['defend', 'hold', 'attack'].forEach(k => {
+                    const b = document.getElementById(`btn-stance-${k}`);
+                    b.className = `tactic-btn ${k === s ? 'active' : ''} ${k === s && k === 'defend' ? 'active-defend' : ''} ${k === s && k === 'hold' ? 'active-hold' : ''}`;
+                });
+            }
+
+            // --- New Hard AI Logic (with worker limit) ---
+            runAI() {
+                const ai = this.state.enemy;
+                ai.assignments = { food: 0, wood: 0, gold: 0, stone: 0 };
+                ai.idleWorkers = 0; 
+                if (ai.food < ai.wood) { ai.assignments.food = ai.workers; } else { ai.assignments.wood = ai.workers; }
+
+                // Count pending workers to avoid overproduction
+                let pendingWorkers = 0;
+                ai.buildingInstances.forEach(b => { b.queue.forEach(q => { if (q.type === 'worker') pendingWorkers++; }); });
+
+                const buildings = [...ai.buildingInstances].sort((a, b) => a.type === 'towncenter' ? -1 : 1);
+                buildings.forEach(b => {
+                    if (b.queue.length < 5) { 
+                        if (b.type === 'towncenter') { 
+                            // Limit AI workers to 40
+                            if (ai.workers + pendingWorkers < 40) {
+                                this.aiQueue(ai, b, 'worker'); 
+                                pendingWorkers++;
+                            }
+                        } else if (b.type === 'barracks') { this.aiQueue(ai, b, 'clubman'); }
+                    }
+                });
+                const barracksCost = CONSTANTS.BUILDINGS.barracks.cost;
+                if (ai.wood >= barracksCost.wood) { this.aiBuild(ai, 'barracks'); }
+            }
+
+            aiBuild(f, t) { 
+                const d = CONSTANTS.BUILDINGS[t]; const s = d.cost.stone || 0; 
+                if (f.food >= d.cost.food && f.wood >= d.cost.wood && f.stone >= s) { 
+                    f.food -= d.cost.food; f.wood -= d.cost.wood; f.stone -= s; 
+                    f.constructions.push({ id: Math.random(), type: t, ticksLeft: d.time, totalTicks: d.time }); 
+                } 
+            }
+
+            aiQueue(f, b, u) { 
+                const d = CONSTANTS.UNITS[u]; 
+                if (f.food >= d.cost.food && f.wood >= d.cost.wood) { 
+                    f.food -= d.cost.food; f.wood -= d.cost.wood; 
+                    b.queue.push({ type: u, ticksLeft: d.time, totalTicks: d.time }); 
+                } 
+            }
+
+            updateUI() {
+                const p = this.state.player; const e = this.state.enemy;
+                document.getElementById('p-base-hp').style.width = Math.max(0, (p.baseHp / CONSTANTS.BASE_HP * 100)) + '%';
+                document.getElementById('e-base-hp').style.width = Math.max(0, (e.baseHp / CONSTANTS.BASE_HP * 100)) + '%';
+                
+                const currentPop = p.workers + p.armyCount;
+                const popEl = document.getElementById('disp-pop');
+                popEl.innerText = `${currentPop}/${p.popCap}`;
+                popEl.style.color = '#e5e5e5'; 
+                if (currentPop >= p.popCap) popEl.style.color = '#ef4444'; 
+                else if (currentPop >= p.popCap * 0.8) popEl.style.color = '#eab308'; 
+
+                const idleEl = document.getElementById('disp-idle'); idleEl.innerText = p.idleWorkers;
+                if (p.idleWorkers > 0) idleEl.classList.add('warning'); else idleEl.classList.remove('warning');
+
+                ['food','wood','gold','stone'].forEach(r => {
+                    document.getElementById(`res-stock-${r}`).innerText = Math.floor(p[r]);
+                    document.getElementById(`res-workers-${r}`).innerText = p.assignments[r];
+                    const btnAdd = document.getElementById(`add-${r}`);
+                    const btnSub = document.getElementById(`sub-${r}`);
+                    if (p.idleWorkers > 0) btnAdd.classList.remove('disabled'); else btnAdd.classList.add('disabled');
+                    if (p.assignments[r] > 0) btnSub.classList.remove('disabled'); else btnSub.classList.add('disabled');
+                });
+
+                this.updateDockProgress();
+                if (this.state.selectedDockId) this.refreshPopoverState();
+            }
+
+            renderDock() {
+                const dock = document.getElementById('dock');
+                dock.innerHTML = ''; 
+                const p = this.state.player;
+
+                const houses = p.buildingInstances.filter(b => b.type === 'house');
+                const others = p.buildingInstances.filter(b => b.type !== 'house');
+                const sortedOthers = others.sort((a, b) => (a.type === 'towncenter' ? -1 : 1));
+                
+                sortedOthers.forEach(b => {
+                    const icon = this.createDockIcon(b.id, CONSTANTS.BUILDINGS[b.type].icon, false);
+                    icon.onclick = () => this.toggleDockItem(b.id);
+                    dock.appendChild(icon);
+                });
+
+                if (houses.length > 0) {
+                    const icon = this.createDockIcon('group-house', CONSTANTS.BUILDINGS['house'].icon, false);
+                    icon.onclick = () => this.toggleDockItem('group-house');
+                    const badge = icon.querySelector('.icon-badge');
+                    badge.style.display = 'flex';
+                    badge.classList.add('house-badge'); 
+                    badge.innerText = houses.length;
+                    dock.appendChild(icon);
+                }
+
+                p.constructions.forEach(task => {
+                    const icon = this.createDockIcon(`const-${task.id}`, CONSTANTS.BUILDINGS[task.type].icon, true);
+                    dock.appendChild(icon);
+                });
+
+                const hammer = this.createDockIcon('dock-build_menu', '🔨', false);
+                hammer.classList.add('build-icon');
+                hammer.onclick = () => this.toggleDockItem('build_menu');
+                dock.appendChild(hammer);
+
+                this.updateDockVisuals();
+            }
+
+            createDockIcon(id, emoji, isConstructing) {
+                const icon = document.createElement('div');
+                icon.className = `dock-icon ${isConstructing ? 'constructing' : ''}`;
+                icon.id = `dock-elem-${id}`; 
+                icon.dataset.refId = id;     
+                icon.innerHTML = emoji;
+                if (isConstructing) {
+                    const overlay = document.createElement('div'); overlay.className = 'const-overlay';
+                    icon.appendChild(overlay);
+                }
+                const barBg = document.createElement('div'); barBg.className = 'icon-progress-bg';
+                const barFill = document.createElement('div'); barFill.className = 'icon-progress-fill';
+                barBg.appendChild(barFill); icon.appendChild(barBg);
+                const badge = document.createElement('div'); badge.className = 'icon-badge'; badge.style.display = 'none';
+                icon.appendChild(badge);
+                return icon;
+            }
+
+            updateDockProgress() {
+                const p = this.state.player;
+                p.buildingInstances.forEach(b => {
+                    if (b.type === 'house') return;
+                    const el = document.getElementById(`dock-elem-${b.id}`);
+                    if (el) {
+                        const barBg = el.querySelector('.icon-progress-bg'); 
+                        const bar = el.querySelector('.icon-progress-fill');
+                        const badge = el.querySelector('.icon-badge');
+                        if (b.queue.length > 0) {
+                            const t = b.queue[0];
+                            bar.style.width = (100 - (t.ticksLeft / t.totalTicks * 100)) + '%';
+                            badge.style.display = 'flex'; badge.innerText = b.queue.length;
+                            barBg.style.display = 'block'; 
+                        } else {
+                            bar.style.width = '0%'; badge.style.display = 'none';
+                            barBg.style.display = 'none'; 
+                        }
+                    }
+                });
+                const houseCount = p.buildingInstances.filter(b => b.type === 'house').length;
+                const houseGroupIcon = document.getElementById('dock-elem-group-house');
+                if (houseGroupIcon) {
+                    const badge = houseGroupIcon.querySelector('.icon-badge');
+                    badge.innerText = houseCount;
+                    const barBg = houseGroupIcon.querySelector('.icon-progress-bg');
+                    if(barBg) barBg.style.display = 'none';
+                }
+                p.constructions.forEach(task => {
+                    const el = document.getElementById(`dock-elem-const-${task.id}`);
+                    if (el) {
+                        const barBg = el.querySelector('.icon-progress-bg');
+                        const bar = el.querySelector('.icon-progress-fill');
+                        const overlay = el.querySelector('.const-overlay');
+                        const pct = Math.floor(100 - (task.ticksLeft / task.totalTicks * 100));
+                        bar.style.width = pct + '%';
+                        overlay.innerText = pct + '%';
+                        barBg.style.display = 'block';
+                    }
+                });
+            }
+
+            updateDockVisuals() {
+                const dock = document.getElementById('dock');
+                Array.from(dock.children).forEach(el => {
+                    const logicalId = el.id === 'dock-elem-dock-build_menu' ? 'build_menu' : el.dataset.refId;
+                    if (this.state.selectedDockId === logicalId) el.classList.add('active');
+                    else el.classList.remove('active');
+                });
+            }
+
+            buildPopover() {
+                const container = document.getElementById('popover-container');
+                const id = this.state.selectedDockId;
+                if (!id) { container.style.display = 'none'; return; }
+                container.innerHTML = ''; container.style.display = 'flex';
+                
+                const domId = id === 'build_menu' ? 'dock-elem-dock-build_menu' : `dock-elem-${id}`;
+                const icon = document.getElementById(domId);
+                if (icon) {
+                    const rect = icon.getBoundingClientRect();
+                    container.style.left = (rect.left + rect.width / 2) + 'px';
+                }
+
+                if (id === 'build_menu') {
+                    container.innerHTML = `<div class="popover-title">建造</div>`;
+                    const types = ['house', 'barracks', 'towncenter'];
+                    types.forEach(t => {
+                        const d = CONSTANTS.BUILDINGS[t];
+                        const btn = document.createElement('div');
+                        btn.className = 'menu-btn build-action-btn'; btn.dataset.type = t;
+                        btn.onclick = () => this.playerBuildStructure(t);
+                        let cost = []; 
+                        if(d.cost.wood) cost.push(`${d.cost.wood}木`);
+                        if(d.cost.stone) cost.push(`${d.cost.stone}石`);
+                        btn.innerHTML = `<span class="btn-icon">${d.icon}</span><div class="btn-info"><span>${d.label}</span><span class="btn-cost">${cost.join(' ')}</span></div>`;
+                        container.appendChild(btn);
+                    });
+                } else if (id === 'group-house') {
+                    container.innerHTML = `<div class="popover-title">房屋 (House)</div>`;
+                    const info = document.createElement('div');
+                    info.className = 'p-2 text-sm text-gray-300 text-center';
+                    info.innerText = '房屋用于增加人口';
+                    container.appendChild(info);
+                } else {
+                    const b = this.state.player.buildingInstances.find(x => x.id === id);
+                    if (b) {
+                        container.innerHTML = `<div class="popover-title">${CONSTANTS.BUILDINGS[b.type].label}</div>`;
+                        const uType = b.type === 'towncenter' ? 'worker' : 'clubman';
+                        const u = CONSTANTS.UNITS[uType];
+                        const btn = document.createElement('div');
+                        btn.className = 'menu-btn produce-action-btn'; btn.dataset.type = uType;
+                        btn.onclick = () => this.playerQueueUnit(id, uType);
+                        let cost = []; 
+                        if(u.cost.food) cost.push(`${u.cost.food}肉`);
+                        if(u.cost.wood) cost.push(`${u.cost.wood}木`);
+                        btn.innerHTML = `<span class="btn-icon">${uType==='worker'?'👷':'⚔️'}</span><div class="btn-info"><span>训练${u.label}</span><span class="btn-cost">${cost.join(' ')}</span></div>`;
+                        container.appendChild(btn);
+                        const q = document.createElement('div'); q.id = 'popover-queue-info'; q.className = 'text-xs text-gray-400 text-center mt-1';
+                        container.appendChild(q);
+                    }
+                }
+                this.refreshPopoverState();
+            }
+
+            refreshPopoverState() {
+                const id = this.state.selectedDockId; if (!id) return;
+                const p = this.state.player;
+                if (id === 'group-house') return; 
+
+                if (id === 'build_menu') {
+                    document.querySelectorAll('.build-action-btn').forEach(btn => {
+                        const t = btn.dataset.type; const d = CONSTANTS.BUILDINGS[t]; const sc = d.cost.stone||0;
+                        if (p.food >= d.cost.food && p.wood >= d.cost.wood && p.stone >= sc) btn.removeAttribute('disabled');
+                        else btn.setAttribute('disabled', 'true');
+                    });
+                } else {
+                    const b = p.buildingInstances.find(x => x.id === id);
+                    if (!b) { this.closePopover(); return; }
+                    document.querySelectorAll('.produce-action-btn').forEach(btn => {
+                        const t = btn.dataset.type; const u = CONSTANTS.UNITS[t];
+                        if (p.food >= u.cost.food && p.wood >= u.cost.wood) btn.removeAttribute('disabled');
+                        else btn.setAttribute('disabled', 'true');
+                    });
+                    const qInfo = document.getElementById('popover-queue-info');
+                    if (qInfo) qInfo.innerText = `队列: ${b.queue.length}`;
+                }
+            }
+            
+            updateUnits() {
+                let p = this.state.units.filter(u => u.owner === 'player'); let e = this.state.units.filter(u => u.owner === 'enemy').sort((a, b) => a.pos - b.pos);
+                if (this.state.playerStance === 'attack') p.sort((a, b) => b.pos - a.pos); else p.sort((a, b) => a.pos - b.pos);
+                p.forEach((u, i) => { this.processCombat(u, e, 1); this.processMovement(u, p, e, i, 1); });
+                e.forEach((u, i) => { this.processCombat(u, p, -1); this.processMovement(u, e, p, i, -1); });
+                const dead = this.state.units.filter(u => u.hp <= 0);
+                dead.forEach(u => this.handleUnitDeath(u));
+                this.state.units = this.state.units.filter(u => u.hp > 0);
+                if (this.state.player.baseHp <= 0) this.endGame('DEFEAT', '你的帝国陷落了。'); if (this.state.enemy.baseHp <= 0) this.endGame('VICTORY', '你征服了野蛮人！');
+            }
+
+            // --- HANDLE UNIT DEATH FIXED ---
+            handleUnitDeath(u) {
+                const f = u.owner === 'player' ? this.state.player : this.state.enemy;
+                if (CONSTANTS.UNITS[u.type].type === 'eco') {
+                    if (f.workers > 0) {
+                        f.workers--;
+                        if (f.idleWorkers > 0) f.idleWorkers--;
+                        else if (f.assignments.stone > 0) f.assignments.stone--;
+                        else if (f.assignments.gold > 0) f.assignments.gold--;
+                        else if (f.assignments.wood > 0) f.assignments.wood--;
+                        else if (f.assignments.food > 0) f.assignments.food--;
+                    }
+                } else { f.armyCount = Math.max(0, f.armyCount - 1); }
+            }
+
+            processCombat(u, ens, dir) {
+                if (u.attackAnimTimer > 0) u.attackAnimTimer--; if (u.attackCooldown > 0) u.attackCooldown--;
+                let v = ens.filter(e => Math.abs(u.pos - e.pos) <= CONSTANTS.ATTACK_RANGE_PERCENT);
+                let t = null;
+                if (v.length > 0) t = v[Math.floor(Math.random() * v.length)];
+                else if (Math.abs(u.pos - (dir === 1 ? 100 : 0)) <= CONSTANTS.ATTACK_RANGE_PERCENT) t = "base";
+                if (t) {
+                    u.state = 'attack'; u.targetId = (t === "base") ? "base" : t.id;
+                    if (u.attackCooldown <= 0) {
+                        u.attackCooldown = 10; u.attackAnimTimer = 3; const dmg = u.dmg;
+                        if (t === "base") { if (u.owner === 'player') this.state.enemy.baseHp -= dmg; else this.state.player.baseHp -= dmg; this.spawnFloater(dir === 1 ? 95 : 5, `-${dmg}`, '#f00'); }
+                        else { t.hp -= dmg; this.spawnFloater(t.pos, `-${dmg}`, '#fff'); }
+                    }
+                } else { u.state = 'move'; }
+            }
+            processMovement(u, friends, enemies, i, dir) { 
+                let d = u.pos; const s = u.owner === 'player' ? this.state.playerStance : 'attack';
+                let speed = u.speed; if (dir === -1) speed = -speed;
+                if (s === 'attack') {
+                    d += speed;
+                    if (i > 0) { const l = friends[i-1].pos - (dir * u.width); if (dir === 1 ? d > l : d < l) d = l; }
+                    if (enemies.length > 0) { const l = enemies[0].pos - (dir * u.width); if (dir === 1 ? d > l : d < l) d = l; }
+                    else if (dir === 1 ? d > 95 : d < 5) d = dir === 1 ? 95 : 5;
+                } else {
+                    let limit = 5; 
+                    if (s === 'defend') d -= u.speed; 
+                    if (i > 0) limit = friends[i-1].pos + u.width; 
+                    if (d < limit) d = limit;
+                }
+                u.pos = Math.min(100, Math.max(0, d));
+            }
+            spawnFloater(x, t, c) { const el = document.createElement('div'); el.className = 'floater'; const r = document.getElementById('game-wrapper').getBoundingClientRect(); el.style.left = (x / 100 * r.width) + 'px'; el.style.top = (r.height / 2 - 20) + 'px'; el.style.color = c; el.innerText = t; document.getElementById('game-wrapper').appendChild(el); setTimeout(() => el.remove(), 1000); }
+            showToast(msg, c='#ef4444') { const el = document.createElement('div'); el.className = 'toast'; el.style.background = c; el.innerText = msg; document.getElementById('toast-container').appendChild(el); setTimeout(() => el.remove(), 2000); }
+
+            loop() { if (!this.gameOver) { this.draw(); requestAnimationFrame(() => this.loop()); } }
+            draw() {
+                const w = this.canvas.width; const h = this.canvas.height; this.ctx.clearRect(0, 0, w, h);
+                this.ctx.strokeStyle = '#444'; this.ctx.beginPath(); this.ctx.moveTo(0, h/2 + 20); this.ctx.lineTo(w, h/2 + 20); this.ctx.stroke();
+                this.state.units.forEach(u => {
+                    const x = (u.pos / 100) * w; const y = h / 2;
+                    this.ctx.fillStyle = u.owner === 'player' ? '#3b82f6' : '#ef4444';
+                    if (u.owner === 'player') { this.ctx.fillRect(x - 5, y - 20, 10, 20); this.ctx.fillStyle = '#ccc'; this.ctx.fillRect(x + 5, y - 15, 8, 2); }
+                    else { this.ctx.beginPath(); this.ctx.arc(x, y - 10, 6, 0, Math.PI * 2); this.ctx.fill(); this.ctx.fillStyle = '#ccc'; this.ctx.fillRect(x - 12, y - 12, 8, 2); }
+                    if (u.attackAnimTimer > 0) {
+                        this.ctx.strokeStyle = '#ffff00'; this.ctx.lineWidth = 2; this.ctx.beginPath();
+                        this.ctx.moveTo(u.owner === 'player' ? x + 5 : x - 5, y - 15 + (Math.random() * 6 - 3));
+                        let tx = u.owner === 'player' ? x + 30 : x - 30; let ty = y - 10;
+                        if (u.targetId === "base") tx = u.owner === 'player' ? w - 40 : 40; else { const t = this.state.units.find(k => k.id === u.targetId); if (t) tx = (t.pos / 100) * w; }
+                        this.ctx.lineTo(tx, ty); this.ctx.stroke();
+                    }
+                    const hp = u.hp / u.maxHp; this.ctx.fillStyle = 'red'; this.ctx.fillRect(x - 8, y - 30, 16, 3); this.ctx.fillStyle = '#0f0'; this.ctx.fillRect(x - 8, y - 30, 16 * hp, 3);
+                });
+            }
+            endGame(r, m) { this.gameOver = true; clearInterval(this.logicInterval); document.getElementById('game-over').style.display = 'flex'; document.getElementById('end-title').innerText = r; document.getElementById('end-title').className = r === 'VICTORY' ? 'text-5xl font-bold mb-4 text-green-500' : 'text-5xl font-bold mb-4 text-red-500'; document.getElementById('end-reason').innerText = m; }
+        }
+        const game = new Game();
+    </script>
+</body>
+</html>
