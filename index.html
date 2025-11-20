@@ -304,6 +304,7 @@
         }
 
         /* Dock 栏 */
+/* Dock 栏 */
         .dock-container {
             position: absolute;
             bottom: 20px;
@@ -318,7 +319,22 @@
             gap: 12px;
             z-index: 50;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+
+            /* --- 新增/修改的代码开始 --- */
+            max-width: 95vw;       /* 限制最大宽度为屏幕宽度的 95% */
+            overflow-x: auto;      /* 允许横向滚动 */
+            
+            /* 隐藏滚动条 (Chrome/Safari/Webkit) */
+            -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
+            scrollbar-width: none; /* Firefox 隐藏滚动条 */
+            -ms-overflow-style: none;  /* IE 10+ 隐藏滚动条 */
         }
+        
+        /* 隐藏滚动条的伪元素 */
+        .dock-container::-webkit-scrollbar { 
+            display: none; 
+        }
+        /* --- 新增/修改的代码结束 --- */
 
         .dock-icon {
             width: 56px;
@@ -334,6 +350,9 @@
             transition: transform 0.2s;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             border: 1px solid #444;
+            
+            /* --- 新增代码 --- */
+            flex-shrink: 0; /* 禁止图标在空间不足时缩小，强制触发滚动 */
         }
 
         .dock-icon:hover {
