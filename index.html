@@ -387,7 +387,41 @@
                 this.renderDock();
 
                 this.logicInterval = setInterval(() => this.updateLogic(), TICK_RATE);
+                
+                // --- 调试: 每3秒打印一次敌人状态 ---
+                setInterval(() => this.debugEnemyState(), 3000);
+
                 requestAnimationFrame(() => this.loop());
+            }
+            
+            // --- 调试: 详细的敌人状态输出函数 ---
+            debugEnemyState() {
+                if (this.gameOver) return;
+                const e = this.state.enemy;
+                const tcs = e.buildingInstances.filter(b => b.type === 'towncenter').length;
+                const barracks = e.buildingInstances.filter(b => b.type === 'barracks').length;
+                const currentPop = e.workers + e.armyCount;
+                
+                console.group(`🔴 敌人状态监控 (Tick: ${this.state.tick})`);
+                console.log(`💰 资源: 🥩${Math.floor(e.food)} 🌲${Math.floor(e.wood)} 🪙${Math.floor(e.gold)} 🪨${Math.floor(e.stone)}`);
+                console.log(`👷 人口: ${currentPop}/${e.popCap} (农民: ${e.workers}, 军队: ${e.armyCount})`);
+                console.log(`🏗️ 建筑: 基地 x${tcs}, 兵营 x${barracks}`);
+                
+                // 检查生产队列
+                const producing = e.buildingInstances
+                    .filter(b => b.queue.length > 0)
+                    .map(b => {
+                        const item = b.queue[0];
+                        const label = CONSTANTS.UNITS[item.type] ? CONSTANTS.UNITS[item.type].label : item.type;
+                        return `${CONSTANTS.BUILDINGS[b.type].label}正在造->${label}`;
+                    });
+                
+                if (producing.length > 0) {
+                    console.log('⚙️ 生产线:', producing.join(', '));
+                } else {
+                    console.log('💤 生产线: 空闲');
+                }
+                console.groupEnd();
             }
 
             createFactionState(name) {
@@ -395,7 +429,7 @@
                 let initialWorkers = 4;
                 
                 if (name === 'enemy') {
-                    initialWorkers = 10;
+                    initialWorkers = 6; 
                 }
 
                 return {
@@ -485,7 +519,7 @@
 
                 // 参数: 射程两倍(16%), 攻速1.75倍(约6tick冷却)
                 const RANGE = CONSTANTS.ATTACK_RANGE_PERCENT * 2;
-                const DAMAGE = CONSTANTS.UNITS.clubman.dmg * 0.5;
+                const DAMAGE = CONSTANTS.UNITS.clubman.dmg * 1.5;
                 const COOLDOWN = Math.floor(10 / 1.25); 
 
                 const basePos = f.name === 'player' ? 0 : 100;
@@ -598,7 +632,7 @@
                 buildings.forEach(b => {
                     if (b.queue.length < 5) { 
                         if (b.type === 'towncenter') { 
-                            if (ai.workers + pendingWorkers < 40) {
+                            if (ai.workers + pendingWorkers < 60) {
                                 this.aiQueue(ai, b, 'worker'); 
                                 pendingWorkers++;
                             }
