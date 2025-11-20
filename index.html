@@ -681,7 +681,7 @@
                 <div class="status-group" title="人口">
                     <span class="icon-house">🏠</span> <span id="disp-pop" class="pop-text">0/200</span>
                 </div>
-                <div class="status-group" title="空闲农民">
+                <div class="status-group" title="空闲村民">
                     <span class="icon-sleep">💤</span> <span id="disp-idle" class="idle-text">0</span>
                 </div>
             </div>
@@ -744,7 +744,7 @@
             UNIT_SIZE_PERCENT: 0.8,
             ATTACK_RANGE_PERCENT: 8,
             UNITS: {
-                worker: { cost: { food: 50, wood: 0 }, time: 120, hp: 10, dmg: 0, def: 0, type: 'eco', label: '农民' },
+                worker: { cost: { food: 50, wood: 0 }, time: 200, hp: 10, dmg: 0, def: 0, type: 'eco', label: '村民' },
                 clubman: { cost: { food: 60, wood: 20 }, time: 150, hp: 90, dmg: 8, def: 0, speed: 1.85, type: 'mil', label: '长枪兵' },
                 samurai: { cost: { food: 100, wood: 0, gold: 20 }, time: 150, hp: 140, dmg: 11, def: 2, speed: 1.35, range: 6.4, type: 'mil', label: '武士' }
             },
@@ -888,7 +888,7 @@
                 const p = this.state.player;
                 if (change > 0) {
                     if (p.idleWorkers > 0) { p.idleWorkers--; p.assignments[type]++; }
-                    else this.showToast("没有空闲农民");
+                    else this.showToast("没有空闲村民");
                 } else {
                     if (p.assignments[type] > 0) { p.assignments[type]--; p.idleWorkers++; }
                 }
@@ -1547,7 +1547,7 @@
                         // 长枪兵/长枪兵：圆形
                         this.ctx.beginPath(); this.ctx.arc(x, y - 10, 8, 0, Math.PI * 2); this.ctx.fill();
                     } else {
-                        // 农民：小矩形，保持简单
+                        // 村民：小矩形，保持简单
                         this.ctx.fillRect(x - 5, y - 15, 10, 15);
                     }
 
