@@ -680,7 +680,7 @@
         const MAX_TOTAL_POP = 200;
 
         const CONSTANTS = {
-            INITIAL_RES: { food: 200, wood: 100, gold: 0, stone: 0 },
+            INITIAL_RES: { food: 200, wood: 100, gold: 0, stone: 0 }, // 金矿定位1000
             BASE_HP: 2000, INITIAL_POP_CAP: 20,
             MAP_WIDTH_PERCENT: 100,
             UNIT_SIZE_PERCENT: 0.8,
@@ -700,13 +700,15 @@
                 turret_tech: { cost: { food: 0, wood: 0, gold: 100, stone: 50 }, time: 240, label: '防御炮台', icon: '🏯', desc: '基地获得强大防御力' },
                 // 铁匠铺科技：攻击
                 tech_atk_1: { cost: { food: 0, wood: 100, gold: 150, stone: 0 }, time: 500, label: '近战攻击 I', icon: '🗡️', level: 1, type: 'atk' },
-                // time 修改为 1000
                 tech_atk_2: { cost: { food: 0, wood: 200, gold: 400, stone: 0 }, time: 1000, label: '近战攻击 II', icon: '🗡️', level: 2, type: 'atk' },
+                // 三级攻击：消耗翻倍，时间翻倍 (2000 ticks = 200s)
+                tech_atk_3: { cost: { food: 0, wood: 400, gold: 1000, stone: 0 }, time: 2000, label: '近战攻击 III', icon: '🗡️', level: 3, type: 'atk' },
                 
                 // 铁匠铺科技：防御
                 tech_def_1: { cost: { food: 100, wood: 0, gold: 150, stone: 0 }, time: 500, label: '近战防御 I', icon: '🛡️', level: 1, type: 'def' },
-                // time 修改为 1000
-                tech_def_2: { cost: { food: 200, wood: 0, gold: 400, stone: 0 }, time: 1000, label: '近战防御 II', icon: '🛡️', level: 2, type: 'def' }
+                tech_def_2: { cost: { food: 200, wood: 0, gold: 400, stone: 0 }, time: 1000, label: '近战防御 II', icon: '🛡️', level: 2, type: 'def' },
+                // 三级防御：消耗翻倍，时间翻倍
+                tech_def_3: { cost: { food: 400, wood: 0, gold: 1000, stone: 0 }, time: 2000, label: '近战防御 III', icon: '🛡️', level: 3, type: 'def' }
             }
         };
 
@@ -760,14 +762,59 @@
 
             debugAI() {
                 if (this.gameOver) return;
-                // const e = this.state.enemy;
-                // console.log(`[AI] 姿态: ${this.state.enemyStance} | 资源: 🥩${Math.floor(e.food)} 🌲${Math.floor(e.wood)} | 人口: ${e.workers + e.armyCount}`);
+                const ai = this.state.enemy;
+                
+                // 统计建筑数量
+                const countBuilt = (t) => ai.buildingInstances.filter(b => b.type === t).length;
+                const countConst = (t) => ai.constructions.filter(c => c.type === t).length;
+                const barracksCount = countBuilt('barracks') + countConst('barracks');
+                const blacksmithCount = countBuilt('blacksmith') + countConst('blacksmith');
+                
+                // 格式化输出
+                console.groupCollapsed(`🤖 AI 状态监控 (Tick: ${this.state.tick})`);
+                
+                // 1. 资源状况
+                console.log(`💰 资源库存: [肉: ${Math.floor(ai.food)}] [木: ${Math.floor(ai.wood)}] [金: ${Math.floor(ai.gold)}] [石: ${Math.floor(ai.stone)}]`);
+                
+                // 1.5 农民分配
+                console.log(`👷‍♂️ 农民分配: [肉: ${ai.assignments.food}] [木: ${ai.assignments.wood}] [金: ${ai.assignments.gold}] [石: ${ai.assignments.stone}] [空闲: ${ai.idleWorkers}]`);
+
+                // 2. 采集逻辑判断
+                const resources = [
+                    { type: 'food', amount: ai.food },
+                    { type: 'wood', amount: ai.wood },
+                    { type: 'gold', amount: ai.gold }
+                ];
+                resources.sort((a, b) => a.amount - b.amount);
+                console.log(`⛏️ 当前全力采集: %c${resources[0].type.toUpperCase()}`, 'color: orange; font-weight: bold', `(因为库存最少)`);
+
+                // 3. 科技与兵力门槛 (改为12)
+                const techReadyColor = ai.armyCount > 12 ? 'green' : 'red';
+                console.log(`⚔️ 军队数量: %c${ai.armyCount}/12`, `color: ${techReadyColor}; font-weight: bold`, 
+                            ai.armyCount > 12 ? '✅ 已满足科技研发门槛' : '❌ 未达标，优先暴兵');
+                
+                // 4. 建筑状况
+                const bsColor = blacksmithCount > 0 ? 'green' : 'red';
+                console.log(`🏗️ 关键建筑: 兵营 x${barracksCount}, %c铁匠铺 x${blacksmithCount}`, `color: ${bsColor}`);
+                
+                // 5. 科技等级
+                console.log(`🎓 当前科技: 攻[${ai.techLevels.atk}] 防[${ai.techLevels.def}]`);
+
+                // 6. 正在做什么
+                const blacksmith = ai.buildingInstances.find(b => b.type === 'blacksmith');
+                if (blacksmith && blacksmith.queue.length > 0) {
+                    console.log(`🔥 %c正在研发: ${CONSTANTS.TECHS[blacksmith.queue[0].type].label}`, 'color: #f0f; font-weight: bold');
+                } else if (ai.armyCount > 12 && blacksmithCount > 0) {
+                    console.log(`💤 铁匠铺待机中 (可能资源不足)`);
+                }
+
+                console.groupEnd();
             }
 
             createFactionState(name) {
                 const initialBuildings = [{ id: `${name}-b-${this.buildingIdCounter++}`, type: 'towncenter', queue: [] }];
                 let initialWorkers = 4;
-                if (name === 'enemy') initialWorkers = 6;
+                if (name === 'enemy') initialWorkers = 7;
                 return {
                     name: name,
                     food: CONSTANTS.INITIAL_RES.food, wood: CONSTANTS.INITIAL_RES.wood, gold: CONSTANTS.INITIAL_RES.gold, stone: CONSTANTS.INITIAL_RES.stone,
@@ -971,7 +1018,7 @@
                 const ai = this.state.enemy;
                 // 1. 资源管理 
                 ai.assignments = { food: 0, wood: 0, gold: 0, stone: 0 };
-                ai.idleWorkers = 0;
+                ai.idleWorkers = 0; 
                 
                 const resources = [
                     { type: 'food', amount: ai.food },
@@ -985,6 +1032,7 @@
                 let savingForTech = false;
                 const blacksmith = ai.buildingInstances.find(b => b.type === 'blacksmith');
                 
+                // 改动：阈值从30降到12
                 if (ai.armyCount > 12 && blacksmith && blacksmith.queue.length === 0) {
                     const levels = ai.techLevels;
                     let targetTech = null;
@@ -993,6 +1041,8 @@
                     else if (levels.def < 1) targetTech = 'tech_def_1';
                     else if (levels.atk < 2) targetTech = 'tech_atk_2';
                     else if (levels.def < 2) targetTech = 'tech_def_2';
+                    else if (levels.atk < 3) targetTech = 'tech_atk_3'; // 三级
+                    else if (levels.def < 3) targetTech = 'tech_def_3'; // 三级
 
                     if (targetTech) {
                         const techData = CONSTANTS.TECHS[targetTech];
@@ -1036,13 +1086,23 @@
                     return built + constructing;
                 };
                 
-                const numBarracks = countType('barracks');
-                const numBlacksmith = countType('blacksmith');
-
                 let structureToBuild = null;
-                if (numBarracks < 2) structureToBuild = 'barracks'; 
-                else if (numBlacksmith < 1) structureToBuild = 'blacksmith'; 
-                else structureToBuild = 'barracks'; 
+
+                // 修复后的逻辑：
+                // 1. 必须先造 1 个兵营
+                if (numBarracks < 1) {
+                    structureToBuild = 'barracks';
+                } 
+                // 2. 然后必须造 1 个铁匠铺
+                else if (numBlacksmith < 1) {
+                    structureToBuild = 'blacksmith';
+                } 
+                // 3. 【修复】只有当兵营少于 5 个时，才继续补充兵营
+                //    这样 AI 就不会无限建造，能省下资源去造兵或升级
+                else if (numBarracks < 6 || ai.wood > 600) {
+                    structureToBuild = 'barracks';
+                }
+                // ...
                 
                 if (structureToBuild) {
                     const d = CONSTANTS.BUILDINGS[structureToBuild];
@@ -1106,7 +1166,7 @@
                 if (e.hasTurret) document.getElementById('e-base').classList.add('has-turret');
                 
                 // 更新科技显示
-                const toRoman = (n) => n === 0 ? '0' : (n === 1 ? 'I' : 'II');
+                const toRoman = (n) => n === 0 ? '0' : (n === 1 ? 'I' : (n === 2 ? 'II' : 'III'));
                 document.getElementById('p-tech-atk').innerText = `🗡️ ${toRoman(p.techLevels.atk)}`;
                 document.getElementById('p-tech-def').innerText = `🛡️ ${toRoman(p.techLevels.def)}`;
                 document.getElementById('e-tech-atk').innerText = `🗡️ ${toRoman(e.techLevels.atk)}`;
@@ -1298,7 +1358,7 @@
                             const researchingDef = p.buildingInstances.some(bi => bi.queue.some(q => q.type.startsWith('tech_def')));
                             const techLevels = p.techLevels;
 
-                            if (techLevels.atk < 2 && !researchingAtk) {
+                            if (techLevels.atk < 3 && !researchingAtk) {
                                 const nextLvl = techLevels.atk + 1;
                                 const techId = `tech_atk_${nextLvl}`;
                                 const tech = CONSTANTS.TECHS[techId];
@@ -1312,7 +1372,7 @@
                                 container.appendChild(techBtn);
                             }
 
-                            if (techLevels.def < 2 && !researchingDef) {
+                            if (techLevels.def < 3 && !researchingDef) {
                                 const nextLvl = techLevels.def + 1;
                                 const techId = `tech_def_${nextLvl}`;
                                 const tech = CONSTANTS.TECHS[techId];
@@ -1326,7 +1386,7 @@
                                 container.appendChild(techBtn);
                             }
                             
-                            if(techLevels.atk >= 2 && techLevels.def >= 2) {
+                            if(techLevels.atk >= 3 && techLevels.def >= 3) {
                                 container.innerHTML += `<div class="text-xs text-gray-400 text-center mt-2">科技已升至顶级</div>`;
                             }
                         }
