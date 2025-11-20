@@ -1120,7 +1120,7 @@
                 } 
                 // 3. 【修复】只有当兵营少于 5 个时，才继续补充兵营
                 //    这样 AI 就不会无限建造，能省下资源去造兵或升级
-                else if (numBarracks < 6 || ai.wood > 600) {
+                else if (numBarracks < 6 || ai.wood > 1300) {
                     structureToBuild = 'barracks';
                 }
                 // ...
