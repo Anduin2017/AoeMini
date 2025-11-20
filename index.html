@@ -680,7 +680,7 @@
         const MAX_TOTAL_POP = 200;
 
         const CONSTANTS = {
-            INITIAL_RES: { food: 200, wood: 100, gold: 0, stone: 0 }, // 金矿定位1000
+            INITIAL_RES: { food: 200, wood: 100, gold: 100, stone: 0 }, // 金矿定位1000
             BASE_HP: 2000, INITIAL_POP_CAP: 20,
             MAP_WIDTH_PERCENT: 100,
             UNIT_SIZE_PERCENT: 0.8,
@@ -813,8 +813,8 @@
 
             createFactionState(name) {
                 const initialBuildings = [{ id: `${name}-b-${this.buildingIdCounter++}`, type: 'towncenter', queue: [] }];
-                let initialWorkers = 4;
-                if (name === 'enemy') initialWorkers = 7;
+                let initialWorkers = 6;
+                if (name === 'enemy') initialWorkers = 9;
                 return {
                     name: name,
                     food: CONSTANTS.INITIAL_RES.food, wood: CONSTANTS.INITIAL_RES.wood, gold: CONSTANTS.INITIAL_RES.gold, stone: CONSTANTS.INITIAL_RES.stone,
