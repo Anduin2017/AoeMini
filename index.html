@@ -1195,17 +1195,32 @@
 
                 const pUnits = this.state.units.filter(u => u.owner === 'player');
                 const eUnits = this.state.units.filter(u => u.owner === 'enemy');
+
+                // --- AI 逻辑修改：统计AI半场内的单位 ---
+                const pCountHalf = pUnits.filter(u => u.pos > 50).length;
+                const eCountHalf = eUnits.filter(u => u.pos > 50).length;
+
                 let playerFront = 0;
                 if (pUnits.length > 0) playerFront = Math.max(...pUnits.map(u => u.pos));
                 let enemyFront = 100;
                 if (eUnits.length > 0) enemyFront = Math.min(...eUnits.map(u => u.pos));
+
                 const distance = enemyFront - playerFront;
                 const battleLine = (playerFront + enemyFront) / 2;
-                let newStance = 'attack';
-                if (distance > 30) newStance = 'attack';
-                else {
-                    if (battleLine > 65) newStance = 'defend'; else newStance = 'attack';
+
+                let newStance = 'attack'; // 默认进攻
+
+                // 新规则：如果在AI半场（>50），且AI人数多于玩家，强制进攻（反击）
+                if (eCountHalf > pCountHalf) {
+                    newStance = 'attack';
+                } else {
+                    // 否则按老规则：距离远则进攻，距离近且战线靠后则防守
+                    if (distance > 30) newStance = 'attack';
+                    else {
+                        if (battleLine > 65) newStance = 'defend'; else newStance = 'attack';
+                    }
                 }
+
                 if (this.state.enemyStance !== newStance) this.state.enemyStance = newStance;
             }
 
@@ -1488,14 +1503,42 @@
             }
 
             updateUnits() {
-                let p = this.state.units.filter(u => u.owner === 'player'); let e = this.state.units.filter(u => u.owner === 'enemy').sort((a, b) => a.pos - b.pos);
-                if (this.state.playerStance === 'attack') p.sort((a, b) => b.pos - a.pos); else p.sort((a, b) => a.pos - b.pos);
-                p.forEach((u, i) => { this.processCombat(u, e, 1); this.processMovement(u, p, e, i, 1); });
-                e.forEach((u, i) => { this.processCombat(u, p, -1); this.processMovement(u, e, p, i, -1); });
+                // 1. 获取双方单位
+                let p = this.state.units.filter(u => u.owner === 'player');
+                // 电脑列表固定从小到大（左->右），方便玩家（从左往右攻）检测碰撞
+                let e = this.state.units.filter(u => u.owner === 'enemy').sort((a, b) => a.pos - b.pos);
+
+                // 2. 玩家自身的排序（用于自己的堆叠逻辑）
+                // 进攻时：靠右的排前面；防守时：靠左的排前面
+                if (this.state.playerStance === 'attack') p.sort((a, b) => b.pos - a.pos);
+                else p.sort((a, b) => a.pos - b.pos);
+
+                // 3. 处理玩家逻辑
+                p.forEach((u, i) => {
+                    this.processCombat(u, e, 1);
+                    // 玩家撞电脑：e 已经是 左->右 排序，e[0] 就是离玩家最近的敌人，没问题
+                    this.processMovement(u, p, e, i, 1);
+                });
+
+                // 4. 处理电脑逻辑
+                // 【关键修复】：电脑撞玩家时，需要一份“从大到小（右->左）”的玩家列表
+                // 这样 pForCollision[0] 才是离电脑最近的那个玩家单位
+                const pForCollision = [...p].sort((a, b) => b.pos - a.pos);
+
+                e.forEach((u, i) => {
+                    this.processCombat(u, p, -1);
+                    // 这里传入专门排序过的 pForCollision，防止防守时穿模
+                    this.processMovement(u, e, pForCollision, i, -1);
+                });
+
+                // 5. 清理死亡单位
                 const dead = this.state.units.filter(u => u.hp <= 0);
                 dead.forEach(u => this.handleUnitDeath(u));
                 this.state.units = this.state.units.filter(u => u.hp > 0);
-                if (this.state.player.baseHp <= 0) this.endGame('DEFEAT', '你的帝国陷落了。'); if (this.state.enemy.baseHp <= 0) this.endGame('VICTORY', '你征服了野蛮人！');
+
+                // 6. 胜负判定
+                if (this.state.player.baseHp <= 0) this.endGame('DEFEAT', '你的帝国陷落了。');
+                if (this.state.enemy.baseHp <= 0) this.endGame('VICTORY', '你征服了野蛮人！');
             }
 
             handleUnitDeath(u) {
