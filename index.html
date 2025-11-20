@@ -851,7 +851,54 @@
             }
 
             debugAI() {
-                // 简化 debug
+                if (this.gameOver) return;
+                const ai = this.state.enemy;
+
+                // 统计建筑数量
+                const countBuilt = (t) => ai.buildingInstances.filter(b => b.type === t).length;
+                const countConst = (t) => ai.constructions.filter(c => c.type === t).length;
+                const barracksCount = countBuilt('barracks') + countConst('barracks');
+                const blacksmithCount = countBuilt('blacksmith') + countConst('blacksmith');
+
+                // 格式化输出
+                console.groupCollapsed(`🤖 AI 状态监控 (Tick: ${this.state.tick})`);
+
+                // 1. 资源状况
+                console.log(`💰 资源库存: [肉: ${Math.floor(ai.food)}] [木: ${Math.floor(ai.wood)}] [金: ${Math.floor(ai.gold)}] [石: ${Math.floor(ai.stone)}]`);
+
+                // 1.5 农民分配
+                console.log(`👷‍♂️ 农民分配: [肉: ${ai.assignments.food}] [木: ${ai.assignments.wood}] [金: ${ai.assignments.gold}] [石: ${ai.assignments.stone}] [空闲: ${ai.idleWorkers}]`);
+
+                // 2. 采集逻辑判断
+                const resources = [
+                    { type: 'food', amount: ai.food },
+                    { type: 'wood', amount: ai.wood },
+                    { type: 'gold', amount: ai.gold }
+                ];
+                resources.sort((a, b) => a.amount - b.amount);
+                console.log(`⛏️ 当前全力采集: %c${resources[0].type.toUpperCase()}`, 'color: orange; font-weight: bold', `(因为库存最少)`);
+
+                // 3. 科技与兵力门槛 (改为12)
+                const techReadyColor = ai.armyCount > 12 ? 'green' : 'red';
+                console.log(`⚔️ 军队数量: %c${ai.armyCount}/12`, `color: ${techReadyColor}; font-weight: bold`,
+                    ai.armyCount > 12 ? '✅ 已满足科技研发门槛' : '❌ 未达标，优先暴兵');
+
+                // 4. 建筑状况
+                const bsColor = blacksmithCount > 0 ? 'green' : 'red';
+                console.log(`🏗️ 关键建筑: 兵营 x${barracksCount}, %c铁匠铺 x${blacksmithCount}`, `color: ${bsColor}`);
+
+                // 5. 科技等级
+                console.log(`🎓 当前科技: 攻[${ai.techLevels.atk}] 防[${ai.techLevels.def}]`);
+
+                // 6. 正在做什么
+                const blacksmith = ai.buildingInstances.find(b => b.type === 'blacksmith');
+                if (blacksmith && blacksmith.queue.length > 0) {
+                    console.log(`🔥 %c正在研发: ${CONSTANTS.TECHS[blacksmith.queue[0].type].label}`, 'color: #f0f; font-weight: bold');
+                } else if (ai.armyCount > 12 && blacksmithCount > 0) {
+                    console.log(`💤 铁匠铺待机中 (可能资源不足)`);
+                }
+
+                console.groupEnd();
             }
 
             createFactionState(name) {
@@ -1572,6 +1619,18 @@
             endGame(r, m) { this.gameOver = true; clearInterval(this.logicInterval); document.getElementById('game-over').style.display = 'flex'; document.getElementById('end-title').innerText = r; document.getElementById('end-title').className = r === 'VICTORY' ? 'text-5xl font-bold mb-4 text-green-500' : 'text-5xl font-bold mb-4 text-red-500'; document.getElementById('end-reason').innerText = m; }
         }
         const game = new Game();
+
+        // --- Cheat Code ---
+        window.show_me_the_money = function () {
+            if (game && game.state && game.state.player) {
+                game.state.player.food = 9999;
+                game.state.player.wood = 9999;
+                game.state.player.gold = 9999;
+                game.state.player.stone = 9999;
+                game.updateUI();
+                console.log("Resources granted: 9999 [Food, Wood, Gold, Stone]");
+            }
+        }
     </script>
 </body>
 
