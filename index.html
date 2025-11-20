@@ -230,8 +230,8 @@
     <div id="toast-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"></div>
 
     <div class="top-bar">
-        <div class="top-item text-blue">PLAYER</div>
-        <div class="top-item text-red">AI (HARD)</div>
+        <div class="top-item text-blue">玩家</div>
+        <div class="top-item text-red">电脑</div>
     </div>
 
     <div id="game-wrapper">
@@ -323,7 +323,7 @@
             BUILDINGS: {
                 house: { cost: { food: 0, wood: 50, stone: 0 }, pop: 10, time: 100, label: '房屋', icon: '🏠' }, 
                 barracks: { cost: { food: 0, wood: 150, stone: 0 }, time: 200, label: '兵营', icon: '⚔️' },
-                towncenter: { cost: { food: 0, wood: 400, stone: 350 }, pop: 20, time: 500, label: '基地', icon: '🏛️' } 
+                towncenter: { cost: { food: 0, wood: 0, stone: 350 }, pop: 20, time: 400, label: '基地', icon: '🏛️' } 
             }
         };
 
@@ -466,7 +466,7 @@
                 const unitData = CONSTANTS.UNITS[type];
                 if (b.queue.length >= MAX_QUEUE_SIZE) { this.showToast("队列已满"); return; }
                 let totalPop = f.workers + f.armyCount; f.buildingInstances.forEach(bb => totalPop += bb.queue.length);
-                if (totalPop >= MAX_TOTAL_POP || totalPop >= f.popCap) { this.showToast("人口不足"); return; }
+                if (totalPop >= MAX_TOTAL_POP || totalPop >= f.popCap) { this.showToast("人口不足，建造更多房屋！"); return; }
                 if (f.food < unitData.cost.food || f.wood < unitData.cost.wood) { this.showToast("资源不足"); return; }
                 f.food -= unitData.cost.food; f.wood -= unitData.cost.wood;
                 b.queue.push({ type: type, ticksLeft: unitData.time, totalTicks: unitData.time });
