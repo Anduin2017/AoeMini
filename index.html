@@ -745,8 +745,8 @@
             ATTACK_RANGE_PERCENT: 8,
             UNITS: {
                 worker: { cost: { food: 50, wood: 0 }, time: 120, hp: 10, dmg: 0, def: 0, type: 'eco', label: '农民' },
-                clubman: { cost: { food: 80, wood: 20 }, time: 50, hp: 60, dmg: 5, def: 0, speed: 1.0, type: 'mil', label: '棒子兵' },
-                samurai: { cost: { food: 100, wood: 0, gold: 20 }, time: 60, hp: 80, dmg: 12, def: 1, speed: 1.1, range: 6.4, type: 'mil', label: '武士' }
+                clubman: { cost: { food: 60, wood: 20 }, time: 150, hp: 90, dmg: 8, def: 0, speed: 1.85, type: 'mil', label: '长枪兵' },
+                samurai: { cost: { food: 100, wood: 0, gold: 20 }, time: 150, hp: 140, dmg: 11, def: 2, speed: 1.35, range: 6.4, type: 'mil', label: '武士' }
             },
             BUILDINGS: {
                 house: { cost: { food: 0, wood: 50, stone: 0 }, pop: 10, time: 100, label: '房屋', icon: '🏠' },
@@ -1109,7 +1109,7 @@
                                 if (ai.food >= samCost.food && ai.gold >= samCost.gold) {
                                     this.aiQueue(ai, b, 'samurai');
                                 } else {
-                                    // 钱不够才出棒子兵
+                                    // 钱不够才出长枪兵
                                     this.aiQueue(ai, b, 'clubman');
                                 }
                             }
@@ -1544,7 +1544,7 @@
                         // 武士：方形
                         this.ctx.fillRect(x - 8, y - 20, 16, 20);
                     } else if (u.type === 'clubman') {
-                        // 棒子兵/长枪兵：圆形
+                        // 长枪兵/长枪兵：圆形
                         this.ctx.beginPath(); this.ctx.arc(x, y - 10, 8, 0, Math.PI * 2); this.ctx.fill();
                     } else {
                         // 农民：小矩形，保持简单
