@@ -699,14 +699,14 @@
             TECHS: {
                 turret_tech: { cost: { food: 0, wood: 0, gold: 100, stone: 50 }, time: 240, label: '防御炮台', icon: '🏯', desc: '基地获得强大防御力' },
                 // 铁匠铺科技：攻击
-                tech_atk_1: { cost: { food: 0, wood: 50, gold: 100, stone: 0 }, time: 500, label: '近战攻击 I', icon: '🗡️', level: 1, type: 'atk' },
+                tech_atk_1: { cost: { food: 0, wood: 100, gold: 150, stone: 0 }, time: 500, label: '近战攻击 I', icon: '🗡️', level: 1, type: 'atk' },
                 // time 修改为 1000
-                tech_atk_2: { cost: { food: 0, wood: 100, gold: 200, stone: 0 }, time: 1000, label: '近战攻击 II', icon: '🗡️', level: 2, type: 'atk' },
+                tech_atk_2: { cost: { food: 0, wood: 200, gold: 400, stone: 0 }, time: 1000, label: '近战攻击 II', icon: '🗡️', level: 2, type: 'atk' },
                 
                 // 铁匠铺科技：防御
-                tech_def_1: { cost: { food: 50, wood: 0, gold: 100, stone: 0 }, time: 500, label: '近战防御 I', icon: '🛡️', level: 1, type: 'def' },
+                tech_def_1: { cost: { food: 100, wood: 0, gold: 150, stone: 0 }, time: 500, label: '近战防御 I', icon: '🛡️', level: 1, type: 'def' },
                 // time 修改为 1000
-                tech_def_2: { cost: { food: 100, wood: 0, gold: 200, stone: 0 }, time: 1000, label: '近战防御 II', icon: '🛡️', level: 2, type: 'def' }
+                tech_def_2: { cost: { food: 200, wood: 0, gold: 400, stone: 0 }, time: 1000, label: '近战防御 II', icon: '🛡️', level: 2, type: 'def' }
             }
         };
 
@@ -985,7 +985,7 @@
                 let savingForTech = false;
                 const blacksmith = ai.buildingInstances.find(b => b.type === 'blacksmith');
                 
-                if (ai.armyCount > 30 && blacksmith && blacksmith.queue.length === 0) {
+                if (ai.armyCount > 12 && blacksmith && blacksmith.queue.length === 0) {
                     const levels = ai.techLevels;
                     let targetTech = null;
 
