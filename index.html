@@ -749,19 +749,19 @@
                 samurai: { cost: { food: 100, wood: 0, gold: 20 }, time: 150, hp: 140, dmg: 11, def: 2, speed: 1.125, range: 6.4, type: 'mil', label: '武士' }
             },
             BUILDINGS: {
-                house: { cost: { food: 0, wood: 50, stone: 0 }, pop: 10, time: 100, label: '房屋', icon: '🏠' },
-                barracks: { cost: { food: 0, wood: 150, stone: 0 }, time: 200, label: '兵营', icon: '⚔️' },
-                towncenter: { cost: { food: 0, wood: 0, stone: 350 }, pop: 10, time: 400, label: '基地', icon: '🏛️' },
-                blacksmith: { cost: { food: 0, wood: 150, stone: 0 }, time: 300, label: '铁匠铺', icon: '⚒️' }
+                house: { cost: { food: 0, wood: 50, stone: 0 }, pop: 10, time: 150, label: '房屋', icon: '🏠' },
+                barracks: { cost: { food: 0, wood: 150, stone: 0 }, time: 300, label: '兵营', icon: '⚔️' },
+                towncenter: { cost: { food: 0, wood: 0, stone: 350 }, pop: 10, time: 1200, label: '基地', icon: '🏛️' },
+                blacksmith: { cost: { food: 0, wood: 150, stone: 0 }, time: 250, label: '铁匠铺', icon: '⚒️' }
             },
             TECHS: {
-                turret_tech: { cost: { food: 0, wood: 0, gold: 100, stone: 50 }, time: 240, label: '防御炮台', icon: '🏯', desc: '基地获得强大防御力' },
-                tech_atk_1: { cost: { food: 0, wood: 100, gold: 150, stone: 0 }, time: 500, label: '近战攻击 I', icon: '🗡️', level: 1, type: 'atk' },
-                tech_atk_2: { cost: { food: 0, wood: 200, gold: 400, stone: 0 }, time: 1000, label: '近战攻击 II', icon: '🗡️', level: 2, type: 'atk' },
-                tech_atk_3: { cost: { food: 0, wood: 400, gold: 1000, stone: 0 }, time: 2000, label: '近战攻击 III', icon: '🗡️', level: 3, type: 'atk' },
-                tech_def_1: { cost: { food: 100, wood: 0, gold: 150, stone: 0 }, time: 500, label: '近战防御 I', icon: '🛡️', level: 1, type: 'def' },
-                tech_def_2: { cost: { food: 200, wood: 0, gold: 400, stone: 0 }, time: 1000, label: '近战防御 II', icon: '🛡️', level: 2, type: 'def' },
-                tech_def_3: { cost: { food: 400, wood: 0, gold: 1000, stone: 0 }, time: 2000, label: '近战防御 III', icon: '🛡️', level: 3, type: 'def' }
+                turret_tech: { cost: { food: 0, wood: 0, gold: 100, stone: 170 }, time: 240, label: '防御炮台', icon: '🏯', desc: '基地获得强大防御力' },
+                tech_atk_1: { cost: { food: 50, wood: 0, gold: 125, stone: 0 }, time: 600, label: '近战攻击 I', icon: '🗡️', level: 1, type: 'atk' },
+                tech_atk_2: { cost: { food: 100, wood: 0, gold: 250, stone: 0 }, time: 600, label: '近战攻击 II', icon: '🗡️', level: 2, type: 'atk' },
+                tech_atk_3: { cost: { food: 150, wood: 0, gold: 300, stone: 0 }, time: 600, label: '近战攻击 III', icon: '🗡️', level: 3, type: 'atk' },
+                tech_def_1: { cost: { food: 50, wood: 0, gold: 125, stone: 0 }, time: 600, label: '近战防御 I', icon: '🛡️', level: 1, type: 'def' },
+                tech_def_2: { cost: { food: 100, wood: 0, gold: 250, stone: 0 }, time: 600, label: '近战防御 II', icon: '🛡️', level: 2, type: 'def' },
+                tech_def_3: { cost: { food: 150, wood: 0, gold: 300, stone: 0 }, time: 600, label: '近战防御 III', icon: '🛡️', level: 3, type: 'def' }
             }
         };
 
@@ -904,7 +904,7 @@
             createFactionState(name) {
                 const initialBuildings = [{ id: `${name}-b-${this.buildingIdCounter++}`, type: 'towncenter', queue: [] }];
                 let initialWorkers = 6;
-                if (name === 'enemy') initialWorkers = 9;
+                if (name === 'enemy') initialWorkers = 7;
                 return {
                     name: name,
                     food: CONSTANTS.INITIAL_RES.food, wood: CONSTANTS.INITIAL_RES.wood, gold: CONSTANTS.INITIAL_RES.gold, stone: CONSTANTS.INITIAL_RES.stone,
