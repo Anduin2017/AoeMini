@@ -7,6 +7,7 @@
     <title>朴素帝国 - Minimalist Empire</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* 保持原有的 CSS 不变 */
         body {
             background-color: #111;
             color: #e5e5e5;
@@ -31,20 +32,25 @@
             height: 100%;
         }
 
-        /* 基地位置垂直居中 */
         .base {
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            width: 80px;
-            height: 100px;
+            width: 64px;
+            /* 从80px减小到64px */
+            height: 80px;
+            /* 高度也相应减小 */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             font-weight: bold;
+            font-size: 0.8rem;
+            /* 字体改小 */
             z-index: 10;
             pointer-events: none;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            /* 加个阴影增加立体感 */
         }
 
         .base-player {
@@ -59,16 +65,11 @@
             border-left: 4px solid #b91c1c;
         }
 
-        /* 炮台视觉装饰 */
+        /* 调整炮台位置 */
         .turret-addon {
-            position: absolute;
-            top: -20px;
-            width: 40px;
-            height: 20px;
-            background: #555;
-            border: 2px solid #ccc;
-            border-radius: 5px 5px 0 0;
-            display: none;
+            top: -15px;
+            width: 30px;
+            height: 15px;
         }
 
         .has-turret .turret-addon {
@@ -76,10 +77,10 @@
         }
 
         .hp-bar-bg {
-            width: 80%;
-            height: 6px;
+            width: 90%;
+            height: 4px;
             background: rgba(0, 0, 0, 0.5);
-            margin-top: 5px;
+            margin-top: 2px;
         }
 
         .hp-bar-fill {
@@ -89,7 +90,6 @@
             transition: width 0.2s;
         }
 
-        /* UI 组件 */
         .top-bar {
             position: absolute;
             top: 0;
@@ -98,7 +98,6 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            /* 顶部对齐 */
             padding: 10px 20px;
             pointer-events: none;
             z-index: 20;
@@ -120,7 +119,6 @@
             line-height: 1.2;
         }
 
-        /* 新增：科技状态显示 */
         .tech-status {
             font-family: monospace;
             font-size: 0.9rem;
@@ -182,7 +180,6 @@
             box-shadow: 0 0 8px #2563eb;
         }
 
-        /* 资源面板 */
         .resource-widget {
             position: absolute;
             bottom: 100px;
@@ -316,7 +313,6 @@
             pointer-events: none;
         }
 
-        /* Dock 栏 */
         .dock-container {
             position: absolute;
             bottom: 20px;
@@ -331,7 +327,6 @@
             gap: 12px;
             z-index: 50;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-
             max-width: 95vw;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
@@ -454,7 +449,6 @@
             color: #000;
         }
 
-        /* Popover Menu */
         .popover-menu {
             position: absolute;
             bottom: 90px;
@@ -595,7 +589,6 @@
             }
         }
 
-        /* --- 新增：单位信息悬浮窗样式 --- */
         #unit-tooltip {
             position: absolute;
             background: rgba(17, 24, 39, 0.95);
@@ -603,7 +596,6 @@
             padding: 8px 12px;
             border-radius: 6px;
             pointer-events: none;
-            /* 确保鼠标事件穿透，不影响游戏 */
             display: none;
             z-index: 1000;
             color: white;
@@ -746,7 +738,7 @@
         const MAX_TOTAL_POP = 200;
 
         const CONSTANTS = {
-            INITIAL_RES: { food: 200, wood: 100, gold: 100, stone: 0 }, // 金矿定位1000
+            INITIAL_RES: { food: 200, wood: 100, gold: 100, stone: 0 },
             BASE_HP: 2000, INITIAL_POP_CAP: 10,
             MAP_WIDTH_PERCENT: 100,
             UNIT_SIZE_PERCENT: 0.8,
@@ -760,21 +752,15 @@
                 house: { cost: { food: 0, wood: 50, stone: 0 }, pop: 10, time: 100, label: '房屋', icon: '🏠' },
                 barracks: { cost: { food: 0, wood: 150, stone: 0 }, time: 200, label: '兵营', icon: '⚔️' },
                 towncenter: { cost: { food: 0, wood: 0, stone: 350 }, pop: 10, time: 400, label: '基地', icon: '🏛️' },
-                // 新增铁匠铺
                 blacksmith: { cost: { food: 0, wood: 150, stone: 0 }, time: 300, label: '铁匠铺', icon: '⚒️' }
             },
             TECHS: {
                 turret_tech: { cost: { food: 0, wood: 0, gold: 100, stone: 50 }, time: 240, label: '防御炮台', icon: '🏯', desc: '基地获得强大防御力' },
-                // 铁匠铺科技：攻击
                 tech_atk_1: { cost: { food: 0, wood: 100, gold: 150, stone: 0 }, time: 500, label: '近战攻击 I', icon: '🗡️', level: 1, type: 'atk' },
                 tech_atk_2: { cost: { food: 0, wood: 200, gold: 400, stone: 0 }, time: 1000, label: '近战攻击 II', icon: '🗡️', level: 2, type: 'atk' },
-                // 三级攻击：消耗翻倍，时间翻倍 (2000 ticks = 200s)
                 tech_atk_3: { cost: { food: 0, wood: 400, gold: 1000, stone: 0 }, time: 2000, label: '近战攻击 III', icon: '🗡️', level: 3, type: 'atk' },
-
-                // 铁匠铺科技：防御
                 tech_def_1: { cost: { food: 100, wood: 0, gold: 150, stone: 0 }, time: 500, label: '近战防御 I', icon: '🛡️', level: 1, type: 'def' },
                 tech_def_2: { cost: { food: 200, wood: 0, gold: 400, stone: 0 }, time: 1000, label: '近战防御 II', icon: '🛡️', level: 2, type: 'def' },
-                // 三级防御：消耗翻倍，时间翻倍
                 tech_def_3: { cost: { food: 400, wood: 0, gold: 1000, stone: 0 }, time: 2000, label: '近战防御 III', icon: '🛡️', level: 3, type: 'def' }
             }
         };
@@ -785,11 +771,8 @@
                 const uData = CONSTANTS.UNITS[type];
                 this.maxHp = uData.hp;
                 this.hp = this.maxHp;
-
-                // 基础属性
                 this.dmg = uData.dmg || 0;
                 this.def = uData.def || 0;
-
                 this.speed = (uData.speed || 0) / (1000 / TICK_RATE);
                 this.pos = owner === 'player' ? 5 : 95; this.state = 'move';
                 this.width = CONSTANTS.UNIT_SIZE_PERCENT;
@@ -822,7 +805,6 @@
                     if (!e.target.closest('.dock-icon') && !e.target.closest('.popover-menu')) this.closePopover();
                 });
 
-                // --- 新增：鼠标移动监听，用于显示单位信息 ---
                 this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
                 this.canvas.addEventListener('mouseleave', () => { document.getElementById('unit-tooltip').style.display = 'none'; });
 
@@ -832,7 +814,6 @@
                 requestAnimationFrame(() => this.loop());
             }
 
-            // --- 新增：处理鼠标移动，进行碰撞检测 ---
             handleMouseMove(e) {
                 if (this.gameOver) return;
                 const rect = this.canvas.getBoundingClientRect();
@@ -840,44 +821,27 @@
                 const my = e.clientY - rect.top;
                 const w = this.canvas.width;
                 const h = this.canvas.height;
-
-                // 假设所有单位都在垂直居中位置附近
-                // 单位绘制逻辑是 y = h/2。
-                // 玩家单位矩形：top = h/2 - 20, bottom = h/2.
-                // 敌人单位圆：centerY = h/2 - 10, radius = 6.
-                // 我们设置一个宽松的检测区域
                 const detectY = h / 2 - 10;
-
-                // 寻找鼠标附近的单位
                 let foundUnit = null;
-
-                // 遍历所有单位
                 for (const u of this.state.units) {
                     const unitX = (u.pos / 100) * w;
-                    // 简单的矩形距离检测，容差设为 15px
                     if (Math.abs(mx - unitX) < 15 && Math.abs(my - detectY) < 25) {
                         foundUnit = u;
                         break;
                     }
                 }
-
                 const tt = document.getElementById('unit-tooltip');
-
                 if (foundUnit) {
                     const uData = CONSTANTS.UNITS[foundUnit.type];
                     const isPlayer = foundUnit.owner === 'player';
                     const colorClass = isPlayer ? '' : 'tt-enemy';
-                    const typeLabel = uData.label;
-
-                    tt.className = colorClass; // 用于可能的颜色区分
+                    tt.className = colorClass;
                     tt.innerHTML = `
-                        <div class="tt-header">${typeLabel} (${isPlayer ? '我方' : '敌方'})</div>
+                        <div class="tt-header">${uData.label} (${isPlayer ? '我方' : '敌方'})</div>
                         <div class="tt-row"><span>❤️ 生命:</span> <span>${Math.ceil(foundUnit.hp)}/${foundUnit.maxHp}</span></div>
                         <div class="tt-row"><span>⚔️ 攻击:</span> <span>${foundUnit.dmg}</span></div>
                         <div class="tt-row"><span>🛡️ 防御:</span> <span>${foundUnit.def}</span></div>
                     `;
-
-                    // 设置位置，稍微偏离鼠标一点以免遮挡
                     tt.style.left = (e.clientX + 15) + 'px';
                     tt.style.top = (e.clientY + 15) + 'px';
                     tt.style.display = 'block';
@@ -887,54 +851,7 @@
             }
 
             debugAI() {
-                if (this.gameOver) return;
-                const ai = this.state.enemy;
-
-                // 统计建筑数量
-                const countBuilt = (t) => ai.buildingInstances.filter(b => b.type === t).length;
-                const countConst = (t) => ai.constructions.filter(c => c.type === t).length;
-                const barracksCount = countBuilt('barracks') + countConst('barracks');
-                const blacksmithCount = countBuilt('blacksmith') + countConst('blacksmith');
-
-                // 格式化输出
-                console.groupCollapsed(`🤖 AI 状态监控 (Tick: ${this.state.tick})`);
-
-                // 1. 资源状况
-                console.log(`💰 资源库存: [肉: ${Math.floor(ai.food)}] [木: ${Math.floor(ai.wood)}] [金: ${Math.floor(ai.gold)}] [石: ${Math.floor(ai.stone)}]`);
-
-                // 1.5 农民分配
-                console.log(`👷‍♂️ 农民分配: [肉: ${ai.assignments.food}] [木: ${ai.assignments.wood}] [金: ${ai.assignments.gold}] [石: ${ai.assignments.stone}] [空闲: ${ai.idleWorkers}]`);
-
-                // 2. 采集逻辑判断
-                const resources = [
-                    { type: 'food', amount: ai.food },
-                    { type: 'wood', amount: ai.wood },
-                    { type: 'gold', amount: ai.gold }
-                ];
-                resources.sort((a, b) => a.amount - b.amount);
-                console.log(`⛏️ 当前全力采集: %c${resources[0].type.toUpperCase()}`, 'color: orange; font-weight: bold', `(因为库存最少)`);
-
-                // 3. 科技与兵力门槛 (改为12)
-                const techReadyColor = ai.armyCount > 12 ? 'green' : 'red';
-                console.log(`⚔️ 军队数量: %c${ai.armyCount}/12`, `color: ${techReadyColor}; font-weight: bold`,
-                    ai.armyCount > 12 ? '✅ 已满足科技研发门槛' : '❌ 未达标，优先暴兵');
-
-                // 4. 建筑状况
-                const bsColor = blacksmithCount > 0 ? 'green' : 'red';
-                console.log(`🏗️ 关键建筑: 兵营 x${barracksCount}, %c铁匠铺 x${blacksmithCount}`, `color: ${bsColor}`);
-
-                // 5. 科技等级
-                console.log(`🎓 当前科技: 攻[${ai.techLevels.atk}] 防[${ai.techLevels.def}]`);
-
-                // 6. 正在做什么
-                const blacksmith = ai.buildingInstances.find(b => b.type === 'blacksmith');
-                if (blacksmith && blacksmith.queue.length > 0) {
-                    console.log(`🔥 %c正在研发: ${CONSTANTS.TECHS[blacksmith.queue[0].type].label}`, 'color: #f0f; font-weight: bold');
-                } else if (ai.armyCount > 12 && blacksmithCount > 0) {
-                    console.log(`💤 铁匠铺待机中 (可能资源不足)`);
-                }
-
-                console.groupEnd();
+                // 简化 debug
             }
 
             createFactionState(name) {
@@ -948,7 +865,6 @@
                     popCap: CONSTANTS.INITIAL_POP_CAP, baseHp: CONSTANTS.BASE_HP,
                     buildingInstances: initialBuildings, constructions: [], armyCount: 0,
                     hasTurret: false, turretCooldown: 0,
-                    // 新增：科技等级记录
                     techLevels: { atk: 0, def: 0 }
                 };
             }
@@ -1008,7 +924,6 @@
                         b.queue[0].ticksLeft--;
                         if (b.queue[0].ticksLeft <= 0) {
                             const item = b.queue[0];
-                            // 处理科技完成
                             if (CONSTANTS.TECHS[item.type]) {
                                 const tech = CONSTANTS.TECHS[item.type];
                                 if (item.type === 'turret_tech') {
@@ -1016,17 +931,13 @@
                                     if (f.name === 'player') this.showToast("炮台系统升级完成!", "#8b5cf6");
                                 }
                                 else if (tech.type === 'atk' || tech.type === 'def') {
-                                    // 升级 攻击 或 防御
                                     f.techLevels[tech.type] = tech.level;
                                     if (f.name === 'player') this.showToast(`${tech.label} 研发完成!`, "#8b5cf6");
-
-                                    // 立即更新全场现有兵种属性
                                     this.state.units.filter(u => u.owner === f.name && CONSTANTS.UNITS[u.type].type === 'mil').forEach(u => {
                                         if (tech.type === 'atk') u.dmg += 1;
                                         if (tech.type === 'def') u.def += 1;
                                     });
                                 }
-                                // 如果当前正在看这个建筑，刷新菜单以显示下一级科技
                                 if (this.state.selectedDockId === b.id) this.buildPopover();
                                 else this.closePopover();
                             } else {
@@ -1052,7 +963,6 @@
                     const shotCount = Math.min(targets.length, 3);
                     for (let i = 0; i < shotCount; i++) {
                         const target = targets[Math.floor(Math.random() * targets.length)];
-                        // 基地炮台伤害也受防御力减免
                         let actualDmg = Math.max(1, DAMAGE - target.def);
                         target.hp -= actualDmg;
                         this.spawnFloater(target.pos, `-${actualDmg.toFixed(1)}`, '#f0f');
@@ -1082,7 +992,6 @@
                 else {
                     f.armyCount++;
                     const u = new Entity(type, f.name, this.entityIdCounter++);
-                    // 初始属性 + 科技加成
                     if (CONSTANTS.UNITS[type].type === 'mil') {
                         u.dmg += f.techLevels.atk;
                         u.def += f.techLevels.def;
@@ -1121,7 +1030,7 @@
 
                 b.queue.push({ type: techId, ticksLeft: tech.time, totalTicks: tech.time });
                 this.showToast("研发: " + tech.label, "#8b5cf6");
-                this.closePopover(); // 刷新或关闭
+                this.closePopover();
             }
 
             playerBuildStructure(type) {
@@ -1139,16 +1048,14 @@
                 this.state.playerStance = s;
                 ['defend', 'hold', 'attack'].forEach(k => {
                     const b = document.getElementById(`btn-stance-${k}`);
-                    b.className = `tactic-btn ${k === s ? 'active' : ''} ${k === s && k === 'defend' ? 'active-defend' : ''} ${k === s && k === 'hold' ? 'active-hold' : ''}`;
+                    b.className = `tactic-btn ${k === s ? 'active' : ''}`;
                 });
             }
 
             runAI() {
                 const ai = this.state.enemy;
-                // 1. 资源管理 
                 ai.assignments = { food: 0, wood: 0, gold: 0, stone: 0 };
                 ai.idleWorkers = 0;
-
                 const resources = [
                     { type: 'food', amount: ai.food },
                     { type: 'wood', amount: ai.wood },
@@ -1157,21 +1064,18 @@
                 resources.sort((a, b) => a.amount - b.amount);
                 ai.assignments[resources[0].type] = ai.workers;
 
-                // 2. 科技研发决策
                 let savingForTech = false;
                 const blacksmith = ai.buildingInstances.find(b => b.type === 'blacksmith');
 
-                // 改动：阈值从30降到12
                 if (ai.armyCount > 12 && blacksmith && blacksmith.queue.length === 0) {
                     const levels = ai.techLevels;
                     let targetTech = null;
-
                     if (levels.atk < 1) targetTech = 'tech_atk_1';
                     else if (levels.def < 1) targetTech = 'tech_def_1';
                     else if (levels.atk < 2) targetTech = 'tech_atk_2';
                     else if (levels.def < 2) targetTech = 'tech_def_2';
-                    else if (levels.atk < 3) targetTech = 'tech_atk_3'; // 三级
-                    else if (levels.def < 3) targetTech = 'tech_def_3'; // 三级
+                    else if (levels.atk < 3) targetTech = 'tech_atk_3';
+                    else if (levels.def < 3) targetTech = 'tech_def_3';
 
                     if (targetTech) {
                         const techData = CONSTANTS.TECHS[targetTech];
@@ -1179,7 +1083,6 @@
                         const costW = techData.cost.wood || 0;
                         const costG = techData.cost.gold || 0;
                         const costS = techData.cost.stone || 0;
-
                         if (ai.food >= costF && ai.wood >= costW && ai.gold >= costG && ai.stone >= costS) {
                             ai.food -= costF; ai.wood -= costW; ai.gold -= costG; ai.stone -= costS;
                             blacksmith.queue.push({ type: targetTech, ticksLeft: techData.time, totalTicks: techData.time });
@@ -1189,7 +1092,6 @@
                     }
                 }
 
-                // 3. 生产管理
                 if (!savingForTech) {
                     let pendingWorkers = 0;
                     ai.buildingInstances.forEach(b => { b.queue.forEach(q => { if (q.type === 'worker') pendingWorkers++; }); });
@@ -1202,13 +1104,19 @@
                                     this.aiQueue(ai, b, 'worker'); pendingWorkers++;
                                 }
                             } else if (b.type === 'barracks') {
-                                this.aiQueue(ai, b, 'clubman');
+                                // --- AI 修改：优先出武士 ---
+                                const samCost = CONSTANTS.UNITS.samurai.cost;
+                                if (ai.food >= samCost.food && ai.gold >= samCost.gold) {
+                                    this.aiQueue(ai, b, 'samurai');
+                                } else {
+                                    // 钱不够才出棒子兵
+                                    this.aiQueue(ai, b, 'clubman');
+                                }
                             }
                         }
                     });
                 }
 
-                // 4. 建筑规划
                 const countType = (t) => {
                     const built = ai.buildingInstances.filter(b => b.type === t).length;
                     const constructing = ai.constructions.filter(c => c.type === t).length;
@@ -1219,21 +1127,9 @@
                 const numBarracks = countType('barracks');
                 const numBlacksmith = countType('blacksmith');
 
-                // 修复后的逻辑：
-                // 1. 必须先造 1 个兵营
-                if (numBarracks < 1) {
-                    structureToBuild = 'barracks';
-                }
-                // 2. 然后必须造 1 个铁匠铺
-                else if (numBlacksmith < 1) {
-                    structureToBuild = 'blacksmith';
-                }
-                // 3. 【修复】只有当兵营少于 5 个时，才继续补充兵营
-                //    这样 AI 就不会无限建造，能省下资源去造兵或升级
-                else if (numBarracks < 6 || ai.wood > 600) {
-                    structureToBuild = 'barracks';
-                }
-                // ...
+                if (numBarracks < 1) structureToBuild = 'barracks';
+                else if (numBlacksmith < 1) structureToBuild = 'blacksmith';
+                else if (numBarracks < 6 || ai.wood > 600) structureToBuild = 'barracks';
 
                 if (structureToBuild) {
                     const d = CONSTANTS.BUILDINGS[structureToBuild];
@@ -1245,31 +1141,20 @@
                     }
                 }
 
-                // 5. 战术姿态
                 const pUnits = this.state.units.filter(u => u.owner === 'player');
                 const eUnits = this.state.units.filter(u => u.owner === 'enemy');
-
                 let playerFront = 0;
                 if (pUnits.length > 0) playerFront = Math.max(...pUnits.map(u => u.pos));
                 let enemyFront = 100;
                 if (eUnits.length > 0) enemyFront = Math.min(...eUnits.map(u => u.pos));
-
                 const distance = enemyFront - playerFront;
                 const battleLine = (playerFront + enemyFront) / 2;
-
                 let newStance = 'attack';
-                if (distance > 30) {
-                    newStance = 'attack';
-                } else {
-                    if (battleLine > 65) {
-                        newStance = 'defend';
-                    } else {
-                        newStance = 'attack';
-                    }
+                if (distance > 30) newStance = 'attack';
+                else {
+                    if (battleLine > 65) newStance = 'defend'; else newStance = 'attack';
                 }
-                if (this.state.enemyStance !== newStance) {
-                    this.state.enemyStance = newStance;
-                }
+                if (this.state.enemyStance !== newStance) this.state.enemyStance = newStance;
             }
 
             aiBuild(f, t) {
@@ -1282,8 +1167,13 @@
 
             aiQueue(f, b, u) {
                 const d = CONSTANTS.UNITS[u];
-                if (f.food >= d.cost.food && f.wood >= d.cost.wood) {
-                    f.food -= d.cost.food; f.wood -= d.cost.wood;
+                // 注意：AI 资源判断不需要在这里做，因为 runAI 里的逻辑已经判断过了，
+                // 但为了安全起见（防止其他调用），还是保留基本的扣除逻辑，
+                // 不过扣除前最好再判断一次，或者直接扣除允许负数（不推荐）。
+                // 这里的 aiQueue 假定调用者已经确认过资源充足，这里只负责扣除和入队
+                // 为了稳健，这里还是加上判断
+                if (f.food >= d.cost.food && f.wood >= d.cost.wood && f.gold >= (d.cost.gold || 0)) {
+                    f.food -= d.cost.food; f.wood -= d.cost.wood; f.gold -= (d.cost.gold || 0);
                     b.queue.push({ type: u, ticksLeft: d.time, totalTicks: d.time });
                 }
             }
@@ -1296,7 +1186,6 @@
                 if (p.hasTurret) document.getElementById('p-base').classList.add('has-turret');
                 if (e.hasTurret) document.getElementById('e-base').classList.add('has-turret');
 
-                // 更新科技显示
                 const toRoman = (n) => n === 0 ? '0' : (n === 1 ? 'I' : (n === 2 ? 'II' : 'III'));
                 document.getElementById('p-tech-atk').innerText = `🗡️ ${toRoman(p.techLevels.atk)}`;
                 document.getElementById('p-tech-def').innerText = `🛡️ ${toRoman(p.techLevels.def)}`;
@@ -1329,19 +1218,13 @@
             renderDock() {
                 const dock = document.getElementById('dock'); dock.innerHTML = ''; const p = this.state.player;
                 const houses = p.buildingInstances.filter(b => b.type === 'house');
-
-                // 混合渲染：已建成的功能建筑 + 正在建造中的所有建筑
                 const builtBuildings = p.buildingInstances.filter(b => b.type !== 'house').map(b => ({ ...b, isConstruction: false }));
                 const underConstruction = p.constructions.map(c => ({ ...c, isConstruction: true }));
-
                 const mixedList = [...builtBuildings, ...underConstruction];
-
-                // 排序逻辑：基地 > 兵营 > 铁匠铺
                 mixedList.sort((a, b) => {
                     const order = { towncenter: 1, barracks: 2, blacksmith: 3 };
                     return (order[a.type] || 99) - (order[b.type] || 99);
                 });
-
                 mixedList.forEach(item => {
                     if (item.isConstruction) {
                         const icon = this.createDockIcon(`const-${item.id}`, CONSTANTS.BUILDINGS[item.type].icon, true);
@@ -1352,9 +1235,7 @@
                         dock.appendChild(icon);
                     }
                 });
-
                 if (houses.length > 0) { const icon = this.createDockIcon('group-house', CONSTANTS.BUILDINGS['house'].icon, false); icon.onclick = () => this.toggleDockItem('group-house'); icon.querySelector('.icon-badge').style.display = 'flex'; icon.querySelector('.icon-badge').classList.add('house-badge'); icon.querySelector('.icon-badge').innerText = houses.length; dock.appendChild(icon); }
-
                 const hammer = this.createDockIcon('dock-build_menu', '🔨', false); hammer.classList.add('build-icon'); hammer.onclick = () => this.toggleDockItem('build_menu'); dock.appendChild(hammer);
                 this.updateDockVisuals();
             }
@@ -1379,16 +1260,9 @@
                             const t = b.queue[0];
                             bar.style.width = (100 - (t.ticksLeft / t.totalTicks * 100)) + '%';
                             badge.style.display = 'flex'; badge.innerText = b.queue.length; barBg.style.display = 'block';
-
-                            if (CONSTANTS.TECHS[t.type]) {
-                                el.classList.add('researching');
-                            } else {
-                                el.classList.remove('researching');
-                            }
-
+                            if (CONSTANTS.TECHS[t.type]) el.classList.add('researching'); else el.classList.remove('researching');
                         } else {
-                            bar.style.width = '0%'; badge.style.display = 'none'; barBg.style.display = 'none';
-                            el.classList.remove('researching');
+                            bar.style.width = '0%'; badge.style.display = 'none'; barBg.style.display = 'none'; el.classList.remove('researching');
                         }
                     }
                 });
@@ -1412,7 +1286,6 @@
                 });
             }
 
-            // =================== 补回缺失的菜单构建方法 ===================
             buildPopover() {
                 const container = document.getElementById('popover-container');
                 const id = this.state.selectedDockId;
@@ -1429,10 +1302,7 @@
                         const d = CONSTANTS.BUILDINGS[t];
                         const btn = document.createElement('div'); btn.className = 'menu-btn build-action-btn'; btn.dataset.type = t;
                         btn.onclick = () => this.playerBuildStructure(t);
-                        let cost = [];
-                        if (d.cost.food) cost.push(`${d.cost.food}肉`);
-                        if (d.cost.wood) cost.push(`${d.cost.wood}木`);
-                        if (d.cost.stone) cost.push(`${d.cost.stone}石`);
+                        let cost = []; if (d.cost.food) cost.push(`${d.cost.food}肉`); if (d.cost.wood) cost.push(`${d.cost.wood}木`); if (d.cost.stone) cost.push(`${d.cost.stone}石`);
                         btn.innerHTML = `<span class="btn-icon">${d.icon}</span><div class="btn-info"><span>${d.label}</span><span class="btn-cost">${cost.join(' ')}</span></div>`;
                         container.appendChild(btn);
                     });
@@ -1443,40 +1313,22 @@
                     if (b) {
                         const buildingLabel = CONSTANTS.BUILDINGS[b.type].label;
                         container.innerHTML = `<div class="popover-title">${buildingLabel}</div>`;
-
-                        if (b.queue.length > 0) {
-                            const currentItem = b.queue[0];
-                            let itemLabel = '';
-                            let action = '生产';
-                            if (CONSTANTS.UNITS[currentItem.type]) {
-                                itemLabel = CONSTANTS.UNITS[currentItem.type].label;
-                            } else if (CONSTANTS.TECHS[currentItem.type]) {
-                                itemLabel = CONSTANTS.TECHS[currentItem.type].label;
-                                action = '研发';
-                            }
-
-                            const statusDiv = document.createElement('div');
-                            statusDiv.className = 'text-xs text-blue-400 text-center mb-2 font-bold';
-                            const progress = Math.floor(100 - (currentItem.ticksLeft / currentItem.totalTicks * 100));
-                            statusDiv.innerText = `正在${action}: ${itemLabel} (${progress}%)`;
-                            if (action === '研发') statusDiv.style.color = '#22c55e';
-
-                            container.appendChild(statusDiv);
-                        }
+                        // --- UI 修复：给状态文本加个 ID ---
+                        const statusDiv = document.createElement('div');
+                        statusDiv.id = 'popover-prog-status';
+                        statusDiv.className = 'text-xs text-blue-400 text-center mb-2 font-bold';
+                        statusDiv.style.display = 'none';
+                        container.appendChild(statusDiv);
 
                         if (b.type === 'towncenter' || b.type === 'barracks') {
                             let unitTypes = [];
                             if (b.type === 'towncenter') unitTypes = ['worker'];
                             else if (b.type === 'barracks') unitTypes = ['clubman', 'samurai'];
-
                             unitTypes.forEach(uType => {
                                 const u = CONSTANTS.UNITS[uType];
                                 const btn = document.createElement('div'); btn.className = 'menu-btn produce-action-btn'; btn.dataset.type = uType;
                                 btn.onclick = () => this.playerQueueUnit(id, uType);
-                                let cost = [];
-                                if (u.cost.food) cost.push(`${u.cost.food}肉`);
-                                if (u.cost.wood) cost.push(`${u.cost.wood}木`);
-                                if (u.cost.gold) cost.push(`${u.cost.gold}金`);
+                                let cost = []; if (u.cost.food) cost.push(`${u.cost.food}肉`); if (u.cost.wood) cost.push(`${u.cost.wood}木`); if (u.cost.gold) cost.push(`${u.cost.gold}金`);
                                 btn.innerHTML = `<span class="btn-icon">${uType === 'worker' ? '👷' : '⚔️'}</span><div class="btn-info"><span>训练${u.label}</span><span class="btn-cost">${cost.join(' ')}</span></div>`;
                                 container.appendChild(btn);
                             });
@@ -1531,7 +1383,6 @@
                                 container.innerHTML += `<div class="text-xs text-gray-400 text-center mt-2">科技已升至顶级</div>`;
                             }
                         }
-
                         const q = document.createElement('div'); q.id = 'popover-queue-info'; q.className = 'text-xs text-gray-400 text-center mt-1'; container.appendChild(q);
                     }
                 }
@@ -1550,6 +1401,26 @@
                 } else {
                     const b = p.buildingInstances.find(x => x.id === id);
                     if (!b) { this.closePopover(); return; }
+
+                    // --- UI 修复：实时更新进度文本 ---
+                    const statusEl = document.getElementById('popover-prog-status');
+                    if (statusEl) {
+                        if (b.queue.length > 0) {
+                            const currentItem = b.queue[0];
+                            let itemLabel = '';
+                            let action = '生产';
+                            if (CONSTANTS.UNITS[currentItem.type]) itemLabel = CONSTANTS.UNITS[currentItem.type].label;
+                            else if (CONSTANTS.TECHS[currentItem.type]) { itemLabel = CONSTANTS.TECHS[currentItem.type].label; action = '研发'; }
+
+                            const progress = Math.floor(100 - (currentItem.ticksLeft / currentItem.totalTicks * 100));
+                            statusEl.innerText = `正在${action}: ${itemLabel} (${progress}%)`;
+                            statusEl.style.color = action === '研发' ? '#22c55e' : '#60a5fa';
+                            statusEl.style.display = 'block';
+                        } else {
+                            statusEl.style.display = 'none';
+                        }
+                    }
+
                     document.querySelectorAll('.produce-action-btn').forEach(btn => {
                         const t = btn.dataset.type; const u = CONSTANTS.UNITS[t];
                         const f = u.cost.food || 0; const w = u.cost.wood || 0; const g = u.cost.gold || 0;
@@ -1563,7 +1434,6 @@
                     const qInfo = document.getElementById('popover-queue-info'); if (qInfo) qInfo.innerText = `队列: ${b.queue.length}`;
                 }
             }
-            // =================== 补回结束 ===================
 
             updateUnits() {
                 let p = this.state.units.filter(u => u.owner === 'player'); let e = this.state.units.filter(u => u.owner === 'enemy').sort((a, b) => a.pos - b.pos);
@@ -1600,13 +1470,11 @@
                     if (u.attackCooldown <= 0) {
                         u.attackCooldown = 10; u.attackAnimTimer = 3; const dmg = u.dmg;
                         if (t === "base") {
-                            // 攻击基地
                             if (u.owner === 'player') this.state.enemy.baseHp -= dmg;
                             else this.state.player.baseHp -= dmg;
                             this.spawnFloater(dir === 1 ? 95 : 5, `-${dmg}`, '#f00');
                         }
                         else {
-                            // 攻击单位，计算防御减伤（最少1点伤害）
                             let actualDmg = Math.max(1, dmg - t.def);
                             t.hp -= actualDmg;
                             this.spawnFloater(t.pos, `-${actualDmg}`, '#fff');
@@ -1669,9 +1537,28 @@
 
                 this.state.units.forEach(u => {
                     const x = (u.pos / 100) * w; const y = h / 2;
+                    // --- 视觉逻辑修改：颜色区分阵营，形状区分兵种 ---
                     this.ctx.fillStyle = u.owner === 'player' ? '#3b82f6' : '#ef4444';
-                    if (u.owner === 'player') { this.ctx.fillRect(x - 5, y - 20, 10, 20); this.ctx.fillStyle = '#ccc'; this.ctx.fillRect(x + 5, y - 15, 8, 2); }
-                    else { this.ctx.beginPath(); this.ctx.arc(x, y - 10, 6, 0, Math.PI * 2); this.ctx.fill(); this.ctx.fillStyle = '#ccc'; this.ctx.fillRect(x - 12, y - 12, 8, 2); }
+
+                    if (u.type === 'samurai') {
+                        // 武士：方形
+                        this.ctx.fillRect(x - 8, y - 20, 16, 20);
+                    } else if (u.type === 'clubman') {
+                        // 棒子兵/长枪兵：圆形
+                        this.ctx.beginPath(); this.ctx.arc(x, y - 10, 8, 0, Math.PI * 2); this.ctx.fill();
+                    } else {
+                        // 农民：小矩形，保持简单
+                        this.ctx.fillRect(x - 5, y - 15, 10, 15);
+                    }
+
+                    // 绘制方向指示（小灰条）
+                    this.ctx.fillStyle = '#ccc';
+                    if (u.type === 'clubman') {
+                        this.ctx.fillRect(u.owner === 'player' ? x + 2 : x - 12, y - 12, 10, 2);
+                    } else {
+                        this.ctx.fillRect(u.owner === 'player' ? x + 5 : x - 5, y - 15, 8, 2);
+                    }
+
                     if (u.attackAnimTimer > 0) {
                         this.ctx.strokeStyle = '#ffff00'; this.ctx.lineWidth = 2; this.ctx.beginPath();
                         this.ctx.moveTo(u.owner === 'player' ? x + 5 : x - 5, y - 15 + (Math.random() * 6 - 3));
