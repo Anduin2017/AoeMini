@@ -961,8 +961,11 @@
             }
 
             gatherResources(f) {
-                f.food += f.assignments.food; f.wood += f.assignments.wood;
-                f.gold += f.assignments.gold; f.stone += f.assignments.stone;
+                const GATHER_RATE = 0.6; // 调整采集倍率为 0.6
+                f.food += f.assignments.food * GATHER_RATE;
+                f.wood += f.assignments.wood * GATHER_RATE;
+                f.gold += f.assignments.gold * GATHER_RATE;
+                f.stone += f.assignments.stone * GATHER_RATE;
             }
 
             processBuildingQueues(f) {
