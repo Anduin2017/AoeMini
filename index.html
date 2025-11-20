@@ -1153,10 +1153,16 @@
                             } else if (b.type === 'barracks') {
                                 // --- AI 修改：优先出武士 ---
                                 const samCost = CONSTANTS.UNITS.samurai.cost;
-                                if (ai.food >= samCost.food && ai.gold >= samCost.gold) {
+
+                                // 策略：只要金币够（或者虽然不够但还没到彻底没钱的地步），就优先尝试憋武士
+                                // 只有当金币严重不足，且没有任何存量时，才退而求其次造长枪兵
+                                if (ai.gold >= samCost.gold) {
+                                    // 金币够买武士。
+                                    // 尝试排队武士。注意：如果此时肉不足(比如只有80)，aiQueue内部会判断失败从而什么都不做。
+                                    // 这正是我们要的——什么都不做，等待下一轮循环肉涨到 100。
                                     this.aiQueue(ai, b, 'samurai');
                                 } else {
-                                    // 钱不够才出长枪兵
+                                    // 只有真的没金币了，才去造不需要金币的长枪兵
                                     this.aiQueue(ai, b, 'clubman');
                                 }
                             }
