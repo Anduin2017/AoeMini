@@ -304,7 +304,6 @@
         }
 
         /* Dock 栏 */
-/* Dock 栏 */
         .dock-container {
             position: absolute;
             bottom: 20px;
@@ -320,21 +319,13 @@
             z-index: 50;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 
-            /* --- 新增/修改的代码开始 --- */
-            max-width: 95vw;       /* 限制最大宽度为屏幕宽度的 95% */
-            overflow-x: auto;      /* 允许横向滚动 */
-            
-            /* 隐藏滚动条 (Chrome/Safari/Webkit) */
-            -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
-            scrollbar-width: none; /* Firefox 隐藏滚动条 */
-            -ms-overflow-style: none;  /* IE 10+ 隐藏滚动条 */
+            max-width: 95vw;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
-        
-        /* 隐藏滚动条的伪元素 */
-        .dock-container::-webkit-scrollbar { 
-            display: none; 
-        }
-        /* --- 新增/修改的代码结束 --- */
+        .dock-container::-webkit-scrollbar { display: none; }
 
         .dock-icon {
             width: 56px;
@@ -350,9 +341,7 @@
             transition: transform 0.2s;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             border: 1px solid #444;
-            
-            /* --- 新增代码 --- */
-            flex-shrink: 0; /* 禁止图标在空间不足时缩小，强制触发滚动 */
+            flex-shrink: 0;
         }
 
         .dock-icon:hover {
@@ -587,6 +576,43 @@
                 opacity: 1;
             }
         }
+
+        /* --- 新增：单位信息悬浮窗样式 --- */
+        #unit-tooltip {
+            position: absolute;
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid #4b5563;
+            padding: 8px 12px;
+            border-radius: 6px;
+            pointer-events: none; /* 确保鼠标事件穿透，不影响游戏 */
+            display: none;
+            z-index: 1000;
+            color: white;
+            font-size: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            min-width: 120px;
+        }
+
+        .tt-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+        
+        .tt-header {
+            font-weight: bold;
+            color: #60a5fa;
+            border-bottom: 1px solid #4b5563;
+            margin-bottom: 4px;
+            padding-bottom: 2px;
+            text-align: center;
+        }
+        
+        .tt-enemy .tt-header {
+            color: #f87171;
+        }
+
     </style>
 </head>
 
@@ -620,6 +646,9 @@
                 进攻</button>
         </div>
         <canvas id="gameCanvas"></canvas>
+        
+        <div id="unit-tooltip"></div>
+
         <div id="p-base" class="base base-player">
             <div class="turret-addon"></div>
             <div>基地</div>
@@ -700,7 +729,7 @@
 
         const CONSTANTS = {
             INITIAL_RES: { food: 200, wood: 100, gold: 100, stone: 0 }, // 金矿定位1000
-            BASE_HP: 1500, INITIAL_POP_CAP: 10,
+            BASE_HP: 2000, INITIAL_POP_CAP: 10,
             MAP_WIDTH_PERCENT: 100,
             UNIT_SIZE_PERCENT: 0.8,
             ATTACK_RANGE_PERCENT: 8,
@@ -773,10 +802,68 @@
                     if (!e.target.closest('.dock-icon') && !e.target.closest('.popover-menu')) this.closePopover();
                 });
 
+                // --- 新增：鼠标移动监听，用于显示单位信息 ---
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.canvas.addEventListener('mouseleave', () => { document.getElementById('unit-tooltip').style.display = 'none'; });
+
                 this.renderDock();
                 this.logicInterval = setInterval(() => this.updateLogic(), TICK_RATE);
                 setInterval(() => this.debugAI(), 3000);
                 requestAnimationFrame(() => this.loop());
+            }
+
+            // --- 新增：处理鼠标移动，进行碰撞检测 ---
+            handleMouseMove(e) {
+                if(this.gameOver) return;
+                const rect = this.canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                
+                // 假设所有单位都在垂直居中位置附近
+                // 单位绘制逻辑是 y = h/2。
+                // 玩家单位矩形：top = h/2 - 20, bottom = h/2.
+                // 敌人单位圆：centerY = h/2 - 10, radius = 6.
+                // 我们设置一个宽松的检测区域
+                const detectY = h / 2 - 10;
+                
+                // 寻找鼠标附近的单位
+                let foundUnit = null;
+                
+                // 遍历所有单位
+                for (const u of this.state.units) {
+                    const unitX = (u.pos / 100) * w;
+                    // 简单的矩形距离检测，容差设为 15px
+                    if (Math.abs(mx - unitX) < 15 && Math.abs(my - detectY) < 25) {
+                        foundUnit = u;
+                        break; 
+                    }
+                }
+                
+                const tt = document.getElementById('unit-tooltip');
+                
+                if (foundUnit) {
+                    const uData = CONSTANTS.UNITS[foundUnit.type];
+                    const isPlayer = foundUnit.owner === 'player';
+                    const colorClass = isPlayer ? '' : 'tt-enemy';
+                    const typeLabel = uData.label;
+                    
+                    tt.className = colorClass; // 用于可能的颜色区分
+                    tt.innerHTML = `
+                        <div class="tt-header">${typeLabel} (${isPlayer ? '我方' : '敌方'})</div>
+                        <div class="tt-row"><span>❤️ 生命:</span> <span>${Math.ceil(foundUnit.hp)}/${foundUnit.maxHp}</span></div>
+                        <div class="tt-row"><span>⚔️ 攻击:</span> <span>${foundUnit.dmg}</span></div>
+                        <div class="tt-row"><span>🛡️ 防御:</span> <span>${foundUnit.def}</span></div>
+                    `;
+                    
+                    // 设置位置，稍微偏离鼠标一点以免遮挡
+                    tt.style.left = (e.clientX + 15) + 'px';
+                    tt.style.top = (e.clientY + 15) + 'px';
+                    tt.style.display = 'block';
+                } else {
+                    tt.style.display = 'none';
+                }
             }
 
             debugAI() {
@@ -1120,7 +1207,7 @@
                 } 
                 // 3. 【修复】只有当兵营少于 5 个时，才继续补充兵营
                 //    这样 AI 就不会无限建造，能省下资源去造兵或升级
-                else if (numBarracks < 6 || ai.wood > 1300) {
+                else if (numBarracks < 6 || ai.wood > 600) {
                     structureToBuild = 'barracks';
                 }
                 // ...
@@ -1302,6 +1389,7 @@
                 });
             }
 
+            // =================== 补回缺失的菜单构建方法 ===================
             buildPopover() {
                 const container = document.getElementById('popover-container');
                 const id = this.state.selectedDockId;
@@ -1442,6 +1530,7 @@
                     const qInfo = document.getElementById('popover-queue-info'); if (qInfo) qInfo.innerText = `队列: ${b.queue.length}`;
                 }
             }
+            // =================== 补回结束 ===================
 
             updateUnits() {
                 let p = this.state.units.filter(u => u.owner === 'player'); let e = this.state.units.filter(u => u.owner === 'enemy').sort((a, b) => a.pos - b.pos);
