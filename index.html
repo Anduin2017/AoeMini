@@ -35,14 +35,14 @@
             left: 0;
         }
 
-        /* --- 修改：图层管理 --- */
+        /* --- 图层管理 --- */
 
-        /* 1. 背景画布 (画线) - 最底层，被基地盖住 */
+        /* 1. 背景画布 (画线) - 最底层 */
         #bgCanvas {
             z-index: 5;
         }
 
-        /* 2. 基地 - 中间层 */
+        /* 2. 基地 - 中间层 (盖住线) */
         .base {
             position: absolute;
             top: 50%;
@@ -56,7 +56,6 @@
             font-weight: bold;
             font-size: 0.8rem;
             z-index: 10;
-            /* 比画线的画布高 */
             pointer-events: none;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
@@ -75,10 +74,7 @@
             animation: floatUp 1s forwards;
             text-shadow: 1px 1px 2px black;
             z-index: 100;
-            /* 最高优先级 */
         }
-
-        /* --- 其他原有样式保持不变 --- */
 
         .base-player {
             left: 0;
@@ -799,9 +795,9 @@
             UNIT_SIZE_PERCENT: 0.8,
             UNITS: {
                 worker: { cost: { food: 50, wood: 0 }, time: 200, hp: 10, dmg: 0, def_m: 0, def_r: 0, type: 'eco', label: '村民', lane: 0, stopOnAttack: false },
-                clubman: { cost: { food: 60, wood: 20 }, time: 150, hp: 90, dmg: 8, def_m: 0, def_r: 0, speed: 1.25, type: 'mil', label: '长枪兵', range: BASE_RANGE, lane: 0, stopOnAttack: false, attackType: 'melee' },
-                samurai: { cost: { food: 100, wood: 0, gold: 20 }, time: 150, hp: 140, dmg: 11, def_m: 2, def_r: 3, speed: 1.125, type: 'mil', label: '武士', range: BASE_RANGE * 0.75, lane: 0, stopOnAttack: false, attackType: 'melee' },
-                longbowman: { cost: { food: 40, wood: 50, gold: 0 }, time: 150, hp: 70, dmg: 6, def_m: 0, def_r: 0, speed: 1.125, type: 'mil', label: '长弓兵', range: BASE_RANGE * 3, lane: 1, widthScale: 0.5, stopOnAttack: true, attackType: 'ranged' }
+                clubman: { cost: { food: 60, wood: 20 }, time: 150, hp: 90, dmg: 8, def_m: 0, def_r: 0, speed: 1.25, type: 'mil', label: '长枪兵', range: BASE_RANGE, lane: 0, stopOnAttack: false, attackType: 'melee', cooldown: 19 },
+                samurai: { cost: { food: 100, wood: 0, gold: 20 }, time: 150, hp: 140, dmg: 11, def_m: 2, def_r: 3, speed: 1.125, type: 'mil', label: '武士', range: BASE_RANGE * 0.75, lane: 0, stopOnAttack: false, attackType: 'melee', cooldown: 14 },
+                longbowman: { cost: { food: 40, wood: 50, gold: 0 }, time: 150, hp: 70, dmg: 6, def_m: 0, def_r: 0, speed: 1.125, type: 'mil', label: '长弓兵', range: BASE_RANGE * 3, lane: 1, widthScale: 0.5, stopOnAttack: true, attackType: 'ranged', cooldown: 16 }
             },
             BUILDINGS: {
                 house: { cost: { food: 0, wood: 50, stone: 0 }, pop: 10, time: 150, label: '房屋', icon: '🏠' },
@@ -873,7 +869,6 @@
                     if (!e.target.closest('.dock-icon') && !e.target.closest('.popover-menu')) this.closePopover();
                 });
 
-                // 注意：事件监听绑定在最上层的 gameCanvas 上
                 this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
                 this.canvas.addEventListener('mouseleave', () => { document.getElementById('unit-tooltip').style.display = 'none'; });
 
@@ -1204,14 +1199,12 @@
                 const distance = enemyFront - playerFront;
                 const battleLine = (playerFront + enemyFront) / 2;
 
-                // --- AI 策略修改：更激进的科技 ---
                 let savingForTech = false;
                 const blacksmith = ai.buildingInstances.find(b => b.type === 'blacksmith');
 
-                // 判断是否在压制：战线 < 40 表示在玩家半场
+                // 激进策略：如果战线压制(battleLine < 40)或兵力充足，就尝试升科技
                 const isPushing = battleLine < 40;
 
-                // 如果兵力充足，或者正在压制敌人，就尝试升级科技
                 if ((ai.armyCount > 5 || isPushing) && blacksmith && blacksmith.queue.length === 0) {
                     const levels = ai.techLevels;
                     let targetTech = null;
@@ -1682,7 +1675,8 @@
                 if (t) {
                     u.state = 'attack'; u.targetId = (t === "base") ? "base" : t.id;
                     if (u.attackCooldown <= 0) {
-                        u.attackCooldown = 10; u.attackAnimTimer = 3; const dmg = u.dmg;
+                        u.attackCooldown = CONSTANTS.UNITS[u.type].cooldown || 10;
+                        u.attackAnimTimer = 3; const dmg = u.dmg;
                         if (t === "base") {
                             // 基地防御2，所有攻击均按2减免
                             const baseDef = 2;
