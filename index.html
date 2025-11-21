@@ -951,13 +951,13 @@
 
                     tt.className = colorClass;
                     tt.innerHTML = `
-                    <div class="tt-header">${uData.label} (${isPlayer ? '我方' : '敌方'})</div>
-                    <div class="tt-row"><span>❤️ 生命:</span> <span>${Math.ceil(foundUnit.hp)}/${foundUnit.maxHp}</span></div>
-                    <div class="tt-row"><span>🗡️ 基础攻击:</span> <span>${baseDmg}</span></div>
-                    <div class="tt-row"><span>🔥 攻击加成:</span> <span class="val-bonus">+${bonusDmg}</span></div>
-                    <div class="tt-row"><span>🛡️ 近战防御:</span> <span>${foundUnit.def_m}</span></div>
-                    <div class="tt-row"><span>🎯 远程防御:</span> <span>${foundUnit.def_r}</span></div>
-                `;
+                        <div class="tt-header">${uData.label} (${isPlayer ? '我方' : '敌方'})</div>
+                        <div class="tt-row"><span>❤️ 生命:</span> <span>${Math.ceil(foundUnit.hp)}/${foundUnit.maxHp}</span></div>
+                        <div class="tt-row"><span>🗡️ 基础攻击:</span> <span>${baseDmg}</span></div>
+                        <div class="tt-row"><span>🔥 攻击加成:</span> <span class="val-bonus">+${bonusDmg}</span></div>
+                        <div class="tt-row"><span>🛡️ 近战防御:</span> <span>${foundUnit.def_m}</span></div>
+                        <div class="tt-row"><span>🎯 远程防御:</span> <span>${foundUnit.def_r}</span></div>
+                    `;
                     tt.style.left = (e.clientX + 15) + 'px';
                     tt.style.top = (e.clientY + 15) + 'px';
                     tt.style.display = 'block';
@@ -981,12 +981,12 @@
                         const turretDmg = foundBase.hasTurret ? (CONSTANTS.UNITS.clubman.dmg * 1.5) : 0;
                         tt.className = colorClass;
                         tt.innerHTML = `
-                        <div class="tt-header">${isPlayer ? '我方' : '敌方'}基地</div>
-                        <div class="tt-row"><span>❤️ 生命:</span> <span>${Math.ceil(foundBase.baseHp)}/${CONSTANTS.BASE_HP}</span></div>
-                        <div class="tt-row"><span>🛡️ 近战防御:</span> <span>2</span></div>
-                        <div class="tt-row"><span>🎯 远程防御:</span> <span>2</span></div>
-                        ${foundBase.hasTurret ? `<div class="tt-row"><span>⚔️ 炮台:</span> <span>${turretDmg}</span></div>` : ''}
-                    `;
+                            <div class="tt-header">${isPlayer ? '我方' : '敌方'}基地</div>
+                            <div class="tt-row"><span>❤️ 生命:</span> <span>${Math.ceil(foundBase.baseHp)}/${CONSTANTS.BASE_HP}</span></div>
+                            <div class="tt-row"><span>🛡️ 近战防御:</span> <span>2</span></div>
+                            <div class="tt-row"><span>🎯 远程防御:</span> <span>2</span></div>
+                            ${foundBase.hasTurret ? `<div class="tt-row"><span>⚔️ 炮台:</span> <span>${turretDmg}</span></div>` : ''}
+                        `;
                         tt.style.left = (e.clientX + 15) + 'px';
                         tt.style.top = (e.clientY + 15) + 'px';
                         tt.style.display = 'block';
@@ -1096,7 +1096,10 @@
                             }
                             // 如果是单位，需要检查出口阻塞情况和人口情况
                             else {
-                                const isFullPop = (f.name !== 'enemy' && f.workers + f.armyCount >= MAX_TOTAL_POP);
+                                // 修复：检查人口时，必须同时检查 200 的硬上限和 f.popCap (房屋提供的上限)
+                                const currentPop = f.workers + f.armyCount;
+                                const isFullPop = (f.name !== 'enemy' && (currentPop >= MAX_TOTAL_POP || currentPop >= f.popCap));
+
                                 // 检查出口阻塞
                                 // 玩家出生点在基地中心(offset + width/2)，即逻辑宽度的中间
                                 const spawnPos = f.name === 'player' ? (this.baseWidthPct / 2) : (100 - this.baseWidthPct / 2);
@@ -1106,7 +1109,7 @@
                                 if (isFullPop || isBlocked) {
                                     // 无法完成，进度条卡在0.1 (即99.9%)
                                     item.ticksLeft = 0.1;
-                                    // 这里 UI 会显示 "阻塞" 或 "人口满"，可以在 tooltip 里完善，目前保持进度条满的状态
+                                    // 这里 UI 会显示 "阻塞" 或 "人口满"
                                 } else {
                                     // 成功产出
                                     this.spawnUnit(f, item.type, spawnPos);
@@ -1297,17 +1300,15 @@
                     else if (enemyArchers > 3 && levels.def_r < levels.def_m) targetTech = checkTech('def_r', 3);
 
                     if (!targetTech) {
-                        // ... simplify for brevity, same logic as before ...
                         if (levels.atk_m < 1) targetTech = 'tech_atk_m_1';
                         else if (levels.def_m < 1) targetTech = 'tech_def_m_1';
                         else if (levels.atk_r < 1) targetTech = 'tech_atk_r_1';
                         else if (levels.def_r < 1) targetTech = 'tech_def_r_1';
-                        // ... (levels 2 and 3 checks omitted for space, assume existing logic)
                     }
 
                     if (targetTech) {
                         const techData = CONSTANTS.TECHS[targetTech];
-                        if (techData) { // Check if tech exists (levels logic might overshoot)
+                        if (techData) {
                             const costF = techData.cost.food || 0;
                             const costW = techData.cost.wood || 0;
                             const costG = techData.cost.gold || 0;
@@ -1355,7 +1356,7 @@
                         }
                     });
                 }
-                // ... structure building logic kept same ...
+
                 const countType = (t) => {
                     const built = ai.buildingInstances.filter(b => b.type === t).length;
                     const constructing = ai.constructions.filter(c => c.type === t).length;
@@ -1487,10 +1488,9 @@
                         const barBg = el.querySelector('.icon-progress-bg'); const bar = el.querySelector('.icon-progress-fill'); const badge = el.querySelector('.icon-badge');
                         if (b.queue.length > 0) {
                             const t = b.queue[0];
-                            // 如果进度卡在 99.9% (0.1 ticks)，显示特殊的堵塞状态
                             if (t.ticksLeft <= 0.2 && t.ticksLeft > 0) {
                                 bar.style.width = '100%';
-                                bar.style.backgroundColor = '#ef4444'; // 红色表示堵塞
+                                bar.style.backgroundColor = '#ef4444';
                             } else {
                                 bar.style.width = (100 - (t.ticksLeft / t.totalTicks * 100)) + '%';
                                 bar.style.backgroundColor = CONSTANTS.TECHS[t.type] ? '#22c55e' : '#3b82f6';
@@ -1638,7 +1638,6 @@
                             if (CONSTANTS.UNITS[currentItem.type]) itemLabel = CONSTANTS.UNITS[currentItem.type].label;
                             else if (CONSTANTS.TECHS[currentItem.type]) { itemLabel = CONSTANTS.TECHS[currentItem.type].label; action = '研发'; }
 
-                            // 如果 ticksLeft <= 0.2，说明卡住了
                             if (currentItem.ticksLeft <= 0.2) {
                                 statusEl.innerText = `⚠️ 生产阻塞 (人口满或出口堵塞)`;
                                 statusEl.style.color = '#ef4444';
