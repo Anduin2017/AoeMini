@@ -30,28 +30,55 @@
             display: block;
             width: 100%;
             height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
+        /* --- 修改：图层管理 --- */
+
+        /* 1. 背景画布 (画线) - 最底层，被基地盖住 */
+        #bgCanvas {
+            z-index: 5;
+        }
+
+        /* 2. 基地 - 中间层 */
         .base {
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
             width: 64px;
-            /* 从80px减小到64px */
             height: 80px;
-            /* 高度也相应减小 */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             font-weight: bold;
             font-size: 0.8rem;
-            /* 字体改小 */
             z-index: 10;
+            /* 比画线的画布高 */
             pointer-events: none;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-            /* 加个阴影增加立体感 */
         }
+
+        /* 3. 游戏主画布 (士兵/特效) - 在基地上面 */
+        #gameCanvas {
+            z-index: 15;
+        }
+
+        /* 4. 飘字特效 - 最高层 */
+        .floater {
+            position: absolute;
+            color: white;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 1s forwards;
+            text-shadow: 1px 1px 2px black;
+            z-index: 100;
+            /* 最高优先级 */
+        }
+
+        /* --- 其他原有样式保持不变 --- */
 
         .base-player {
             left: 0;
@@ -65,11 +92,29 @@
             border-left: 4px solid #b91c1c;
         }
 
-        /* 调整炮台位置 */
         .turret-addon {
-            top: -15px;
-            width: 30px;
-            height: 15px;
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 20px;
+            background-color: #4b5563;
+            border: 2px solid #9ca3af;
+            border-radius: 4px 4px 0 0;
+            display: none;
+        }
+
+        .turret-addon::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            background-color: #000;
+            border-radius: 50%;
         }
 
         .has-turret .turret-addon {
@@ -121,11 +166,14 @@
 
         .tech-status {
             font-family: monospace;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             font-weight: bold;
             margin-top: 2px;
             text-shadow: 1px 1px 1px black;
             opacity: 0.9;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 8px;
         }
 
         .text-blue {
@@ -554,15 +602,6 @@
             display: none;
         }
 
-        .floater {
-            position: absolute;
-            color: white;
-            font-weight: bold;
-            pointer-events: none;
-            animation: floatUp 1s forwards;
-            text-shadow: 1px 1px 2px black;
-        }
-
         @keyframes floatUp {
             0% {
                 transform: translateY(0);
@@ -602,7 +641,7 @@
             font-size: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(4px);
-            min-width: 120px;
+            min-width: 140px;
         }
 
         .tt-row {
@@ -623,6 +662,16 @@
         .tt-enemy .tt-header {
             color: #f87171;
         }
+
+        .tt-sub {
+            color: #9ca3af;
+            font-size: 11px;
+        }
+
+        .val-bonus {
+            color: #22c55e;
+            margin-left: 2px;
+        }
     </style>
 </head>
 
@@ -634,16 +683,20 @@
         <div class="top-group">
             <div class="top-item text-blue">玩家</div>
             <div class="tech-status text-blue-light">
-                <span id="p-tech-atk">🗡️ 0</span>
-                <span id="p-tech-def" class="ml-2">🛡️ 0</span>
+                <span id="p-tech-atk-m" title="近战攻击">⚔️ 0</span>
+                <span id="p-tech-def-m" title="近战防御">🛡️ 0</span>
+                <span id="p-tech-atk-r" title="远程攻击">🏹 0</span>
+                <span id="p-tech-def-r" title="远程防御">🎯 0</span>
             </div>
         </div>
 
         <div class="top-group right">
             <div class="top-item text-red">电脑</div>
             <div class="tech-status text-red-light">
-                <span id="e-tech-atk">🗡️ 0</span>
-                <span id="e-tech-def" class="ml-2">🛡️ 0</span>
+                <span id="e-tech-atk-m" title="近战攻击">⚔️ 0</span>
+                <span id="e-tech-def-m" title="近战防御">🛡️ 0</span>
+                <span id="e-tech-atk-r" title="远程攻击">🏹 0</span>
+                <span id="e-tech-def-r" title="远程防御">🎯 0</span>
             </div>
         </div>
     </div>
@@ -655,6 +708,7 @@
             <button id="btn-stance-attack" class="tactic-btn active" onclick="game.setPlayerStance('attack')">⚔️
                 进攻</button>
         </div>
+        <canvas id="bgCanvas"></canvas>
         <canvas id="gameCanvas"></canvas>
 
         <div id="unit-tooltip"></div>
@@ -736,32 +790,40 @@
         const TICK_RATE = 100;
         const MAX_QUEUE_SIZE = 5;
         const MAX_TOTAL_POP = 200;
+        const BASE_RANGE = 5;
 
         const CONSTANTS = {
             INITIAL_RES: { food: 200, wood: 200, gold: 100, stone: 0 },
             BASE_HP: 2000, INITIAL_POP_CAP: 10,
             MAP_WIDTH_PERCENT: 100,
             UNIT_SIZE_PERCENT: 0.8,
-            ATTACK_RANGE_PERCENT: 8,
             UNITS: {
-                worker: { cost: { food: 50, wood: 0 }, time: 200, hp: 10, dmg: 0, def: 0, type: 'eco', label: '村民' },
-                clubman: { cost: { food: 60, wood: 20 }, time: 150, hp: 90, dmg: 8, def: 0, speed: 1.25, type: 'mil', label: '长枪兵' },
-                samurai: { cost: { food: 100, wood: 0, gold: 20 }, time: 150, hp: 140, dmg: 11, def: 2, speed: 1.125, range: 6.4, type: 'mil', label: '武士' }
+                worker: { cost: { food: 50, wood: 0 }, time: 200, hp: 10, dmg: 0, def_m: 0, def_r: 0, type: 'eco', label: '村民', lane: 0, stopOnAttack: false },
+                clubman: { cost: { food: 60, wood: 20 }, time: 150, hp: 90, dmg: 8, def_m: 0, def_r: 0, speed: 1.25, type: 'mil', label: '长枪兵', range: BASE_RANGE, lane: 0, stopOnAttack: false, attackType: 'melee' },
+                samurai: { cost: { food: 100, wood: 0, gold: 20 }, time: 150, hp: 140, dmg: 11, def_m: 2, def_r: 3, speed: 1.125, type: 'mil', label: '武士', range: BASE_RANGE * 0.75, lane: 0, stopOnAttack: false, attackType: 'melee' },
+                longbowman: { cost: { food: 40, wood: 50, gold: 0 }, time: 150, hp: 70, dmg: 6, def_m: 0, def_r: 0, speed: 1.125, type: 'mil', label: '长弓兵', range: BASE_RANGE * 3, lane: 1, widthScale: 0.5, stopOnAttack: true, attackType: 'ranged' }
             },
             BUILDINGS: {
                 house: { cost: { food: 0, wood: 50, stone: 0 }, pop: 10, time: 150, label: '房屋', icon: '🏠' },
                 barracks: { cost: { food: 0, wood: 150, stone: 0 }, time: 300, label: '兵营', icon: '⚔️' },
+                archery_range: { cost: { food: 0, wood: 150, stone: 0 }, time: 300, label: '靶场', icon: '🏹' },
                 towncenter: { cost: { food: 0, wood: 400, stone: 350 }, pop: 10, time: 1200, label: '基地', icon: '🏛️' },
                 blacksmith: { cost: { food: 0, wood: 150, stone: 0 }, time: 250, label: '铁匠铺', icon: '⚒️' }
             },
             TECHS: {
                 turret_tech: { cost: { food: 0, wood: 0, gold: 100, stone: 170 }, time: 240, label: '防御炮台', icon: '🏯', desc: '基地获得强大防御力' },
-                tech_atk_1: { cost: { food: 50, wood: 0, gold: 125, stone: 0 }, time: 600, label: '近战攻击 I', icon: '🗡️', level: 1, type: 'atk' },
-                tech_atk_2: { cost: { food: 100, wood: 0, gold: 250, stone: 0 }, time: 600, label: '近战攻击 II', icon: '🗡️', level: 2, type: 'atk' },
-                tech_atk_3: { cost: { food: 150, wood: 0, gold: 300, stone: 0 }, time: 600, label: '近战攻击 III', icon: '🗡️', level: 3, type: 'atk' },
-                tech_def_1: { cost: { food: 50, wood: 0, gold: 125, stone: 0 }, time: 600, label: '近战防御 I', icon: '🛡️', level: 1, type: 'def' },
-                tech_def_2: { cost: { food: 100, wood: 0, gold: 250, stone: 0 }, time: 600, label: '近战防御 II', icon: '🛡️', level: 2, type: 'def' },
-                tech_def_3: { cost: { food: 150, wood: 0, gold: 300, stone: 0 }, time: 600, label: '近战防御 III', icon: '🛡️', level: 3, type: 'def' }
+                tech_atk_m_1: { cost: { food: 50, wood: 0, gold: 125, stone: 0 }, time: 600, label: '近战攻击 I', icon: '⚔️', level: 1, type: 'atk_m' },
+                tech_atk_m_2: { cost: { food: 100, wood: 0, gold: 250, stone: 0 }, time: 600, label: '近战攻击 II', icon: '⚔️', level: 2, type: 'atk_m' },
+                tech_atk_m_3: { cost: { food: 150, wood: 0, gold: 300, stone: 0 }, time: 600, label: '近战攻击 III', icon: '⚔️', level: 3, type: 'atk_m' },
+                tech_def_m_1: { cost: { food: 50, wood: 0, gold: 125, stone: 0 }, time: 600, label: '近战防御 I', icon: '🛡️', level: 1, type: 'def_m' },
+                tech_def_m_2: { cost: { food: 100, wood: 0, gold: 250, stone: 0 }, time: 600, label: '近战防御 II', icon: '🛡️', level: 2, type: 'def_m' },
+                tech_def_m_3: { cost: { food: 150, wood: 0, gold: 300, stone: 0 }, time: 600, label: '近战防御 III', icon: '🛡️', level: 3, type: 'def_m' },
+                tech_atk_r_1: { cost: { food: 0, wood: 50, gold: 125, stone: 0 }, time: 600, label: '远程攻击 I', icon: '🏹', level: 1, type: 'atk_r' },
+                tech_atk_r_2: { cost: { food: 0, wood: 100, gold: 250, stone: 0 }, time: 600, label: '远程攻击 II', icon: '🏹', level: 2, type: 'atk_r' },
+                tech_atk_r_3: { cost: { food: 0, wood: 150, gold: 300, stone: 0 }, time: 600, label: '远程攻击 III', icon: '🏹', level: 3, type: 'atk_r' },
+                tech_def_r_1: { cost: { food: 0, wood: 50, gold: 125, stone: 0 }, time: 600, label: '远程防御 I', icon: '🎯', level: 1, type: 'def_r' },
+                tech_def_r_2: { cost: { food: 0, wood: 100, gold: 250, stone: 0 }, time: 600, label: '远程防御 II', icon: '🎯', level: 2, type: 'def_r' },
+                tech_def_r_3: { cost: { food: 0, wood: 150, gold: 300, stone: 0 }, time: 600, label: '远程防御 III', icon: '🎯', level: 3, type: 'def_r' }
             }
         };
 
@@ -772,11 +834,14 @@
                 this.maxHp = uData.hp;
                 this.hp = this.maxHp;
                 this.dmg = uData.dmg || 0;
-                this.def = uData.def || 0;
+                this.def_m = uData.def_m || 0;
+                this.def_r = uData.def_r || 0;
                 this.speed = (uData.speed || 0) / (1000 / TICK_RATE);
                 this.pos = owner === 'player' ? 5 : 95; this.state = 'move';
-                this.width = CONSTANTS.UNIT_SIZE_PERCENT;
-                this.range = uData.range || CONSTANTS.ATTACK_RANGE_PERCENT;
+                this.width = CONSTANTS.UNIT_SIZE_PERCENT * (uData.widthScale || 1);
+                this.range = uData.range || BASE_RANGE;
+                this.lane = uData.lane !== undefined ? uData.lane : 0;
+                this.stopOnAttack = uData.stopOnAttack !== undefined ? uData.stopOnAttack : false;
                 this.attackCooldown = Math.floor(Math.random() * 10); this.attackAnimTimer = 0;
             }
         }
@@ -785,6 +850,9 @@
             constructor() {
                 this.canvas = document.getElementById('gameCanvas');
                 this.ctx = this.canvas.getContext('2d');
+                this.bgCanvas = document.getElementById('bgCanvas');
+                this.bgCtx = this.bgCanvas.getContext('2d');
+
                 this.resizeCanvas();
                 window.addEventListener('resize', () => this.resizeCanvas());
 
@@ -805,6 +873,7 @@
                     if (!e.target.closest('.dock-icon') && !e.target.closest('.popover-menu')) this.closePopover();
                 });
 
+                // 注意：事件监听绑定在最上层的 gameCanvas 上
                 this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
                 this.canvas.addEventListener('mouseleave', () => { document.getElementById('unit-tooltip').style.display = 'none'; });
 
@@ -821,83 +890,77 @@
                 const my = e.clientY - rect.top;
                 const w = this.canvas.width;
                 const h = this.canvas.height;
-                const detectY = h / 2 - 10;
+
                 let foundUnit = null;
                 for (const u of this.state.units) {
                     const unitX = (u.pos / 100) * w;
-                    if (Math.abs(mx - unitX) < 15 && Math.abs(my - detectY) < 25) {
+                    const laneY = u.lane === 1 ? (h / 2 - 20) : (h / 2 + 20);
+
+                    if (Math.abs(mx - unitX) < 15 && Math.abs(my - laneY) < 20) {
                         foundUnit = u;
                         break;
                     }
                 }
                 const tt = document.getElementById('unit-tooltip');
+
                 if (foundUnit) {
                     const uData = CONSTANTS.UNITS[foundUnit.type];
                     const isPlayer = foundUnit.owner === 'player';
                     const colorClass = isPlayer ? '' : 'tt-enemy';
+                    const baseDmg = uData.dmg;
+                    const bonusDmg = foundUnit.dmg - baseDmg;
+
                     tt.className = colorClass;
                     tt.innerHTML = `
                         <div class="tt-header">${uData.label} (${isPlayer ? '我方' : '敌方'})</div>
                         <div class="tt-row"><span>❤️ 生命:</span> <span>${Math.ceil(foundUnit.hp)}/${foundUnit.maxHp}</span></div>
-                        <div class="tt-row"><span>⚔️ 攻击:</span> <span>${foundUnit.dmg}</span></div>
-                        <div class="tt-row"><span>🛡️ 防御:</span> <span>${foundUnit.def}</span></div>
+                        <div class="tt-row"><span>🗡️ 基础攻击:</span> <span>${baseDmg}</span></div>
+                        <div class="tt-row"><span>🔥 攻击加成:</span> <span class="val-bonus">+${bonusDmg}</span></div>
+                        <div class="tt-row"><span>🛡️ 近战防御:</span> <span>${foundUnit.def_m}</span></div>
+                        <div class="tt-row"><span>🎯 远程防御:</span> <span>${foundUnit.def_r}</span></div>
                     `;
                     tt.style.left = (e.clientX + 15) + 'px';
                     tt.style.top = (e.clientY + 15) + 'px';
                     tt.style.display = 'block';
                 } else {
-                    tt.style.display = 'none';
+                    let foundBase = null;
+                    const baseYTop = h / 2 - 40;
+                    const baseYBottom = h / 2 + 40;
+
+                    if (my >= baseYTop && my <= baseYBottom) {
+                        if (mx >= 0 && mx <= 64) {
+                            foundBase = this.state.player;
+                        } else if (mx >= w - 64 && mx <= w) {
+                            foundBase = this.state.enemy;
+                        }
+                    }
+
+                    if (foundBase) {
+                        const isPlayer = foundBase.name === 'player';
+                        const colorClass = isPlayer ? '' : 'tt-enemy';
+                        const turretDmg = foundBase.hasTurret ? (CONSTANTS.UNITS.clubman.dmg * 1.5) : 0;
+                        tt.className = colorClass;
+                        tt.innerHTML = `
+                            <div class="tt-header">${isPlayer ? '我方' : '敌方'}基地</div>
+                            <div class="tt-row"><span>❤️ 生命:</span> <span>${Math.ceil(foundBase.baseHp)}/${CONSTANTS.BASE_HP}</span></div>
+                            <div class="tt-row"><span>🛡️ 近战防御:</span> <span>2</span></div>
+                            <div class="tt-row"><span>🎯 远程防御:</span> <span>2</span></div>
+                            ${foundBase.hasTurret ? `<div class="tt-row"><span>⚔️ 炮台:</span> <span>${turretDmg}</span></div>` : ''}
+                        `;
+                        tt.style.left = (e.clientX + 15) + 'px';
+                        tt.style.top = (e.clientY + 15) + 'px';
+                        tt.style.display = 'block';
+                    } else {
+                        tt.style.display = 'none';
+                    }
                 }
             }
 
             debugAI() {
                 if (this.gameOver) return;
                 const ai = this.state.enemy;
-
-                // 统计建筑数量
-                const countBuilt = (t) => ai.buildingInstances.filter(b => b.type === t).length;
-                const countConst = (t) => ai.constructions.filter(c => c.type === t).length;
-                const barracksCount = countBuilt('barracks') + countConst('barracks');
-                const blacksmithCount = countBuilt('blacksmith') + countConst('blacksmith');
-
-                // 格式化输出
                 console.groupCollapsed(`🤖 AI 状态监控 (Tick: ${this.state.tick})`);
-
-                // 1. 资源状况
-                console.log(`💰 资源库存: [肉: ${Math.floor(ai.food)}] [木: ${Math.floor(ai.wood)}] [金: ${Math.floor(ai.gold)}] [石: ${Math.floor(ai.stone)}]`);
-
-                // 1.5 农民分配
-                console.log(`👷‍♂️ 农民分配: [肉: ${ai.assignments.food}] [木: ${ai.assignments.wood}] [金: ${ai.assignments.gold}] [石: ${ai.assignments.stone}] [空闲: ${ai.idleWorkers}]`);
-
-                // 2. 采集逻辑判断
-                const resources = [
-                    { type: 'food', amount: ai.food },
-                    { type: 'wood', amount: ai.wood },
-                    { type: 'gold', amount: ai.gold }
-                ];
-                resources.sort((a, b) => a.amount - b.amount);
-                console.log(`⛏️ 当前全力采集: %c${resources[0].type.toUpperCase()}`, 'color: orange; font-weight: bold', `(因为库存最少)`);
-
-                // 3. 科技与兵力门槛 (改为5)
-                const techReadyColor = ai.armyCount > 5 ? 'green' : 'red';
-                console.log(`⚔️ 军队数量: %c${ai.armyCount}/5`, `color: ${techReadyColor}; font-weight: bold`,
-                    ai.armyCount > 5 ? '✅ 已满足科技研发门槛' : '❌ 未达标，优先暴兵');
-
-                // 4. 建筑状况
-                const bsColor = blacksmithCount > 0 ? 'green' : 'red';
-                console.log(`🏗️ 关键建筑: 兵营 x${barracksCount}, %c铁匠铺 x${blacksmithCount}`, `color: ${bsColor}`);
-
-                // 5. 科技等级
-                console.log(`🎓 当前科技: 攻[${ai.techLevels.atk}] 防[${ai.techLevels.def}]`);
-
-                // 6. 正在做什么
-                const blacksmith = ai.buildingInstances.find(b => b.type === 'blacksmith');
-                if (blacksmith && blacksmith.queue.length > 0) {
-                    console.log(`🔥 %c正在研发: ${CONSTANTS.TECHS[blacksmith.queue[0].type].label}`, 'color: #f0f; font-weight: bold');
-                } else if (ai.armyCount > 5 && blacksmithCount > 0) {
-                    console.log(`💤 铁匠铺待机中 (可能资源不足)`);
-                }
-
+                console.log(`💰 资源: F${Math.floor(ai.food)} W${Math.floor(ai.wood)} G${Math.floor(ai.gold)} S${Math.floor(ai.stone)}`);
                 console.groupEnd();
             }
 
@@ -912,13 +975,16 @@
                     popCap: CONSTANTS.INITIAL_POP_CAP, baseHp: CONSTANTS.BASE_HP,
                     buildingInstances: initialBuildings, constructions: [], armyCount: 0,
                     hasTurret: false, turretCooldown: 0,
-                    techLevels: { atk: 0, def: 0 }
+                    techLevels: { atk_m: 0, def_m: 0, atk_r: 0, def_r: 0 }
                 };
             }
 
             resizeCanvas() {
                 const wrapper = document.getElementById('game-wrapper');
-                this.canvas.width = wrapper.offsetWidth; this.canvas.height = wrapper.offsetHeight;
+                const w = wrapper.offsetWidth;
+                const h = wrapper.offsetHeight;
+                this.canvas.width = w; this.canvas.height = h;
+                this.bgCanvas.width = w; this.bgCanvas.height = h;
             }
 
             toggleDockItem(id) {
@@ -961,7 +1027,7 @@
             }
 
             gatherResources(f) {
-                const GATHER_RATE = 0.6; // 调整采集倍率为 0.6
+                const GATHER_RATE = 0.6;
                 f.food += f.assignments.food * GATHER_RATE;
                 f.wood += f.assignments.wood * GATHER_RATE;
                 f.gold += f.assignments.gold * GATHER_RATE;
@@ -980,13 +1046,20 @@
                                     f.hasTurret = true;
                                     if (f.name === 'player') this.showToast("炮台系统升级完成!", "#8b5cf6");
                                 }
-                                else if (tech.type === 'atk' || tech.type === 'def') {
-                                    f.techLevels[tech.type] = tech.level;
-                                    if (f.name === 'player') this.showToast(`${tech.label} 研发完成!`, "#8b5cf6");
-                                    this.state.units.filter(u => u.owner === f.name && CONSTANTS.UNITS[u.type].type === 'mil').forEach(u => {
-                                        if (tech.type === 'atk') u.dmg += 1;
-                                        if (tech.type === 'def') u.def += 1;
-                                    });
+                                else {
+                                    const typeKey = tech.type;
+                                    if (f.techLevels[typeKey] !== undefined) {
+                                        f.techLevels[typeKey] = tech.level;
+                                        if (f.name === 'player') this.showToast(`${tech.label} 研发完成!`, "#8b5cf6");
+
+                                        this.state.units.filter(u => u.owner === f.name && CONSTANTS.UNITS[u.type].type === 'mil').forEach(u => {
+                                            const uData = CONSTANTS.UNITS[u.type];
+                                            if (typeKey === 'atk_m' && (!uData.attackType || uData.attackType === 'melee')) u.dmg += 1;
+                                            if (typeKey === 'atk_r' && uData.attackType === 'ranged') u.dmg += 1;
+                                            if (typeKey === 'def_m') u.def_m += 1;
+                                            if (typeKey === 'def_r') u.def_r += 1;
+                                        });
+                                    }
                                 }
                                 if (this.state.selectedDockId === b.id) this.buildPopover();
                                 else this.closePopover();
@@ -1002,7 +1075,7 @@
             processBaseDefense(f) {
                 if (!f.hasTurret) return;
                 if (f.turretCooldown > 0) { f.turretCooldown--; return; }
-                const RANGE = CONSTANTS.ATTACK_RANGE_PERCENT * 2;
+                const RANGE = BASE_RANGE * 2;
                 const DAMAGE = CONSTANTS.UNITS.clubman.dmg * 1.5;
                 const COOLDOWN = Math.floor(10 / 1.25);
                 const basePos = f.name === 'player' ? 0 : 100;
@@ -1013,7 +1086,7 @@
                     const shotCount = Math.min(targets.length, 3);
                     for (let i = 0; i < shotCount; i++) {
                         const target = targets[Math.floor(Math.random() * targets.length)];
-                        let actualDmg = Math.max(1, DAMAGE - target.def);
+                        let actualDmg = Math.max(1, DAMAGE - target.def_r);
                         target.hp -= actualDmg;
                         this.spawnFloater(target.pos, `-${actualDmg.toFixed(1)}`, '#f0f');
                         this.state.turretShots.push({ start: basePos, end: target.pos, color: f.name === 'player' ? '#60a5fa' : '#f87171' });
@@ -1043,8 +1116,11 @@
                     f.armyCount++;
                     const u = new Entity(type, f.name, this.entityIdCounter++);
                     if (CONSTANTS.UNITS[type].type === 'mil') {
-                        u.dmg += f.techLevels.atk;
-                        u.def += f.techLevels.def;
+                        const uData = CONSTANTS.UNITS[type];
+                        if (uData.attackType === 'ranged') u.dmg += f.techLevels.atk_r;
+                        else u.dmg += f.techLevels.atk_m;
+                        u.def_m += f.techLevels.def_m;
+                        u.def_r += f.techLevels.def_r;
                     }
                     this.state.units.push(u);
                 }
@@ -1057,9 +1133,7 @@
                 if (b.queue.length >= MAX_QUEUE_SIZE) { this.showToast("队列已满"); return; }
                 let totalPop = f.workers + f.armyCount; f.buildingInstances.forEach(bb => totalPop += bb.queue.length);
                 if (totalPop >= MAX_TOTAL_POP || totalPop >= f.popCap) { this.showToast("人口不足"); return; }
-                const costF = unitData.cost.food || 0;
-                const costW = unitData.cost.wood || 0;
-                const costG = unitData.cost.gold || 0;
+                const costF = unitData.cost.food || 0; const costW = unitData.cost.wood || 0; const costG = unitData.cost.gold || 0;
                 if (f.food < costF || f.wood < costW || f.gold < costG) { this.showToast("资源不足"); return; }
                 f.food -= costF; f.wood -= costW; f.gold -= costG;
                 b.queue.push({ type: type, ticksLeft: unitData.time, totalTicks: unitData.time });
@@ -1114,18 +1188,55 @@
                 resources.sort((a, b) => a.amount - b.amount);
                 ai.assignments[resources[0].type] = ai.workers;
 
+                const eUnits = this.state.units.filter(u => u.owner === 'enemy');
+                const myArchers = eUnits.filter(u => u.type === 'longbowman').length;
+                const pUnits = this.state.units.filter(u => u.owner === 'player');
+                const enemyArchers = pUnits.filter(u => u.type === 'longbowman').length;
+
+                const pCountHalf = pUnits.filter(u => u.pos > 50).length;
+                const eCountHalf = eUnits.filter(u => u.pos > 50).length;
+
+                let playerFront = 0;
+                if (pUnits.length > 0) playerFront = Math.max(...pUnits.map(u => u.pos));
+                let enemyFront = 100;
+                if (eUnits.length > 0) enemyFront = Math.min(...eUnits.map(u => u.pos));
+
+                const distance = enemyFront - playerFront;
+                const battleLine = (playerFront + enemyFront) / 2;
+
+                // --- AI 策略修改：更激进的科技 ---
                 let savingForTech = false;
                 const blacksmith = ai.buildingInstances.find(b => b.type === 'blacksmith');
 
-                if (ai.armyCount > 5 && blacksmith && blacksmith.queue.length === 0) {
+                // 判断是否在压制：战线 < 50 表示在玩家半场
+                const isPushing = battleLine < 50;
+
+                // 如果兵力充足，或者正在压制敌人，就尝试升级科技
+                if ((ai.armyCount > 5 || isPushing) && blacksmith && blacksmith.queue.length === 0) {
                     const levels = ai.techLevels;
                     let targetTech = null;
-                    if (levels.atk < 1) targetTech = 'tech_atk_1';
-                    else if (levels.def < 1) targetTech = 'tech_def_1';
-                    else if (levels.atk < 2) targetTech = 'tech_atk_2';
-                    else if (levels.def < 2) targetTech = 'tech_def_2';
-                    else if (levels.atk < 3) targetTech = 'tech_atk_3';
-                    else if (levels.def < 3) targetTech = 'tech_def_3';
+
+                    const checkTech = (type, lvl) => levels[type] < lvl ? `tech_${type}_${levels[type] + 1}` : null;
+
+                    if (myArchers > 2 && levels.atk_r < levels.atk_m) targetTech = checkTech('atk_r', 3);
+                    else if (enemyArchers > 3 && levels.def_r < levels.def_m) targetTech = checkTech('def_r', 3);
+
+                    if (!targetTech) {
+                        if (levels.atk_m < 1) targetTech = 'tech_atk_m_1';
+                        else if (levels.def_m < 1) targetTech = 'tech_def_m_1';
+                        else if (levels.atk_r < 1) targetTech = 'tech_atk_r_1';
+                        else if (levels.def_r < 1) targetTech = 'tech_def_r_1';
+
+                        else if (levels.atk_m < 2) targetTech = 'tech_atk_m_2';
+                        else if (levels.def_m < 2) targetTech = 'tech_def_m_2';
+                        else if (levels.atk_r < 2) targetTech = 'tech_atk_r_2';
+                        else if (levels.def_r < 2) targetTech = 'tech_def_r_2';
+
+                        else if (levels.atk_m < 3) targetTech = 'tech_atk_m_3';
+                        else if (levels.def_m < 3) targetTech = 'tech_def_m_3';
+                        else if (levels.atk_r < 3) targetTech = 'tech_atk_r_3';
+                        else if (levels.def_r < 3) targetTech = 'tech_def_r_3';
+                    }
 
                     if (targetTech) {
                         const techData = CONSTANTS.TECHS[targetTech];
@@ -1133,6 +1244,7 @@
                         const costW = techData.cost.wood || 0;
                         const costG = techData.cost.gold || 0;
                         const costS = techData.cost.stone || 0;
+
                         if (ai.food >= costF && ai.wood >= costW && ai.gold >= costG && ai.stone >= costS) {
                             ai.food -= costF; ai.wood -= costW; ai.gold -= costG; ai.stone -= costS;
                             blacksmith.queue.push({ type: targetTech, ticksLeft: techData.time, totalTicks: techData.time });
@@ -1146,6 +1258,9 @@
                     let pendingWorkers = 0;
                     ai.buildingInstances.forEach(b => { b.queue.forEach(q => { if (q.type === 'worker') pendingWorkers++; }); });
 
+                    const clubmanCount = eUnits.filter(u => u.type === 'clubman').length;
+                    const samuraiCount = eUnits.filter(u => u.type === 'samurai').length;
+
                     const buildings = [...ai.buildingInstances].sort((a, b) => a.type === 'towncenter' ? -1 : 1);
                     buildings.forEach(b => {
                         if (b.queue.length < 5) {
@@ -1155,14 +1270,17 @@
                                 }
                             } else if (b.type === 'barracks') {
                                 const samCost = CONSTANTS.UNITS.samurai.cost;
-                                if (ai.gold >= samCost.gold) {
-                                    // 金币够买武士
-                                    // 尝试排队武士。注意：如果此时肉不足(比如只有80)，aiQueue内部会判断失败从而什么都不做。
-                                    // 这正是我们要的——什么都不做，等待下一轮循环肉涨到 100。
+                                if (clubmanCount < 3) {
+                                    this.aiQueue(ai, b, 'clubman');
+                                } else if (ai.gold >= samCost.gold && samuraiCount < clubmanCount * 2) {
                                     this.aiQueue(ai, b, 'samurai');
                                 } else {
-                                    // 只有真的没金币了，才去造不需要金币的长枪兵
                                     this.aiQueue(ai, b, 'clubman');
+                                }
+                            } else if (b.type === 'archery_range') {
+                                const bowCost = CONSTANTS.UNITS.longbowman.cost;
+                                if (ai.wood >= bowCost.wood + 50 && ai.food >= bowCost.food) {
+                                    this.aiQueue(ai, b, 'longbowman');
                                 }
                             }
                         }
@@ -1177,11 +1295,14 @@
 
                 let structureToBuild = null;
                 const numBarracks = countType('barracks');
+                const numArchery = countType('archery_range');
                 const numBlacksmith = countType('blacksmith');
 
                 if (numBarracks < 1) structureToBuild = 'barracks';
+                else if (numArchery < 1) structureToBuild = 'archery_range';
                 else if (numBlacksmith < 1) structureToBuild = 'blacksmith';
-                else if (numBarracks < 6 || ai.wood > 600) structureToBuild = 'barracks';
+                else if (numBarracks < 4 || ai.wood > 600) structureToBuild = 'barracks';
+                else if (numArchery < 3 && ai.wood > 800) structureToBuild = 'archery_range';
 
                 if (structureToBuild) {
                     const d = CONSTANTS.BUILDINGS[structureToBuild];
@@ -1193,28 +1314,11 @@
                     }
                 }
 
-                const pUnits = this.state.units.filter(u => u.owner === 'player');
-                const eUnits = this.state.units.filter(u => u.owner === 'enemy');
+                let newStance = 'attack';
 
-                // --- AI 逻辑修改：统计AI半场内的单位 ---
-                const pCountHalf = pUnits.filter(u => u.pos > 50).length;
-                const eCountHalf = eUnits.filter(u => u.pos > 50).length;
-
-                let playerFront = 0;
-                if (pUnits.length > 0) playerFront = Math.max(...pUnits.map(u => u.pos));
-                let enemyFront = 100;
-                if (eUnits.length > 0) enemyFront = Math.min(...eUnits.map(u => u.pos));
-
-                const distance = enemyFront - playerFront;
-                const battleLine = (playerFront + enemyFront) / 2;
-
-                let newStance = 'attack'; // 默认进攻
-
-                // 新规则：如果在AI半场（>50），且AI人数多于玩家，强制进攻（反击）
                 if (eCountHalf > pCountHalf) {
                     newStance = 'attack';
                 } else {
-                    // 否则按老规则：距离远则进攻，距离近且战线靠后则防守
                     if (distance > 30) newStance = 'attack';
                     else {
                         if (battleLine > 65) newStance = 'defend'; else newStance = 'attack';
@@ -1234,11 +1338,6 @@
 
             aiQueue(f, b, u) {
                 const d = CONSTANTS.UNITS[u];
-                // 注意：AI 资源判断不需要在这里做，因为 runAI 里的逻辑已经判断过了，
-                // 但为了安全起见（防止其他调用），还是保留基本的扣除逻辑，
-                // 不过扣除前最好再判断一次，或者直接扣除允许负数（不推荐）。
-                // 这里的 aiQueue 假定调用者已经确认过资源充足，这里只负责扣除和入队
-                // 为了稳健，这里还是加上判断
                 if (f.food >= d.cost.food && f.wood >= d.cost.wood && f.gold >= (d.cost.gold || 0)) {
                     f.food -= d.cost.food; f.wood -= d.cost.wood; f.gold -= (d.cost.gold || 0);
                     b.queue.push({ type: u, ticksLeft: d.time, totalTicks: d.time });
@@ -1254,10 +1353,15 @@
                 if (e.hasTurret) document.getElementById('e-base').classList.add('has-turret');
 
                 const toRoman = (n) => n === 0 ? '0' : (n === 1 ? 'I' : (n === 2 ? 'II' : 'III'));
-                document.getElementById('p-tech-atk').innerText = `🗡️ ${toRoman(p.techLevels.atk)}`;
-                document.getElementById('p-tech-def').innerText = `🛡️ ${toRoman(p.techLevels.def)}`;
-                document.getElementById('e-tech-atk').innerText = `🗡️ ${toRoman(e.techLevels.atk)}`;
-                document.getElementById('e-tech-def').innerText = `🛡️ ${toRoman(e.techLevels.def)}`;
+                document.getElementById('p-tech-atk-m').innerText = `⚔️ ${toRoman(p.techLevels.atk_m)}`;
+                document.getElementById('p-tech-def-m').innerText = `🛡️ ${toRoman(p.techLevels.def_m)}`;
+                document.getElementById('p-tech-atk-r').innerText = `🏹 ${toRoman(p.techLevels.atk_r)}`;
+                document.getElementById('p-tech-def-r').innerText = `🎯 ${toRoman(p.techLevels.def_r)}`;
+
+                document.getElementById('e-tech-atk-m').innerText = `⚔️ ${toRoman(e.techLevels.atk_m)}`;
+                document.getElementById('e-tech-def-m').innerText = `🛡️ ${toRoman(e.techLevels.def_m)}`;
+                document.getElementById('e-tech-atk-r').innerText = `🏹 ${toRoman(e.techLevels.atk_r)}`;
+                document.getElementById('e-tech-def-r').innerText = `🎯 ${toRoman(e.techLevels.def_r)}`;
 
                 const currentPop = p.workers + p.armyCount;
                 const popEl = document.getElementById('disp-pop');
@@ -1289,7 +1393,7 @@
                 const underConstruction = p.constructions.map(c => ({ ...c, isConstruction: true }));
                 const mixedList = [...builtBuildings, ...underConstruction];
                 mixedList.sort((a, b) => {
-                    const order = { towncenter: 1, barracks: 2, blacksmith: 3 };
+                    const order = { towncenter: 1, barracks: 2, archery_range: 3, blacksmith: 4 };
                     return (order[a.type] || 99) - (order[b.type] || 99);
                 });
                 mixedList.forEach(item => {
@@ -1365,7 +1469,7 @@
                 const p = this.state.player;
                 if (id === 'build_menu') {
                     container.innerHTML = `<div class="popover-title">建造</div>`;
-                    ['house', 'barracks', 'blacksmith', 'towncenter'].forEach(t => {
+                    ['house', 'barracks', 'archery_range', 'blacksmith', 'towncenter'].forEach(t => {
                         const d = CONSTANTS.BUILDINGS[t];
                         const btn = document.createElement('div'); btn.className = 'menu-btn build-action-btn'; btn.dataset.type = t;
                         btn.onclick = () => this.playerBuildStructure(t);
@@ -1380,23 +1484,23 @@
                     if (b) {
                         const buildingLabel = CONSTANTS.BUILDINGS[b.type].label;
                         container.innerHTML = `<div class="popover-title">${buildingLabel}</div>`;
-                        // --- UI 修复：给状态文本加个 ID ---
                         const statusDiv = document.createElement('div');
                         statusDiv.id = 'popover-prog-status';
                         statusDiv.className = 'text-xs text-blue-400 text-center mb-2 font-bold';
                         statusDiv.style.display = 'none';
                         container.appendChild(statusDiv);
 
-                        if (b.type === 'towncenter' || b.type === 'barracks') {
+                        if (b.type === 'towncenter' || b.type === 'barracks' || b.type === 'archery_range') {
                             let unitTypes = [];
                             if (b.type === 'towncenter') unitTypes = ['worker'];
                             else if (b.type === 'barracks') unitTypes = ['clubman', 'samurai'];
+                            else if (b.type === 'archery_range') unitTypes = ['longbowman'];
                             unitTypes.forEach(uType => {
                                 const u = CONSTANTS.UNITS[uType];
                                 const btn = document.createElement('div'); btn.className = 'menu-btn produce-action-btn'; btn.dataset.type = uType;
                                 btn.onclick = () => this.playerQueueUnit(id, uType);
                                 let cost = []; if (u.cost.food) cost.push(`${u.cost.food}肉`); if (u.cost.wood) cost.push(`${u.cost.wood}木`); if (u.cost.gold) cost.push(`${u.cost.gold}金`);
-                                btn.innerHTML = `<span class="btn-icon">${uType === 'worker' ? '👷' : '⚔️'}</span><div class="btn-info"><span>训练${u.label}</span><span class="btn-cost">${cost.join(' ')}</span></div>`;
+                                btn.innerHTML = `<span class="btn-icon">${uType === 'worker' ? '👷' : (uType === 'longbowman' ? '🏹' : '⚔️')}</span><div class="btn-info"><span>训练${u.label}</span><span class="btn-cost">${cost.join(' ')}</span></div>`;
                                 container.appendChild(btn);
                             });
                         }
@@ -1414,40 +1518,44 @@
                         }
 
                         if (b.type === 'blacksmith') {
-                            const researchingAtk = p.buildingInstances.some(bi => bi.queue.some(q => q.type.startsWith('tech_atk')));
-                            const researchingDef = p.buildingInstances.some(bi => bi.queue.some(q => q.type.startsWith('tech_def')));
+                            const ongoingTechs = new Set();
+                            p.buildingInstances.forEach(bi => {
+                                bi.queue.forEach(q => {
+                                    if (q.type.startsWith('tech_')) ongoingTechs.add(q.type);
+                                });
+                            });
+
                             const techLevels = p.techLevels;
+                            const techTypes = ['atk_m', 'def_m', 'atk_r', 'def_r'];
+                            let anyUpgradeAvailable = false;
+                            const isThisBuildingBusy = b.queue.length > 0;
 
-                            if (techLevels.atk < 3 && !researchingAtk) {
-                                const nextLvl = techLevels.atk + 1;
-                                const techId = `tech_atk_${nextLvl}`;
-                                const tech = CONSTANTS.TECHS[techId];
-                                const techBtn = document.createElement('div'); techBtn.className = 'menu-btn tech-btn'; techBtn.dataset.tech = techId;
-                                techBtn.onclick = () => this.playerQueueTech(id, techId);
-                                let tCost = [];
-                                if (tech.cost.wood) tCost.push(`${tech.cost.wood}木`);
-                                if (tech.cost.food) tCost.push(`${tech.cost.food}肉`);
-                                if (tech.cost.gold) tCost.push(`${tech.cost.gold}金`);
-                                techBtn.innerHTML = `<span class="btn-icon">${tech.icon}</span><div class="btn-info"><span>${tech.label}</span><span class="btn-cost">${tCost.join(' ')}</span></div>`;
-                                container.appendChild(techBtn);
+                            if (!isThisBuildingBusy) {
+                                techTypes.forEach(type => {
+                                    const currentLvl = techLevels[type];
+                                    const nextLvl = currentLvl + 1;
+                                    const techId = `tech_${type}_${nextLvl}`;
+
+                                    if (currentLvl < 3 && !ongoingTechs.has(techId)) {
+                                        anyUpgradeAvailable = true;
+                                        const tech = CONSTANTS.TECHS[techId];
+
+                                        const techBtn = document.createElement('div'); techBtn.className = 'menu-btn tech-btn'; techBtn.dataset.tech = techId;
+                                        techBtn.onclick = () => this.playerQueueTech(id, techId);
+
+                                        let tCost = [];
+                                        if (tech.cost.wood) tCost.push(`${tech.cost.wood}木`);
+                                        if (tech.cost.food) tCost.push(`${tech.cost.food}肉`);
+                                        if (tech.cost.gold) tCost.push(`${tech.cost.gold}金`);
+
+                                        techBtn.innerHTML = `<span class="btn-icon">${tech.icon}</span><div class="btn-info"><span>${tech.label}</span><span class="btn-cost">${tCost.join(' ')}</span></div>`;
+                                        container.appendChild(techBtn);
+                                    }
+                                });
                             }
 
-                            if (techLevels.def < 3 && !researchingDef) {
-                                const nextLvl = techLevels.def + 1;
-                                const techId = `tech_def_${nextLvl}`;
-                                const tech = CONSTANTS.TECHS[techId];
-                                const techBtn = document.createElement('div'); techBtn.className = 'menu-btn tech-btn'; techBtn.dataset.tech = techId;
-                                techBtn.onclick = () => this.playerQueueTech(id, techId);
-                                let tCost = [];
-                                if (tech.cost.wood) tCost.push(`${tech.cost.wood}木`);
-                                if (tech.cost.food) tCost.push(`${tech.cost.food}肉`);
-                                if (tech.cost.gold) tCost.push(`${tech.cost.gold}金`);
-                                techBtn.innerHTML = `<span class="btn-icon">${tech.icon}</span><div class="btn-info"><span>${tech.label}</span><span class="btn-cost">${tCost.join(' ')}</span></div>`;
-                                container.appendChild(techBtn);
-                            }
-
-                            if (techLevels.atk >= 3 && techLevels.def >= 3) {
-                                container.innerHTML += `<div class="text-xs text-gray-400 text-center mt-2">科技已升至顶级</div>`;
+                            if (!anyUpgradeAvailable && !isThisBuildingBusy) {
+                                container.innerHTML += `<div class="text-xs text-gray-400 text-center mt-2">所有可用科技均在研发中或已满级</div>`;
                             }
                         }
                         const q = document.createElement('div'); q.id = 'popover-queue-info'; q.className = 'text-xs text-gray-400 text-center mt-1'; container.appendChild(q);
@@ -1469,7 +1577,6 @@
                     const b = p.buildingInstances.find(x => x.id === id);
                     if (!b) { this.closePopover(); return; }
 
-                    // --- UI 修复：实时更新进度文本 ---
                     const statusEl = document.getElementById('popover-prog-status');
                     if (statusEl) {
                         if (b.queue.length > 0) {
@@ -1505,38 +1612,43 @@
             updateUnits() {
                 // 1. 获取双方单位
                 let p = this.state.units.filter(u => u.owner === 'player');
-                // 电脑列表固定从小到大（左->右），方便玩家（从左往右攻）检测碰撞
+                // 电脑列表固定从小到大（左->右）
                 let e = this.state.units.filter(u => u.owner === 'enemy').sort((a, b) => a.pos - b.pos);
 
-                // 2. 玩家自身的排序（用于自己的堆叠逻辑）
-                // 进攻时：靠右的排前面；防守时：靠左的排前面
+                // 2. 玩家自身的排序
                 if (this.state.playerStance === 'attack') p.sort((a, b) => b.pos - a.pos);
                 else p.sort((a, b) => a.pos - b.pos);
 
-                // 3. 处理玩家逻辑
+                // 3. 准备全轨道碰撞列表
+                const pForCollision = [...p].sort((a, b) => b.pos - a.pos); // 从右到左，用于敌人碰撞检测
+                const eForCollision = [...e]; // 从左到右，用于玩家碰撞检测
+
+                // 4. 处理玩家逻辑
                 p.forEach((u, i) => {
                     this.processCombat(u, e, 1);
-                    // 玩家撞电脑：e 已经是 左->右 排序，e[0] 就是离玩家最近的敌人，没问题
-                    this.processMovement(u, p, e, i, 1);
+                    // 友军碰撞：仅限同轨道
+                    const friendsInLane = p.filter(f => f.lane === u.lane);
+                    const laneIndex = friendsInLane.findIndex(f => f.id === u.id);
+                    // 敌军碰撞：全轨道 (使用所有敌人列表)
+                    this.processMovement(u, friendsInLane, eForCollision, laneIndex, 1);
                 });
 
-                // 4. 处理电脑逻辑
-                // 【关键修复】：电脑撞玩家时，需要一份“从大到小（右->左）”的玩家列表
-                // 这样 pForCollision[0] 才是离电脑最近的那个玩家单位
-                const pForCollision = [...p].sort((a, b) => b.pos - a.pos);
-
+                // 5. 处理电脑逻辑
                 e.forEach((u, i) => {
                     this.processCombat(u, p, -1);
-                    // 这里传入专门排序过的 pForCollision，防止防守时穿模
-                    this.processMovement(u, e, pForCollision, i, -1);
+                    // 友军碰撞：仅限同轨道
+                    const friendsInLane = e.filter(f => f.lane === u.lane);
+                    const laneIndex = friendsInLane.findIndex(f => f.id === u.id);
+                    // 敌军碰撞：全轨道 (使用所有玩家列表)
+                    this.processMovement(u, friendsInLane, pForCollision, laneIndex, -1);
                 });
 
-                // 5. 清理死亡单位
+                // 6. 清理死亡单位
                 const dead = this.state.units.filter(u => u.hp <= 0);
                 dead.forEach(u => this.handleUnitDeath(u));
                 this.state.units = this.state.units.filter(u => u.hp > 0);
 
-                // 6. 胜负判定
+                // 7. 胜负判定
                 if (this.state.player.baseHp <= 0) this.endGame('DEFEAT', '你的帝国陷落了。');
                 if (this.state.enemy.baseHp <= 0) this.endGame('VICTORY', '你征服了野蛮人！');
             }
@@ -1556,21 +1668,37 @@
 
             processCombat(u, ens, dir) {
                 if (u.attackAnimTimer > 0) u.attackAnimTimer--; if (u.attackCooldown > 0) u.attackCooldown--;
+                // 跨轨道攻击：只要X轴距离足够近
                 let v = ens.filter(e => Math.abs(u.pos - e.pos) <= u.range);
+
                 let t = null;
-                if (v.length > 0) t = v[Math.floor(Math.random() * v.length)];
+                if (v.length > 0) {
+                    // 优先攻击最近的敌人
+                    v.sort((a, b) => Math.abs(u.pos - a.pos) - Math.abs(u.pos - b.pos));
+                    t = v[0];
+                }
                 else if (Math.abs(u.pos - (dir === 1 ? 100 : 0)) <= u.range) t = "base";
+
                 if (t) {
                     u.state = 'attack'; u.targetId = (t === "base") ? "base" : t.id;
                     if (u.attackCooldown <= 0) {
                         u.attackCooldown = 10; u.attackAnimTimer = 3; const dmg = u.dmg;
                         if (t === "base") {
-                            if (u.owner === 'player') this.state.enemy.baseHp -= dmg;
-                            else this.state.player.baseHp -= dmg;
-                            this.spawnFloater(dir === 1 ? 95 : 5, `-${dmg}`, '#f00');
+                            // 基地防御2，所有攻击均按2减免
+                            const baseDef = 2;
+                            const actualDmg = Math.max(1, dmg - baseDef);
+                            if (u.owner === 'player') this.state.enemy.baseHp -= actualDmg;
+                            else this.state.player.baseHp -= actualDmg;
+                            this.spawnFloater(dir === 1 ? 95 : 5, `-${actualDmg}`, '#f00');
                         }
                         else {
-                            let actualDmg = Math.max(1, dmg - t.def);
+                            const uData = CONSTANTS.UNITS[u.type];
+                            const atkType = uData.attackType || 'melee'; // 默认为近战
+                            let defVal = 0;
+                            if (atkType === 'ranged') defVal = t.def_r;
+                            else defVal = t.def_m;
+
+                            let actualDmg = Math.max(1, dmg - defVal);
                             t.hp -= actualDmg;
                             this.spawnFloater(t.pos, `-${actualDmg}`, '#fff');
                         }
@@ -1579,6 +1707,9 @@
             }
 
             processMovement(u, friends, enemies, i, dir) {
+                // 远程兵种特性：如果正在攻击（射程内有敌人），且属性要求停止，则停止移动
+                if (u.stopOnAttack && u.state === 'attack') return;
+
                 let d = u.pos;
                 const s = u.owner === 'player' ? this.state.playerStance : this.state.enemyStance;
                 let speed = u.speed;
@@ -1586,15 +1717,20 @@
 
                 if (s === 'attack') {
                     d += speed;
+                    // 友军堆叠检测
                     if (i > 0) {
                         const l = friends[i - 1].pos - (dir * u.width);
                         if (dir === 1 ? d > l : d < l) d = l;
                     }
+                    // 敌军阻挡检测 (enemies 包含所有轨道的敌人)
                     if (enemies.length > 0) {
                         const l = enemies[0].pos - (dir * u.width);
+                        // 只有在真的碰到敌人碰撞箱时才停下
                         if (dir === 1 ? d > l : d < l) d = l;
-                    } else if (dir === 1 ? d > 95 : d < 5) {
-                        d = dir === 1 ? 95 : 5;
+                    }
+                    // 移动边界
+                    else if (dir === 1 ? d > 98 : d < 2) {
+                        d = dir === 1 ? 98 : 2;
                     }
                 } else {
                     if (s === 'defend') {
@@ -1621,9 +1757,28 @@
             loop() { if (!this.gameOver) { this.draw(); requestAnimationFrame(() => this.loop()); } }
 
             draw() {
-                const w = this.canvas.width; const h = this.canvas.height; this.ctx.clearRect(0, 0, w, h);
-                this.ctx.strokeStyle = '#444'; this.ctx.beginPath(); this.ctx.moveTo(0, h / 2 + 20); this.ctx.lineTo(w, h / 2 + 20); this.ctx.stroke();
+                const w = this.canvas.width; const h = this.canvas.height;
 
+                // --- 1. 清除两个画布 ---
+                this.ctx.clearRect(0, 0, w, h);
+                this.bgCtx.clearRect(0, 0, w, h);
+
+                // --- 2. 在 bgCanvas 画轨道线 (被基地遮挡) ---
+                // 轨道1（上层，远程）：实线，位置 h/2 - 20
+                this.bgCtx.strokeStyle = '#555';
+                this.bgCtx.beginPath();
+                this.bgCtx.moveTo(0, h / 2 - 20);
+                this.bgCtx.lineTo(w, h / 2 - 20);
+                this.bgCtx.stroke();
+
+                // 轨道2（下层，近战）：实线，位置 h/2 + 20
+                this.bgCtx.strokeStyle = '#555';
+                this.bgCtx.beginPath();
+                this.bgCtx.moveTo(0, h / 2 + 20);
+                this.bgCtx.lineTo(w, h / 2 + 20);
+                this.bgCtx.stroke();
+
+                // --- 3. 在 gameCanvas 画单位和特效 (在基地上层) ---
                 this.state.turretShots.forEach(shot => {
                     this.ctx.strokeStyle = shot.color; this.ctx.lineWidth = 3; this.ctx.beginPath();
                     this.ctx.moveTo((shot.start / 100) * w, h / 2); this.ctx.lineTo((shot.end / 100) * w, h / 2); this.ctx.stroke();
@@ -1631,37 +1786,50 @@
                 });
 
                 this.state.units.forEach(u => {
-                    const x = (u.pos / 100) * w; const y = h / 2;
-                    // --- 视觉逻辑修改：颜色区分阵营，形状区分兵种 ---
+                    const x = (u.pos / 100) * w;
+                    const laneY = u.lane === 1 ? (h / 2 - 20) : (h / 2 + 20);
+
                     this.ctx.fillStyle = u.owner === 'player' ? '#3b82f6' : '#ef4444';
 
                     if (u.type === 'samurai') {
-                        // 武士：方形
-                        this.ctx.fillRect(x - 8, y - 20, 16, 20);
+                        this.ctx.fillRect(x - 8, laneY - 20, 16, 20);
                     } else if (u.type === 'clubman') {
-                        // 长枪兵/长枪兵：圆形
-                        this.ctx.beginPath(); this.ctx.arc(x, y - 10, 8, 0, Math.PI * 2); this.ctx.fill();
+                        this.ctx.beginPath(); this.ctx.arc(x, laneY - 8, 8, 0, Math.PI * 2); this.ctx.fill();
+                    } else if (u.type === 'longbowman') {
+                        this.ctx.fillStyle = u.owner === 'player' ? '#8b5cf6' : '#a855f7';
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(x, laneY - 20);
+                        this.ctx.lineTo(x - 6, laneY);
+                        this.ctx.lineTo(x + 6, laneY);
+                        this.ctx.fill();
                     } else {
-                        // 村民：小矩形，保持简单
-                        this.ctx.fillRect(x - 5, y - 15, 10, 15);
+                        this.ctx.fillRect(x - 5, laneY - 15, 10, 15);
                     }
 
-                    // 绘制方向指示（小灰条）
                     this.ctx.fillStyle = '#ccc';
                     if (u.type === 'clubman') {
-                        this.ctx.fillRect(u.owner === 'player' ? x + 2 : x - 12, y - 12, 10, 2);
+                        this.ctx.fillRect(u.owner === 'player' ? x + 2 : x - 12, laneY - 10, 10, 2);
+                    } else if (u.type === 'longbowman') {
+                        // 弓箭手不画近战条
                     } else {
-                        this.ctx.fillRect(u.owner === 'player' ? x + 5 : x - 5, y - 15, 8, 2);
+                        this.ctx.fillRect(u.owner === 'player' ? x + 5 : x - 5, laneY - 15, 8, 2);
                     }
 
                     if (u.attackAnimTimer > 0) {
                         this.ctx.strokeStyle = '#ffff00'; this.ctx.lineWidth = 2; this.ctx.beginPath();
-                        this.ctx.moveTo(u.owner === 'player' ? x + 5 : x - 5, y - 15 + (Math.random() * 6 - 3));
-                        let tx = u.owner === 'player' ? x + 30 : x - 30; let ty = y - 10;
-                        if (u.targetId === "base") tx = u.owner === 'player' ? w - 40 : 40; else { const t = this.state.units.find(k => k.id === u.targetId); if (t) tx = (t.pos / 100) * w; }
+                        this.ctx.moveTo(u.owner === 'player' ? x + 5 : x - 5, laneY - 15 + (Math.random() * 6 - 3));
+                        let tx = u.owner === 'player' ? x + 30 : x - 30; let ty = laneY - 10;
+                        if (u.targetId === "base") tx = u.owner === 'player' ? w - 40 : 40; else {
+                            const t = this.state.units.find(k => k.id === u.targetId);
+                            if (t) {
+                                tx = (t.pos / 100) * w;
+                                const targetLaneY = t.lane === 1 ? (h / 2 - 20) : (h / 2 + 20);
+                                ty = targetLaneY - 10;
+                            }
+                        }
                         this.ctx.lineTo(tx, ty); this.ctx.stroke();
                     }
-                    const hp = u.hp / u.maxHp; this.ctx.fillStyle = 'red'; this.ctx.fillRect(x - 8, y - 30, 16, 3); this.ctx.fillStyle = '#0f0'; this.ctx.fillRect(x - 8, y - 30, 16 * hp, 3);
+                    const hp = u.hp / u.maxHp; this.ctx.fillStyle = 'red'; this.ctx.fillRect(x - 8, laneY - 25, 16, 3); this.ctx.fillStyle = '#0f0'; this.ctx.fillRect(x - 8, laneY - 25, 16 * hp, 3);
                 });
             }
             endGame(r, m) { this.gameOver = true; clearInterval(this.logicInterval); document.getElementById('game-over').style.display = 'flex'; document.getElementById('end-title').innerText = r; document.getElementById('end-title').className = r === 'VICTORY' ? 'text-5xl font-bold mb-4 text-green-500' : 'text-5xl font-bold mb-4 text-red-500'; document.getElementById('end-reason').innerText = m; }
