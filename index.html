@@ -1208,8 +1208,8 @@
                 let savingForTech = false;
                 const blacksmith = ai.buildingInstances.find(b => b.type === 'blacksmith');
 
-                // 判断是否在压制：战线 < 50 表示在玩家半场
-                const isPushing = battleLine < 50;
+                // 判断是否在压制：战线 < 40 表示在玩家半场
+                const isPushing = battleLine < 40;
 
                 // 如果兵力充足，或者正在压制敌人，就尝试升级科技
                 if ((ai.armyCount > 5 || isPushing) && blacksmith && blacksmith.queue.length === 0) {
