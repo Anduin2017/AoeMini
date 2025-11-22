@@ -28,7 +28,6 @@ export class CombatSystem {
         const friends = [...friendFaction.units];
         const stance = dir === 1 ? this.game.playerStance : this.game.enemyStance;
 
-        // 排序：进攻/前进模式靠前的先动，防守模式靠后的先动
         if (stance === 'attack' || stance === 'move') {
             friends.sort((a, b) => dir === 1 ? b.pos - a.pos : a.pos - b.pos);
         } else {
@@ -38,14 +37,10 @@ export class CombatSystem {
         const enemies = [...enemyFaction.units];
 
         friends.forEach((u, i) => {
-            // 1. 尝试战斗
             const hasTarget = this.handleCombat(u, enemies, enemyFaction, dir);
 
-            // 2. 尝试移动
-            // === 核心重构：基于 canMoveAttack 判断是否需要停下 ===
+            // 基于 canMoveAttack 判断是否需要停下
             const uConfig = UNIT_CONFIG[u.type];
-
-            // 如果 (正在攻击 且 无法移动攻击)，则必须停下 (禁止进入移动逻辑)
             const mustStop = u.state === 'attack' && !uConfig.canMoveAttack;
 
             if (!mustStop) {
@@ -53,7 +48,6 @@ export class CombatSystem {
                 const laneIndex = laneFriends.findIndex(f => f.id === u.id);
                 this.handleMovement(u, laneFriends, enemies, laneIndex, dir, stance);
             }
-            // ==================================================
         });
     }
 
@@ -66,10 +60,6 @@ export class CombatSystem {
         const isMeleeUnit = attackType === 'melee';
 
         const stance = dir === 1 ? this.game.playerStance : this.game.enemyStance;
-
-        // === Move 模式逻辑 ===
-        // 如果是前进模式，且单位不支持移动攻击（如弓箭手），强制放弃索敌
-        // 这样它就不会进入 attack 状态，从而在 processFaction 里可以继续移动
         if (stance === 'move') {
             if (!uConfig.canMoveAttack) {
                 u.state = 'move';
@@ -112,28 +102,35 @@ export class CombatSystem {
                     dmg += u.getBonusDamage(target.tags);
                 }
 
+                // 生成弹道
                 if (!isMeleeUnit) {
                     this.createProjectile(u, target, dir, u.owner === FactionType.Player ? '#8b5cf6' : '#a855f7');
                 }
 
+                // 伤害计算
                 let actualDmg = 0;
                 let hitPos = 0;
-                let color = '';
 
                 if (target === "base") {
-                    // 城镇中心远程防御 50
                     const baseDef = (attackType === 'ranged') ? 50 : 2;
                     actualDmg = Math.max(1, dmg - baseDef);
                     enemyFaction.baseHp -= actualDmg;
                     hitPos = enemyBaseEdge;
-                    color = CONSTANTS.COLORS.TEXT_FLOAT_BASE;
                 } else {
                     const defenseVal = (attackType === 'ranged') ? target.def_r : target.def_m;
                     actualDmg = Math.max(1, dmg - defenseVal);
                     target.hp -= actualDmg;
                     hitPos = target.pos;
-                    color = CONSTANTS.COLORS.TEXT_FLOAT_DMG;
                 }
+
+                // === 修复核心：伤害颜色逻辑 ===
+                let color = '#ffffff'; // 默认白色 (< 3)
+                if (actualDmg > 11) {
+                    color = '#d946ef'; // 紫色 (> 11)
+                } else if (actualDmg >= 3) {
+                    color = '#ef4444'; // 红色 (3-11)
+                }
+                // ==========================
 
                 if (isMeleeUnit) {
                     Helpers.spawnFloater(hitPos, `-${actualDmg}`, color);
@@ -295,8 +292,16 @@ export class CombatSystem {
                         trailLength: 0.2
                     });
 
+                    // === 修复核心：炮台攻击也应用颜色逻辑 ===
+                    let color = '#ffffff';
+                    if (actualDmg > 11) {
+                        color = '#d946ef';
+                    } else if (actualDmg >= 3) {
+                        color = '#ef4444';
+                    }
+
                     setTimeout(() => {
-                        Helpers.spawnFloater(t.pos, `-${actualDmg.toFixed(1)}`, '#f0f');
+                        Helpers.spawnFloater(t.pos, `-${actualDmg.toFixed(1)}`, color);
                     }, this.ARROW_FLIGHT_TIME);
                 }
             }
