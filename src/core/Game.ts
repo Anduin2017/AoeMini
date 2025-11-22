@@ -7,7 +7,7 @@ import { EconomySystem } from "../systems/EconomySystem";
 import { AISystem } from "../systems/AISystem";
 import { UIManager } from "../ui/UIManager";
 import { TownCenter } from "../entities/buildings/ConcreteBuildings"; 
-import { BuildingType } from "./Types"; // 补充引用
+import { BuildingType } from "./Types"; 
 
 export class Game {
     public player: Faction;
@@ -18,7 +18,7 @@ export class Game {
     
     public projectiles: Projectile[] = [];
     public worldWidth: number = 0;
-    public baseWidthPct: number = 6;
+    public baseWidthPct: number = 6; 
 
     public renderer: Renderer;
     public loop: Loop;
@@ -66,16 +66,15 @@ export class Game {
         
         this.uiManager.update();
         
-        // === 修复核心：让子弹飞！ ===
-        // 1. 先更新所有投射物的进度
+        // === 修复核心：这里漏掉了让子弹飞的代码！ ===
         this.projectiles.forEach(p => {
-            p.progress += p.speed;
+            p.progress += p.speed; // 让进度条动起来！
         });
-        
-        // 2. 再移除已经飞完的 (progress >= 1)
-        this.projectiles = this.projectiles.filter(p => p.progress < 1);
-        // ==========================
+        // ==========================================
 
+        // 移除已经飞完的
+        this.projectiles = this.projectiles.filter(p => p.progress < 1);
+        
         this.renderer.draw();
     }
 

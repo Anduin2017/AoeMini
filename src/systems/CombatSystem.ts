@@ -1,12 +1,17 @@
 import { Game } from "../core/Game";
 import { Unit } from "../entities/units/Unit";
-import { FactionType, UnitTag, UnitType } from "../core/Types"; // 确保引入 UnitType
+import { FactionType, UnitTag, UnitType } from "../core/Types";
 import { CONSTANTS } from "../core/Constants";
 import { Helpers } from "../utils/Helpers";
 import { UNIT_CONFIG } from "../data/UnitConfig";
 
 export class CombatSystem {
     private game: Game;
+    
+    // 定义箭矢飞行时间 (ms) = (1 / speed) * TICK_RATE
+    // 1 / 0.25 * 100 = 400ms
+    private readonly ARROW_FLIGHT_TIME = 400; 
+    private readonly ARROW_SPEED = 0.25;
 
     constructor(game: Game) {
         this.game = game;
@@ -85,21 +90,43 @@ export class CombatSystem {
                     dmg += u.getBonusDamage(target.tags);
                 }
 
+                // 生成弹道
                 if (!isMeleeUnit) {
                     this.createProjectile(u, target, dir, u.owner === FactionType.Player ? '#8b5cf6' : '#a855f7');
                 }
 
+                // 伤害计算
+                let actualDmg = 0;
+                let hitPos = 0;
+                let color = '';
+
                 if (target === "base") {
                     const baseDef = 2; 
-                    const actualDmg = Math.max(1, dmg - baseDef);
+                    actualDmg = Math.max(1, dmg - baseDef);
                     enemyFaction.baseHp -= actualDmg;
-                    Helpers.spawnFloater(enemyBaseEdge, `-${actualDmg}`, CONSTANTS.COLORS.TEXT_FLOAT_BASE);
+                    hitPos = enemyBaseEdge;
+                    color = CONSTANTS.COLORS.TEXT_FLOAT_BASE;
                 } else {
                     const defenseVal = (attackType === 'ranged') ? target.def_r : target.def_m;
-                    const actualDmg = Math.max(1, dmg - defenseVal);
+                    actualDmg = Math.max(1, dmg - defenseVal);
                     target.hp -= actualDmg;
-                    Helpers.spawnFloater(target.pos, `-${actualDmg}`, CONSTANTS.COLORS.TEXT_FLOAT_DMG);
+                    hitPos = target.pos;
+                    color = CONSTANTS.COLORS.TEXT_FLOAT_DMG;
                 }
+
+                // === 修复核心：如果是远程，延迟显示伤害数字 ===
+                if (isMeleeUnit) {
+                    // 近战：立刻显示
+                    Helpers.spawnFloater(hitPos, `-${actualDmg}`, color);
+                } else {
+                    // 远程：等待箭矢飞行时间后显示，以此在视觉上“骗”过玩家
+                    setTimeout(() => {
+                        // 简单的存活检查：如果目标位置太离谱（比如死了被移除），飘字可能不准确，
+                        // 但对于 RTS 来说，飘在死亡地点也是可以接受的
+                        Helpers.spawnFloater(hitPos, `-${actualDmg}`, color);
+                    }, this.ARROW_FLIGHT_TIME);
+                }
+                // ==========================================
             }
             return true;
         } else {
@@ -137,7 +164,7 @@ export class CombatSystem {
             p1: { x: midX, y: midY },
             p2: { x: endX, y: endY },
             progress: 0,
-            speed: 0.08,
+            speed: this.ARROW_SPEED, // 0.25 -> 400ms
             color: color,
             trailLength: 0.15 
         });
@@ -219,9 +246,7 @@ export class CombatSystem {
             
             const enemies = f === this.game.player ? this.game.enemy.units : this.game.player.units;
             const turretPos = f === this.game.player ? CONSTANTS.PLAYER_BASE_POS : CONSTANTS.ENEMY_BASE_POS;
-            // === 修复：炮台射程改为 12，压制长弓兵(11) ===
             const range = 12;
-            // ========================================
 
             const targets = enemies.filter(e => Math.abs(e.pos - turretPos) <= range);
             if (targets.length > 0) {
@@ -229,17 +254,14 @@ export class CombatSystem {
                 const shotCount = Math.min(targets.length, 3);
                 for(let i=0; i<shotCount; i++) {
                     const t = targets[Math.floor(Math.random()*targets.length)];
-                    
-                    // 炮台伤害计算 (远程)
                     const dmg = UNIT_CONFIG[UnitType.Spearman].damage * 1.5;
                     const actualDmg = Math.max(1, dmg - t.def_r);
                     t.hp -= actualDmg;
                     
-                    // === 修复：只推 Projectile，彻底移除 turretShots ===
                     const w = this.game.worldWidth;
                     const h = document.getElementById('gameCanvas')?.offsetHeight || 600;
                     const startX = (turretPos / 100) * w;
-                    const startY = h/2 - 45; // 塔顶
+                    const startY = h/2 - 45; 
                     
                     const endX = (t.pos / 100) * w;
                     const endY = t.lane === 1 ? (h/2 - 20) : (h/2 + 20);
@@ -254,13 +276,16 @@ export class CombatSystem {
                         p1: { x: midX, y: midY },
                         p2: { x: endX, y: endY },
                         progress: 0,
-                        speed: 0.08,
+                        speed: this.ARROW_SPEED, // 同样使用 0.25 
                         color: f === this.game.player ? '#60a5fa' : '#f87171',
                         trailLength: 0.2
                     });
-                    // =================================================
 
-                    Helpers.spawnFloater(t.pos, `-${actualDmg.toFixed(1)}`, '#f0f');
+                    // === 修复核心：炮台攻击也延迟显示 ===
+                    setTimeout(() => {
+                        Helpers.spawnFloater(t.pos, `-${actualDmg.toFixed(1)}`, '#f0f');
+                    }, this.ARROW_FLIGHT_TIME);
+                    // =================================
                 }
             }
         });
