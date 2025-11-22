@@ -2,7 +2,6 @@ export const CONSTANTS = {
     TICK_RATE: 100,
     MAX_QUEUE_SIZE: 5,
     MAX_TOTAL_POP: 200,
-    BASE_RANGE: 5,
     
     INITIAL_RES: { food: 200, wood: 200, gold: 100, stone: 0 },
     
