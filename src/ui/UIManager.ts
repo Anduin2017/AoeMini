@@ -101,6 +101,7 @@ private handleTooltip(e: MouseEvent) {
             if (bonusDmg > 0) html += `<div class="tt-row"><span>🔥 攻击加成:</span> <span class="val-bonus">+${bonusDmg}</span></div>`;
             html += `<div class="tt-row"><span>🛡️ 近战防御:</span> <span>${foundUnit.def_m}</span></div>`;
             html += `<div class="tt-row"><span>🎯 远程防御:</span> <span>${foundUnit.def_r}</span></div>`;
+            html += `<div class="tt-row"><span>🏹 射程:</span> <span>${foundUnit.range}</span></div>`;
             tt.innerHTML = html;
             tt.style.left = (e.clientX + 15) + 'px'; tt.style.top = (e.clientY + 15) + 'px'; tt.style.display = 'block';
             return;
@@ -137,6 +138,7 @@ private handleTooltip(e: MouseEvent) {
             html += `<div class="tt-row"><span>🛡️ 近战防御:</span> <span>2</span></div>`;
             html += `<div class="tt-row"><span>🎯 远程防御:</span> <span>2</span></div>`;
             html += `<div class="tt-row"><span>⚔️ 炮台伤害:</span> <span>${turretDmg}</span></div>`;
+            html += `<div class="tt-row"><span>🏹 炮台射程:</span> <span>12</span></div>`;
             
             tt.innerHTML = html;
             tt.style.left = (e.clientX + 15) + 'px'; 

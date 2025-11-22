@@ -31,7 +31,7 @@ export class Faction {
         this.resources = { ...CONSTANTS.INITIAL_RES };
         
         // 初始人口分配 logic
-        const initialW = type === FactionType.Player ? 6 : 7;
+        const initialW = type === FactionType.Player ? 6 : 9;
         this.workers = { food: initialW, wood: 0, gold: 0, stone: 0 };
         this.totalWorkers = initialW;
         this.idleWorkers = 0;

@@ -3,17 +3,17 @@ import { CONSTANTS } from "../core/Constants";
 
 interface UnitStats {
     cost: Cost;
-    time: number; // 训练 tick 数
+    time: number;
     hp: number;
     damage: number;
     def_m: number;
     def_r: number;
     range: number;
-    speed: number; // 像素/10tick
+    speed: number;
     tags: UnitTag[];
     label: string;
-    lane: number; // 0: 主路, 1: 侧路
-    widthScale?: number; // 体积缩放
+    lane: number;
+    widthScale?: number;
     attackType?: 'melee' | 'ranged';
     cooldown?: number;
 }
@@ -23,21 +23,22 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         cost: { food: 50 }, time: 200, hp: 10, damage: 0, def_m: 0, def_r: 0,
         range: 1, speed: 0, tags: [UnitTag.Worker], label: '村民', lane: 0
     },
-    [UnitType.Spearman]: { // 原 Clubman -> 长枪兵
+    [UnitType.Spearman]: { 
         cost: { food: 60, wood: 20 }, time: 150, hp: 90, damage: 8, def_m: 0, def_r: 0,
         range: 5, speed: 1.25, 
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Light], 
         label: '长枪兵', lane: 0, attackType: 'melee', cooldown: 19
     },
-    [UnitType.ManAtArms]: { // 原 Samurai -> 武士
+    [UnitType.ManAtArms]: { 
         cost: { food: 100, gold: 20 }, time: 150, hp: 140, damage: 11, def_m: 2, def_r: 3,
         range: 3.75, speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Heavy],
         label: '武士', lane: 0, attackType: 'melee', cooldown: 14
     },
-    [UnitType.Longbowman]: { // 长弓兵
+    [UnitType.Longbowman]: { 
         cost: { food: 40, wood: 50 }, time: 150, hp: 70, damage: 6, def_m: 0, def_r: 0,
-        range: 11, speed: 1.125,
+        range: 11, // === 修改：射程提升 ===
+        speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Ranged, UnitTag.Light],
         label: '长弓兵', lane: 1, widthScale: 0.5, attackType: 'ranged', cooldown: 16
     }
