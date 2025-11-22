@@ -71,7 +71,6 @@ export class Renderer {
             } else if (u.type === UnitType.Spearman) {
                 this.ctx.beginPath(); this.ctx.arc(x, laneY - 8, 8, 0, Math.PI * 2); this.ctx.fill();
             } else if (u.type === UnitType.Longbowman) {
-                this.ctx.fillStyle = u.owner === FactionType.Player ? '#8b5cf6' : '#a855f7';
                 this.ctx.beginPath(); 
                 this.ctx.moveTo(x, laneY - 20); 
                 this.ctx.lineTo(x - 6, laneY); 
