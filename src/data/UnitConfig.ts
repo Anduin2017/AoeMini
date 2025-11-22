@@ -46,9 +46,9 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
 };
 
 export const BUILDING_CONFIG: Record<string, { cost: Cost, time: number, label: string, icon: string, pop?: number, desc: string }> = {
-    'house': { cost: { wood: 50 }, time: 150, label: '房屋', icon: '🏠', pop: 10, desc: '提供 10 人口上限' },
+    'house': { cost: { wood: 50 }, time: 150, label: '房屋', icon: '🏠', pop: 10, desc: '提供人口上限' },
     'barracks': { cost: { wood: 150 }, time: 300, label: '兵营', icon: '⚔️', desc: '训练步兵单位' },
     'archery_range': { cost: { wood: 150 }, time: 300, label: '靶场', icon: '🏹', desc: '训练远程单位' },
-    'towncenter': { cost: { wood: 400, stone: 350 }, time: 1200, label: '城镇中心', icon: '🏛️', pop: 10, desc: '资源中心与村民生产' },
+    'towncenter': { cost: { wood: 400, stone: 350 }, time: 1200, label: '城镇中心', icon: '🏛️', pop: 10, desc: '村民生产建筑' },
     'blacksmith': { cost: { wood: 150 }, time: 250, label: '铁匠铺', icon: '⚒️', desc: '升级攻击与防御科技' }
 };

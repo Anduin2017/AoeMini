@@ -60,7 +60,7 @@ export class CombatSystem {
         const isMeleeUnit = attackType === 'melee';
 
         const stance = dir === 1 ? this.game.playerStance : this.game.enemyStance;
-        if (stance === 'move') {
+        if (stance === 'move' || stance === 'defend') {
             if (!uConfig.canMoveAttack) {
                 u.state = 'move';
                 return false;
