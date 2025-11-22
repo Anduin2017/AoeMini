@@ -10,11 +10,11 @@ declare global {
 
 document.addEventListener('DOMContentLoaded', () => {
     const game = new Game();
-    
+
     // 1. 资源秘籍
     window.show_me_the_money = () => {
         if (game && game.player) {
-            game.player.resources = { food: 99999, wood: 99999, gold: 99999, stone: 99999 };
+            game.player.resources = { food: 9999, wood: 9999, gold: 9999, stone: 9999 };
             console.log("💰 Resources granted: 99999 [Food, Wood, Gold, Stone]");
             game.uiManager.update();
         }

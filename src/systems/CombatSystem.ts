@@ -256,7 +256,6 @@ export class CombatSystem {
 
     private processTurrets() {
         [this.game.player, this.game.enemy].forEach(f => {
-            if (!f.hasTurret) return;
             if (f.turretCooldown > 0) { f.turretCooldown--; return; }
 
             const enemies = f === this.game.player ? this.game.enemy.units : this.game.player.units;
