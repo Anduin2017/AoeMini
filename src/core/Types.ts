@@ -11,13 +11,13 @@ export enum UnitTag {
     Cavalry = 'CAVALRY',     // 骑兵 (预留)
     Archer = 'ARCHER',       // 射手
     Siege = 'SIEGE',         // 攻城 (预留)
-    
+
     Melee = 'MELEE',         // 近战
     Ranged = 'RANGED',       // 远程
-    
+
     Light = 'LIGHT',         // 轻甲
     Heavy = 'HEAVY',         // 重甲
-    
+
     Worker = 'WORKER'        // 工人
 }
 
@@ -42,7 +42,7 @@ export enum BuildingType {
 export type ResourceType = 'food' | 'wood' | 'gold' | 'stone';
 
 // 战术姿态
-export type StanceType = 'defend' | 'hold' | 'attack' | 'move';
+export type StanceType = 'retreat' | 'defend' | 'hold' | 'attack' | 'advance';
 
 // === 接口定义 ===
 
@@ -77,7 +77,7 @@ export interface Projectile {
     p0: { x: number, y: number }; // 起点
     p1: { x: number, y: number }; // 控制点（顶峰）
     p2: { x: number, y: number }; // 终点
-    
+
     progress: number; // 当前进度 0.0 ~ 1.0
     speed: number;    // 飞行速度
     color: string;    // 箭矢颜色

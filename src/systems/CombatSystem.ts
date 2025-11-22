@@ -8,8 +8,6 @@ import { UNIT_CONFIG } from "../data/UnitConfig";
 export class CombatSystem {
     private game: Game;
 
-    // 定义箭矢飞行时间 (ms) = (1 / speed) * TICK_RATE
-    // 1 / 0.25 * 100 = 400ms
     private readonly ARROW_FLIGHT_TIME = 400;
     private readonly ARROW_SPEED = 0.25;
 
@@ -24,26 +22,38 @@ export class CombatSystem {
         this.processTurrets();
     }
 
+    // 1. 调度逻辑
     private processFaction(friendFaction: any, enemyFaction: any, dir: number) {
         const friends = [...friendFaction.units];
         const stance = dir === 1 ? this.game.playerStance : this.game.enemyStance;
 
-        if (stance === 'attack' || stance === 'move') {
+        // === 排序逻辑 ===
+        // 向右走 (进攻/前进)：靠右的先动
+        if (stance === 'attack' || stance === 'advance') {
             friends.sort((a, b) => dir === 1 ? b.pos - a.pos : a.pos - b.pos);
-        } else {
+        }
+        // 向左走 (防御/撤退)：靠左的先动
+        else if (stance === 'defend' || stance === 'retreat') {
             friends.sort((a, b) => dir === 1 ? a.pos - b.pos : b.pos - a.pos);
         }
+        // 待命：不重要
 
         const enemies = [...enemyFaction.units];
 
         friends.forEach((u, i) => {
-            const hasTarget = this.handleCombat(u, enemies, enemyFaction, dir);
+            // 尝试战斗
+            this.handleCombat(u, enemies, enemyFaction, dir);
 
-            // 基于 canMoveAttack 判断是否需要停下
+            // === 移动权判断 ===
+            // 1. 待命模式：绝对不移动
+            if (stance === 'hold') return;
+
+            // 2. 攻击硬直判断
+            // 如果正在攻击，且单位不支持移动攻击，则必须停下 (stopOnAttack 的替代逻辑)
             const uConfig = UNIT_CONFIG[u.type];
-            const mustStop = u.state === 'attack' && !uConfig.canMoveAttack;
+            const isAttackingAndCannotMove = u.state === 'attack' && !uConfig.canMoveAttack;
 
-            if (!mustStop) {
+            if (!isAttackingAndCannotMove) {
                 const laneFriends = friends.filter(f => f.lane === u.lane);
                 const laneIndex = laneFriends.findIndex(f => f.id === u.id);
                 this.handleMovement(u, laneFriends, enemies, laneIndex, dir, stance);
@@ -51,6 +61,7 @@ export class CombatSystem {
         });
     }
 
+    // 2. 战斗逻辑
     private handleCombat(u: Unit, enemies: Unit[], enemyFaction: any, dir: number): boolean {
         if (u.attackAnimTimer > 0) u.attackAnimTimer--;
         if (u.attackCooldown > 0) u.attackCooldown--;
@@ -58,14 +69,19 @@ export class CombatSystem {
         const uConfig = UNIT_CONFIG[u.type];
         const attackType = uConfig.attackType || 'melee';
         const isMeleeUnit = attackType === 'melee';
-
         const stance = dir === 1 ? this.game.playerStance : this.game.enemyStance;
-        if (stance === 'move' || stance === 'defend') {
+
+        // === 强制移动逻辑 (Blind Move) ===
+        // 如果是 [前进/撤退] 模式，且单位不支持移动攻击（如弓箭手）
+        // 强制放弃索敌，优先执行移动命令
+        // (长枪兵因为 canMoveAttack=true，会跳过此判断，继续索敌并边打边撤/边打边冲)
+        if (stance === 'advance' || stance === 'retreat') {
             if (!uConfig.canMoveAttack) {
                 u.state = 'move';
                 return false;
             }
         }
+        // ================================
 
         const enemyBasePos = dir === 1 ? CONSTANTS.ENEMY_BASE_POS : CONSTANTS.PLAYER_BASE_POS;
         const enemyBaseEdge = enemyBasePos - (dir * CONSTANTS.BASE_WIDTH / 2);
@@ -102,12 +118,10 @@ export class CombatSystem {
                     dmg += u.getBonusDamage(target.tags);
                 }
 
-                // 生成弹道
                 if (!isMeleeUnit) {
                     this.createProjectile(u, target, dir, u.owner === FactionType.Player ? '#8b5cf6' : '#a855f7');
                 }
 
-                // 伤害计算
                 let actualDmg = 0;
                 let hitPos = 0;
 
@@ -123,14 +137,9 @@ export class CombatSystem {
                     hitPos = target.pos;
                 }
 
-                // === 修复核心：伤害颜色逻辑 ===
-                let color = '#ffffff'; // 默认白色 (< 3)
-                if (actualDmg > 11) {
-                    color = '#d946ef'; // 紫色 (> 11)
-                } else if (actualDmg >= 3) {
-                    color = '#ef4444'; // 红色 (3-11)
-                }
-                // ==========================
+                let color = '#ffffff';
+                if (actualDmg > 11) color = '#d946ef';
+                else if (actualDmg >= 3) color = '#ef4444';
 
                 if (isMeleeUnit) {
                     Helpers.spawnFloater(hitPos, `-${actualDmg}`, color);
@@ -145,6 +154,92 @@ export class CombatSystem {
             u.state = 'move';
             return false;
         }
+    }
+
+    // 3. 移动逻辑
+    private handleMovement(u: Unit, friends: Unit[], enemies: Unit[], index: number, dir: number, stance: string) {
+        const myBaseCenter = u.owner === FactionType.Player ? CONSTANTS.PLAYER_BASE_POS : CONSTANTS.ENEMY_BASE_POS;
+        const myBaseEdge = myBaseCenter + (dir * CONSTANTS.BASE_WIDTH / 2);
+
+        if (!u.isDeployed) {
+            if ((dir === 1 && u.pos > myBaseEdge + u.width / 2) ||
+                (dir === -1 && u.pos < myBaseEdge - u.width / 2)) {
+                u.isDeployed = true;
+            }
+        }
+
+        let nextPos = u.pos;
+        const speed = u.speed * dir;
+
+        // === 分支 A: 向右移动 (进攻/前进) ===
+        if (stance === 'attack' || stance === 'advance') {
+            nextPos += speed;
+
+            // 友军防重叠
+            if (index > 0) {
+                const friend = friends[index - 1];
+                const limit = friend.pos - (dir * u.width);
+                if (dir === 1 ? nextPos > limit : nextPos < limit) nextPos = limit;
+            }
+
+            // 敌人碰撞 (无论什么模式，撞上了就是撞上了，不能穿模)
+            const enemiesInLane = enemies.filter(e => e.lane === u.lane);
+            if (enemiesInLane.length > 0) {
+                const nearestEnemy = enemiesInLane.sort((a, b) => Math.abs(u.pos - a.pos) - Math.abs(u.pos - b.pos))[0];
+                const limit = nearestEnemy.pos - (dir * (u.width + 0.1));
+                if (dir === 1 ? nextPos > limit : nextPos < limit) nextPos = limit;
+            }
+
+            // 墙体限制
+            const enemyBaseCenter = dir === 1 ? CONSTANTS.ENEMY_BASE_POS : CONSTANTS.PLAYER_BASE_POS;
+            const enemyBaseEdge = enemyBaseCenter - (dir * CONSTANTS.BASE_WIDTH / 2);
+
+            // Advance: 冲到基地中心 (Center)
+            // Attack: 停在城门口 (Edge)
+            const baseLimit = stance === 'advance' ? enemyBaseCenter : enemyBaseEdge;
+            const finalLimit = baseLimit - (dir * u.width / 2); // 减去半身位
+
+            if (dir === 1) {
+                if (nextPos > finalLimit) nextPos = finalLimit;
+            } else {
+                if (nextPos < finalLimit) nextPos = finalLimit;
+            }
+        }
+        // === 分支 B: 向左移动 (防御/撤退) ===
+        else if (stance === 'defend' || stance === 'retreat') {
+            nextPos -= speed; // 反向移动
+
+            const wallEdge = myBaseCenter + (dir * CONSTANTS.BASE_WIDTH / 2);
+
+            // Retreat: 退回基地中心 (Center)
+            // Defend: 停在城门口 (Edge)
+            const baseLimit = stance === 'retreat' ? myBaseCenter : wallEdge;
+            const finalLimit = baseLimit + (dir * u.width / 2); // 加上半身位
+
+            if (dir === 1) {
+                let limit = u.isDeployed ? finalLimit : myBaseCenter; // 未部署的永远可以回出生点
+
+                // 防守队列逻辑
+                if (index > 0) {
+                    const friend = friends[index - 1];
+                    // 防守时是向后排队，所以不能超过身后友军的位置 + 宽度
+                    const friendLimit = friend.pos + (dir * u.width);
+                    limit = Math.max(limit, friendLimit);
+                }
+
+                if (nextPos < limit) nextPos = limit;
+            } else {
+                let limit = u.isDeployed ? finalLimit : myBaseCenter;
+                if (index > 0) {
+                    const friend = friends[index - 1];
+                    const friendLimit = friend.pos + (dir * u.width);
+                    limit = Math.min(limit, friendLimit);
+                }
+                if (nextPos > limit) nextPos = limit;
+            }
+        }
+
+        u.pos = nextPos;
     }
 
     private createProjectile(u: Unit, target: Unit | "base", dir: number, color: string) {
@@ -182,56 +277,6 @@ export class CombatSystem {
         });
     }
 
-    private handleMovement(u: Unit, friends: Unit[], enemies: Unit[], index: number, dir: number, stance: string) {
-        const myBaseCenter = u.owner === FactionType.Player ? CONSTANTS.PLAYER_BASE_POS : CONSTANTS.ENEMY_BASE_POS;
-        const myBaseEdge = myBaseCenter + (dir * CONSTANTS.BASE_WIDTH / 2);
-
-        if (!u.isDeployed) {
-            if ((dir === 1 && u.pos > myBaseEdge + u.width / 2) ||
-                (dir === -1 && u.pos < myBaseEdge - u.width / 2)) {
-                u.isDeployed = true;
-            }
-        }
-
-        let nextPos = u.pos;
-        const speed = u.speed * dir;
-
-        if (stance === 'attack' || stance === 'move') {
-            nextPos += speed;
-            if (index > 0) {
-                const friend = friends[index - 1];
-                const limit = friend.pos - (dir * u.width);
-                if (dir === 1 ? nextPos > limit : nextPos < limit) nextPos = limit;
-            }
-            const enemiesInLane = enemies.filter(e => e.lane === u.lane);
-            if (enemiesInLane.length > 0) {
-                const nearestEnemy = enemiesInLane.sort((a, b) => Math.abs(u.pos - a.pos) - Math.abs(u.pos - b.pos))[0];
-                const limit = nearestEnemy.pos - (dir * (u.width + 0.1));
-                if (dir === 1 ? nextPos > limit : nextPos < limit) nextPos = limit;
-            }
-            const enemyBaseCenter = dir === 1 ? CONSTANTS.ENEMY_BASE_POS : CONSTANTS.PLAYER_BASE_POS;
-            const attackLimit = enemyBaseCenter - (dir * (CONSTANTS.BASE_WIDTH / 2 + u.width / 2));
-            if (dir === 1) {
-                if (nextPos > attackLimit) nextPos = attackLimit;
-            } else {
-                if (nextPos < attackLimit) nextPos = attackLimit;
-            }
-        } else if (stance === 'defend') {
-            nextPos -= speed;
-            const wallLimit = myBaseCenter + (dir * (CONSTANTS.BASE_WIDTH / 2 + u.width / 2));
-            if (dir === 1) {
-                let limit = u.isDeployed ? wallLimit : myBaseCenter;
-                if (index > 0) limit = Math.max(limit, friends[index - 1].pos + u.width);
-                if (nextPos < limit) nextPos = limit;
-            } else {
-                let limit = u.isDeployed ? wallLimit : myBaseCenter;
-                if (index > 0) limit = Math.min(limit, friends[index - 1].pos - u.width);
-                if (nextPos > limit) nextPos = limit;
-            }
-        }
-        u.pos = nextPos;
-    }
-
     private cleanupDead() {
         [this.game.player, this.game.enemy].forEach(f => {
             const deadUnits = f.units.filter(u => u.hp <= 0);
@@ -247,8 +292,8 @@ export class CombatSystem {
             f.units = f.units.filter(u => u.hp > 0);
         });
 
-        if (this.game.player.baseHp <= 0) this.game.endGame(false);
-        else if (this.game.enemy.baseHp <= 0) this.game.endGame(true);
+        if (this.game.player.baseHp <= 0) this.game.endGame(false, '你的帝国陷落了。');
+        else if (this.game.enemy.baseHp <= 0) this.game.endGame(true, '你征服了野蛮人！');
     }
 
     private processTurrets() {
@@ -257,7 +302,7 @@ export class CombatSystem {
 
             const enemies = f === this.game.player ? this.game.enemy.units : this.game.player.units;
             const turretPos = f === this.game.player ? CONSTANTS.PLAYER_BASE_POS : CONSTANTS.ENEMY_BASE_POS;
-            const range = 15; // 炮台射程 15
+            const range = 15;
 
             const targets = enemies.filter(e => Math.abs(e.pos - turretPos) <= range);
             if (targets.length > 0) {
@@ -292,7 +337,6 @@ export class CombatSystem {
                         trailLength: 0.2
                     });
 
-                    // === 修复核心：炮台攻击也应用颜色逻辑 ===
                     let color = '#ffffff';
                     if (actualDmg > 11) {
                         color = '#d946ef';
