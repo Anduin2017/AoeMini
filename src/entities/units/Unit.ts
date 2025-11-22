@@ -9,7 +9,7 @@ export abstract class Unit extends Entity {
     public damage: number = 0;
     public def_m: number = 0; // 近战防御
     public def_r: number = 0; // 远程防御
-    public range: number = CONSTANTS.BASE_RANGE;
+    public range: number = 5;
     public speed: number = 0;
     
     // 状态机

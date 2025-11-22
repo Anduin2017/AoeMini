@@ -30,40 +30,6 @@ canvas {
     z-index: 5;
 }
 
-.base {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 64px;
-    height: 80px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    font-weight: bold;
-    font-size: 0.8rem;
-    z-index: 10;
-    pointer-events: none;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-    border-radius: 8px 8px 4px 4px;
-    padding-top: 10px;
-}
-
-.base::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 26px;
-    height: 36px;
-    background: #1a1a1a;
-    border: 2px solid #444;
-    border-bottom: none;
-    border-radius: 13px 13px 0 0;
-    box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.8);
-}
-
 #gameCanvas {
     z-index: 15;
 }
@@ -78,19 +44,6 @@ canvas {
     z-index: 100;
 }
 
-.base-player {
-    left: 12px;
-    background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
-    border: 2px solid #1e3a8a;
-    border-bottom: 4px solid #1e3a8a;
-}
-
-.base-enemy {
-    right: 12px;
-    background: linear-gradient(to bottom, #ef4444, #b91c1c);
-    border: 2px solid #7f1d1d;
-    border-bottom: 4px solid #7f1d1d;
-}
 
 .turret-addon {
     position: absolute;
@@ -689,10 +642,4 @@ canvas {
 .val-bonus {
     color: #22c55e;
     margin-left: 2px;
-}
-
-/* === 隐藏 DOM 基地，改用 Canvas 渲染 === */
-#p-base,
-#e-base {
-    display: none !important;
 }

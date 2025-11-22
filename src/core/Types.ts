@@ -70,3 +70,16 @@ export interface QueueItem {
     ticksLeft: number;
     totalTicks: number;
 }
+
+// === 新增：投射物接口 ===
+export interface Projectile {
+    // 贝塞尔曲线的三个控制点 (像素坐标)
+    p0: { x: number, y: number }; // 起点
+    p1: { x: number, y: number }; // 控制点（顶峰）
+    p2: { x: number, y: number }; // 终点
+    
+    progress: number; // 当前进度 0.0 ~ 1.0
+    speed: number;    // 飞行速度
+    color: string;    // 箭矢颜色
+    trailLength: number; // 拖尾长度 (0.0 ~ 0.1)
+}

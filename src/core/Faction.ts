@@ -23,7 +23,6 @@ export class Faction {
     public armyCount: number = 0;
     
     // 科技与防御
-    public hasTurret: boolean = false;
     public turretCooldown: number = 0;
     public techLevels = { atk_m: 0, def_m: 0, atk_r: 0, def_r: 0 };
 
@@ -36,7 +35,6 @@ export class Faction {
         this.workers = { food: initialW, wood: 0, gold: 0, stone: 0 };
         this.totalWorkers = initialW;
         this.idleWorkers = 0;
-        this.hasTurret = true; 
         this.turretCooldown = 0;
     }
 

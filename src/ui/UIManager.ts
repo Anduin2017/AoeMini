@@ -127,7 +127,7 @@ private handleTooltip(e: MouseEvent) {
 
         if (foundBase) {
             const isPlayer = foundBase.type === FactionType.Player;
-            const turretDmg = foundBase.hasTurret ? (UNIT_CONFIG[UnitType.Spearman].damage * 1.5) : 0;
+            const turretDmg = (UNIT_CONFIG[UnitType.Spearman].damage * 1.5);
             
             tt.className = isPlayer ? '' : 'tt-enemy';
             
@@ -136,10 +136,7 @@ private handleTooltip(e: MouseEvent) {
             html += `<div class="tt-row"><span>❤️ 生命:</span> <span>${Math.ceil(foundBase.baseHp)}/${CONSTANTS.BASE_HP}</span></div>`;
             html += `<div class="tt-row"><span>🛡️ 近战防御:</span> <span>2</span></div>`;
             html += `<div class="tt-row"><span>🎯 远程防御:</span> <span>2</span></div>`;
-            
-            if (foundBase.hasTurret) {
-                html += `<div class="tt-row"><span>⚔️ 炮台伤害:</span> <span>${turretDmg}</span></div>`;
-            }
+            html += `<div class="tt-row"><span>⚔️ 炮台伤害:</span> <span>${turretDmg}</span></div>`;
             
             tt.innerHTML = html;
             tt.style.left = (e.clientX + 15) + 'px'; 
@@ -187,11 +184,6 @@ private handleTooltip(e: MouseEvent) {
         
         document.getElementById('p-base-hp')!.style.width = (p.baseHp / 2000 * 100) + '%';
         document.getElementById('e-base-hp')!.style.width = (this.game.enemy.baseHp / 2000 * 100) + '%';
-
-        const pBaseEl = document.getElementById('p-base');
-        const eBaseEl = document.getElementById('e-base');
-        if (pBaseEl) { if (p.hasTurret) pBaseEl.classList.add('has-turret'); else pBaseEl.classList.remove('has-turret'); }
-        if (eBaseEl) { if (this.game.enemy.hasTurret) eBaseEl.classList.add('has-turret'); else eBaseEl.classList.remove('has-turret'); }
 
         // 2. 调用组件渲染
         this.dockRenderer.render(this.activePopoverId, (id, item) => {

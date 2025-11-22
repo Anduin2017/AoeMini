@@ -50,22 +50,12 @@ export class CombatSystem {
         const attackType = uConfig.attackType || 'melee'; 
         const isMeleeUnit = attackType === 'melee';
 
-        // === 核心修正：基地的物理边缘 ===
-        // 敌方基地的中心
         const enemyBasePos = dir === 1 ? CONSTANTS.ENEMY_BASE_POS : CONSTANTS.PLAYER_BASE_POS;
-        // 敌方基地的面向我方的一侧边缘
-        // 敌人在右(96)，边缘 = 96 - 4 = 92
-        // 敌人在左(4)，边缘 = 4 + 4 = 8
         const enemyBaseEdge = enemyBasePos - (dir * CONSTANTS.BASE_WIDTH / 2);
 
         let targets = enemies.filter(e => {
             if (Math.abs(u.pos - e.pos) > u.range) return false;
             if (isMeleeUnit) {
-                // 视线阻挡：如果我在墙外，敌人在墙里，不能打
-                // 简单判断：攻击者与目标之间是否隔着“大门”
-                // 由于现在都在同一坐标系，直接用坐标比较即可
-                // 但为了简化，只要距离够就能打（穿墙修正留给进阶物理）
-                // 这里保留最基础的：如果还没摸到门，就不能打门里面的人
                 if (dir === 1 && u.pos < enemyBaseEdge && e.pos > enemyBaseEdge) return false;
                 if (dir === -1 && u.pos > enemyBaseEdge && e.pos < enemyBaseEdge) return false;
             }
@@ -78,8 +68,6 @@ export class CombatSystem {
             targets.sort((a, b) => Math.abs(u.pos - a.pos) - Math.abs(u.pos - b.pos));
             target = targets[0];
         } else {
-            // 攻击基地判断：距离 = |单位位置 - 基地边缘|
-            // 注意：这里使用边缘计算更符合直觉
             const distToEdge = Math.abs(u.pos - enemyBaseEdge);
             if (distToEdge <= u.range) target = "base";
         }
@@ -90,18 +78,23 @@ export class CombatSystem {
 
             if (u.attackCooldown <= 0) {
                 u.attackCooldown = uConfig.cooldown || 15; 
-                u.attackAnimTimer = 3;
+                u.attackAnimTimer = 3; // 仅仅用于近战闪光，远程用弹道
 
                 let dmg = u.damage;
                 if (target !== "base") {
                     dmg += u.getBonusDamage(target.tags);
                 }
 
+                // === 弹道生成逻辑 ===
+                if (!isMeleeUnit) {
+                    this.createProjectile(u, target, dir, u.owner === FactionType.Player ? '#8b5cf6' : '#a855f7');
+                }
+                // ===================
+
                 if (target === "base") {
                     const baseDef = 2; 
                     const actualDmg = Math.max(1, dmg - baseDef);
                     enemyFaction.baseHp -= actualDmg;
-                    // 飘字在基地边缘
                     Helpers.spawnFloater(enemyBaseEdge, `-${actualDmg}`, CONSTANTS.COLORS.TEXT_FLOAT_BASE);
                 } else {
                     const defenseVal = (attackType === 'ranged') ? target.def_r : target.def_m;
@@ -117,12 +110,54 @@ export class CombatSystem {
         }
     }
 
+    // === 新增：生成贝塞尔曲线弹道 ===
+    private createProjectile(u: Unit, target: Unit | "base", dir: number, color: string) {
+        const w = this.game.worldWidth; // 需要 Renderer resize 后赋值的真实宽度
+        const h = document.getElementById('gameCanvas')?.offsetHeight || 600; // 简单获取高度
+
+        // 起点
+        const startX = (u.pos / 100) * w;
+        const startY = u.lane === 1 ? (h/2 - 20) : (h/2 + 20);
+
+        // 终点
+        let endX = 0;
+        let endY = 0;
+
+        if (target === "base") {
+            const enemyBasePos = dir === 1 ? CONSTANTS.ENEMY_BASE_POS : CONSTANTS.PLAYER_BASE_POS;
+            // 射向基地中心稍微偏下一点
+            endX = (enemyBasePos / 100) * w; 
+            endY = h/2; 
+        } else {
+            endX = (target.pos / 100) * w;
+            endY = target.lane === 1 ? (h/2 - 20) : (h/2 + 20);
+        }
+
+        // 控制点 (Control Point)
+        // x 在两者中间
+        const midX = (startX + endX) / 2;
+        // y 往上抬，距离越远抬得越高
+        const distance = Math.abs(endX - startX);
+        const arcHeight = Math.max(30, distance * 0.3); // 至少抬高30px，或者距离的30%
+        const midY = Math.min(startY, endY) - arcHeight;
+
+        this.game.projectiles.push({
+            p0: { x: startX, y: startY - 10 }, // 起点稍微高一点（手部位置）
+            p1: { x: midX, y: midY },
+            p2: { x: endX, y: endY },
+            progress: 0,
+            speed: 0.08, // 飞行速度
+            color: color,
+            trailLength: 0.15 // 拖尾长度
+        });
+    }
+
     private handleMovement(u: Unit, friends: Unit[], enemies: Unit[], index: number, dir: number, stance: string) {
-        // === 核心修正：出生/回防逻辑 ===
+        // ... (保持原有的移动逻辑不变，为节省篇幅省略，请务必保留之前的 handleMovement 代码) ...
+        // === 请将上一版 CombatSystem.ts 中的 handleMovement 完整复制到这里 ===
         const myBaseCenter = u.owner === FactionType.Player ? CONSTANTS.PLAYER_BASE_POS : CONSTANTS.ENEMY_BASE_POS;
         const myBaseEdge = myBaseCenter + (dir * CONSTANTS.BASE_WIDTH / 2);
 
-        // 部署逻辑：一旦完全走出基地大门
         if (!u.isDeployed) {
             if ((dir === 1 && u.pos > myBaseEdge + u.width/2) || 
                 (dir === -1 && u.pos < myBaseEdge - u.width/2)) {
@@ -135,41 +170,28 @@ export class CombatSystem {
 
         if (stance === 'attack') {
             nextPos += speed;
-            
             if (index > 0) {
                 const friend = friends[index - 1];
                 const limit = friend.pos - (dir * u.width);
                 if (dir === 1 ? nextPos > limit : nextPos < limit) nextPos = limit;
             }
-            
             const enemiesInLane = enemies.filter(e => e.lane === u.lane);
             if (enemiesInLane.length > 0) {
                  const nearestEnemy = enemiesInLane.sort((a,b) => Math.abs(u.pos - a.pos) - Math.abs(u.pos - b.pos))[0];
                  const limit = nearestEnemy.pos - (dir * (u.width + 0.1)); 
                  if (dir === 1 ? nextPos > limit : nextPos < limit) nextPos = limit;
             }
-
-            // === 进攻限制：敌方基地的边缘 ===
             const enemyBaseCenter = dir === 1 ? CONSTANTS.ENEMY_BASE_POS : CONSTANTS.PLAYER_BASE_POS;
-            // 目标点 = 敌方中心 - (方向 * (基地半宽 + 单位半宽))
-            // 这样单位会停在刚好碰到基地边缘的位置
             const attackLimit = enemyBaseCenter - (dir * (CONSTANTS.BASE_WIDTH/2 + u.width/2)); 
-            
             if (dir === 1) {
                 if (nextPos > attackLimit) nextPos = attackLimit;
             } else {
                 if (nextPos < attackLimit) nextPos = attackLimit;
             }
-
         } else if (stance === 'defend') {
             nextPos -= speed;
-            
-            // === 防守限制：我方基地的边缘 ===
-            // 回退极限 = 我方中心 + (方向 * (基地半宽 + 单位半宽))
             const wallLimit = myBaseCenter + (dir * (CONSTANTS.BASE_WIDTH/2 + u.width/2));
-
             if (dir === 1) { 
-                // 如果已部署，最多退到门口；如果未部署，可以退回中心（出生点）
                 let limit = u.isDeployed ? wallLimit : myBaseCenter;
                 if (index > 0) limit = Math.max(limit, friends[index - 1].pos + u.width);
                 if (nextPos < limit) nextPos = limit;
@@ -182,8 +204,6 @@ export class CombatSystem {
         u.pos = nextPos;
     }
 
-    // ... cleanupDead 和 processTurrets (略，保持逻辑但需更新坐标引用) ...
-    // 为防万一，这里补全 processTurrets，确保使用新常量
     private cleanupDead() {
         [this.game.player, this.game.enemy].forEach(f => {
             const deadUnits = f.units.filter(u => u.hp <= 0);
@@ -205,13 +225,11 @@ export class CombatSystem {
 
     private processTurrets() {
         [this.game.player, this.game.enemy].forEach(f => {
-            if (!f.hasTurret) return;
             if (f.turretCooldown > 0) { f.turretCooldown--; return; }
             
             const enemies = f === this.game.player ? this.game.enemy.units : this.game.player.units;
-            // 炮台位置 = 基地中心
             const turretPos = f === this.game.player ? CONSTANTS.PLAYER_BASE_POS : CONSTANTS.ENEMY_BASE_POS;
-            const range = CONSTANTS.BASE_RANGE * 2;
+            const range = 11;
 
             const targets = enemies.filter(e => Math.abs(e.pos - turretPos) <= range);
             if (targets.length > 0) {
@@ -219,13 +237,37 @@ export class CombatSystem {
                 const shotCount = Math.min(targets.length, 3);
                 for(let i=0; i<shotCount; i++) {
                     const t = targets[Math.floor(Math.random()*targets.length)];
-                    const dmg = 12;
+                    const dmg = UNIT_CONFIG[UnitType.Spearman].damage * 1.5;
                     const actualDmg = Math.max(1, dmg - t.def_r);
                     t.hp -= actualDmg;
-                    this.game.turretShots.push({
-                        start: turretPos, end: t.pos, 
-                        color: f === this.game.player ? '#60a5fa' : '#f87171'
+                    
+                    // === 修复：炮台也发射抛物线弹道 ===
+                    // 创建一个虚拟的 Unit 结构来复用 createProjectile (或者稍微修改 createProjectile 接受坐标)
+                    // 为了方便，我们重载 createProjectile 的逻辑，这里手动 push
+                    const w = this.game.worldWidth;
+                    const h = document.getElementById('gameCanvas')?.offsetHeight || 600;
+                    const startX = (turretPos / 100) * w;
+                    const startY = h/2 - 45; // 塔顶
+                    
+                    const endX = (t.pos / 100) * w;
+                    const endY = t.lane === 1 ? (h/2 - 20) : (h/2 + 20);
+                    
+                    const midX = (startX + endX) / 2;
+                    const distance = Math.abs(endX - startX);
+                    const arcHeight = Math.max(30, distance * 0.3);
+                    const midY = Math.min(startY, endY) - arcHeight;
+
+                    this.game.projectiles.push({
+                        p0: { x: startX, y: startY },
+                        p1: { x: midX, y: midY },
+                        p2: { x: endX, y: endY },
+                        progress: 0,
+                        speed: 0.08,
+                        color: f === this.game.player ? '#60a5fa' : '#f87171',
+                        trailLength: 0.2 // 炮台激光稍微长一点
                     });
+                    // ==============================
+
                     Helpers.spawnFloater(t.pos, `-${actualDmg.toFixed(1)}`, '#f0f');
                 }
             }

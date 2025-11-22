@@ -25,19 +25,19 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
     },
     [UnitType.Spearman]: { // 原 Clubman -> 长枪兵
         cost: { food: 60, wood: 20 }, time: 150, hp: 90, damage: 8, def_m: 0, def_r: 0,
-        range: CONSTANTS.BASE_RANGE, speed: 1.25, 
+        range: 5, speed: 1.25, 
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Light], 
         label: '长枪兵', lane: 0, attackType: 'melee', cooldown: 19
     },
     [UnitType.ManAtArms]: { // 原 Samurai -> 武士
         cost: { food: 100, gold: 20 }, time: 150, hp: 140, damage: 11, def_m: 2, def_r: 3,
-        range: CONSTANTS.BASE_RANGE * 0.75, speed: 1.125,
+        range: 3.75, speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Heavy],
         label: '武士', lane: 0, attackType: 'melee', cooldown: 14
     },
     [UnitType.Longbowman]: { // 长弓兵
         cost: { food: 40, wood: 50 }, time: 150, hp: 70, damage: 6, def_m: 0, def_r: 0,
-        range: CONSTANTS.BASE_RANGE * 3, speed: 1.125,
+        range: 11, speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Ranged, UnitTag.Light],
         label: '长弓兵', lane: 1, widthScale: 0.5, attackType: 'ranged', cooldown: 16
     }

@@ -114,18 +114,32 @@ export class Renderer {
             this.ctx.fillStyle = CONSTANTS.COLORS.PLAYER_HP; this.ctx.fillRect(x - 8, laneY - 28, 16 * hpPct, 3);
         }
 
-        // 4. 绘制炮台激光
-        this.game.turretShots.forEach(shot => {
-            this.ctx.strokeStyle = shot.color;
-            this.ctx.lineWidth = 3;
+        this.ctx.lineWidth = 2;
+        this.game.projectiles.forEach(p => {
+            // 二次贝塞尔公式：B(t) = (1-t)^2 P0 + 2(1-t)t P1 + t^2 P2
+            const getBezierPos = (t: number) => {
+                // 限制 t 在 0~1
+                const safeT = Math.max(0, Math.min(1, t));
+                const mt = 1 - safeT;
+                const x = mt*mt*p.p0.x + 2*mt*safeT*p.p1.x + safeT*safeT*p.p2.x;
+                const y = mt*mt*p.p0.y + 2*mt*safeT*p.p1.y + safeT*safeT*p.p2.y;
+                return {x, y};
+            };
+
+            // 计算头部位置
+            const head = getBezierPos(p.progress);
+            // 计算尾部位置 (head - trailLength)
+            const tail = getBezierPos(p.progress - p.trailLength);
+
+            this.ctx.strokeStyle = p.color;
             this.ctx.beginPath();
-            this.ctx.moveTo((shot.start / 100) * w, h / 2 - 30); // 发射点稍微调高一点，像从塔顶射出
-            this.ctx.lineTo((shot.end / 100) * w, h / 2);
+            this.ctx.moveTo(tail.x, tail.y);
+            this.ctx.lineTo(head.x, head.y);
             this.ctx.stroke();
-            this.ctx.fillStyle = 'white';
-            this.ctx.beginPath();
-            this.ctx.arc((shot.end / 100) * w, h / 2, 5, 0, Math.PI * 2);
-            this.ctx.fill();
+            
+            // 可选：在头部画个小点，更有打击感
+            // this.ctx.fillStyle = '#fff';
+            // this.ctx.fillRect(head.x - 1, head.y - 1, 2, 2);
         });
     }
 
@@ -189,16 +203,5 @@ export class Renderer {
         this.ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(cx - hpBarW/2, hpY, hpBarW, hpBarH);
-
-        // 6. 炮台帽子 (可选，既然自带防御，可以画个小塔顶)
-        if (faction.hasTurret) {
-            this.ctx.fillStyle = '#64748b'; 
-            // 画在中间城垛上方
-            this.ctx.beginPath();
-            this.ctx.moveTo(cx - 15, topY - 10);
-            this.ctx.lineTo(cx + 15, topY - 10);
-            this.ctx.lineTo(cx, topY - 25);
-            this.ctx.fill();
-        }
     }
 }
