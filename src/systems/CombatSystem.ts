@@ -121,7 +121,7 @@ export class CombatSystem {
                 let color = '';
 
                 if (target === "base") {
-                    // 基地远程防御 50
+                    // 城镇中心远程防御 50
                     const baseDef = (attackType === 'ranged') ? 50 : 2;
                     actualDmg = Math.max(1, dmg - baseDef);
                     enemyFaction.baseHp -= actualDmg;

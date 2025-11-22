@@ -1,7 +1,7 @@
 import { Game } from "../core/Game";
 import { FactionType, UnitType, QueueItem, BuildingType, UnitTag } from "../core/Types";
 import { UNIT_CONFIG, BUILDING_CONFIG } from "../data/UnitConfig";
-import { TECH_CONFIG } from "../data/TechConfig"; 
+import { TECH_CONFIG } from "../data/TechConfig";
 import { Worker, Spearman, ManAtArms, Longbowman } from "../entities/units/ConcreteUnits";
 import { Helpers } from "../utils/Helpers";
 import { Building } from "../entities/buildings/Building";
@@ -39,35 +39,46 @@ export class EconomySystem {
         f.buildings.forEach((b: any) => {
             if (b.queue.length > 0) {
                 const item = b.queue[0] as QueueItem;
-                
-                // === 核心修改：作弊检测 ===
+
+                // 作弊检测
                 if (f.type === FactionType.Player && this.game.isInstantBuild) {
-                    // 直接归零，瞬间完成
                     item.ticksLeft = 0;
                 } else {
-                    // 正常扣除时间
                     if (item.ticksLeft > 0) item.ticksLeft--;
                 }
-                // =========================
 
                 if (item.ticksLeft <= 0) {
                     let isBlocked = false;
                     const isUnit = !item.type.startsWith('tech_');
-                    
+
+                    // 1. 人口检查
                     if (isUnit && f.type === FactionType.Player) {
                         if (f.currentPop >= f.popCap) isBlocked = true;
                     }
 
+                    // 2. 物理阻塞检查 (分轨道！)
                     if (!isBlocked && isUnit && item.type !== UnitType.Worker) {
-                        const spawnPos = f.type === FactionType.Player ? this.game.baseWidthPct : (100 - this.game.baseWidthPct);
+                        const spawnPos = f.type === FactionType.Player ? CONSTANTS.PLAYER_BASE_POS : CONSTANTS.ENEMY_BASE_POS;
+
+                        // === 修复核心：获取目标单位的轨道 ===
+                        const uConfig = UNIT_CONFIG[item.type];
+                        const targetLane = uConfig ? uConfig.lane : 0;
+                        // =================================
+
                         const checkRadius = 1.0;
                         const allUnits = [...this.game.player.units, ...this.game.enemy.units];
-                        const hasCollision = allUnits.some(u => Math.abs(u.pos - spawnPos) < (u.width / 2 + checkRadius / 2));
+
+                        // === 修复核心：只检测同一轨道上的碰撞 ===
+                        const hasCollision = allUnits.some(u =>
+                            u.lane === targetLane && // 关键：轨道必须相同才算阻塞
+                            Math.abs(u.pos - spawnPos) < (u.width / 2 + checkRadius / 2)
+                        );
+
                         if (hasCollision) isBlocked = true;
                     }
 
                     if (isBlocked) {
-                        item.ticksLeft = 0.1; // 依然受阻塞限制
+                        item.ticksLeft = 0.1;
                     } else {
                         this.resolveProduction(f, item.type);
                         b.queue.shift();
@@ -97,9 +108,10 @@ export class EconomySystem {
         }
 
         const spawnPos = f.type === FactionType.Player ? CONSTANTS.PLAYER_BASE_POS : CONSTANTS.ENEMY_BASE_POS;
+
         let u: any;
         const nextId = Game.nextId();
-        
+
         switch (type) {
             case UnitType.Spearman: u = new Spearman(nextId, f.type, spawnPos); break;
             case UnitType.ManAtArms: u = new ManAtArms(nextId, f.type, spawnPos); break;
@@ -120,7 +132,7 @@ export class EconomySystem {
         if (techType === 'atk_m' && attackType === 'melee') u.damage += value;
         if (techType === 'atk_r' && attackType === 'ranged') u.damage += value;
         if (techType === 'def_m') u.def_m += value;
-        if (techType === 'def_r') u.def_r += value; 
+        if (techType === 'def_r') u.def_r += value;
     }
 
     private applyAllTechsToNewUnit(u: Unit, f: any) {
@@ -133,14 +145,12 @@ export class EconomySystem {
     private processConstructions(f: any) {
         const activeConstructions: any[] = [];
         f.constructions.forEach((c: any) => {
-            
-            // === 核心修改：作弊检测 ===
+
             if (f.type === FactionType.Player && this.game.isInstantBuild) {
                 c.ticksLeft = 0;
             } else {
                 if (c.ticksLeft > 0) c.ticksLeft--;
             }
-            // ========================
 
             if (c.ticksLeft <= 0) {
                 let newBuilding: Building;
@@ -150,11 +160,11 @@ export class EconomySystem {
                     case BuildingType.ArcheryRange: newBuilding = new ArcheryRange(c.id, f.type); break;
                     case BuildingType.TownCenter: newBuilding = new TownCenter(c.id, f.type); break;
                     case BuildingType.Blacksmith: newBuilding = new Blacksmith(c.id, f.type); break;
-                    default: newBuilding = new Barracks(c.id, f.type); break; 
+                    default: newBuilding = new Barracks(c.id, f.type); break;
                 }
-                
+
                 f.buildings.push(newBuilding);
-                
+
                 const bConfig = BUILDING_CONFIG[c.type];
                 if (bConfig && bConfig.pop) {
                     f.popCap += bConfig.pop;
@@ -169,7 +179,7 @@ export class EconomySystem {
                 activeConstructions.push(c);
             }
         });
-        
+
         f.constructions = activeConstructions;
     }
 }

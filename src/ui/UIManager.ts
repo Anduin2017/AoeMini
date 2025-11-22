@@ -11,7 +11,7 @@ export class UIManager {
     private game: Game;
     private dockRenderer: DockRenderer;
     private popoverRenderer: PopoverRenderer;
-    
+
     private activePopoverId: string | null = null;
     private lastTechState: string = '';
 
@@ -19,7 +19,7 @@ export class UIManager {
         this.game = game;
         this.dockRenderer = new DockRenderer(game);
         this.popoverRenderer = new PopoverRenderer(game);
-        
+
         this.setupListeners();
         this.setupTooltipListeners();
     }
@@ -64,10 +64,10 @@ export class UIManager {
             if (tt) tt.style.display = 'none';
         });
     }
-    
+
     private handleTooltip(e: MouseEvent) {
         if (this.game.gameOver) return;
-        
+
         const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
@@ -105,23 +105,23 @@ export class UIManager {
             tt.innerHTML = html;
             tt.style.left = (e.clientX + 15) + 'px'; tt.style.top = (e.clientY + 15) + 'px'; tt.style.display = 'block';
             return;
-        } 
+        }
 
-        // 2. 查找基地 (=== 修复核心：对齐 Canvas 坐标系 ===)
+        // 2. 查找城镇中心 (=== 修复核心：对齐 Canvas 坐标系 ===)
         let foundBase: any = null;
-        
+
         // 垂直范围：h/2 - 40 到 h/2 + 40
-        const topY = h/2 - 40;
-        const bottomY = h/2 + 40;
-        
+        const topY = h / 2 - 40;
+        const bottomY = h / 2 + 40;
+
         if (my >= topY && my <= bottomY) {
             const baseW = (CONSTANTS.BASE_WIDTH / 100 * w);
-            
-            // 玩家基地检测
+
+            // 玩家城镇中心检测
             const pCx = (CONSTANTS.PLAYER_BASE_POS / 100) * w;
             if (Math.abs(mx - pCx) < baseW / 2) foundBase = this.game.player;
-            
-            // 敌人基地检测
+
+            // 敌人城镇中心检测
             const eCx = (CONSTANTS.ENEMY_BASE_POS / 100) * w;
             if (Math.abs(mx - eCx) < baseW / 2) foundBase = this.game.enemy;
         }
@@ -129,20 +129,20 @@ export class UIManager {
         if (foundBase) {
             const isPlayer = foundBase.type === FactionType.Player;
             const turretDmg = (UNIT_CONFIG[UnitType.Spearman].damage * 1.5);
-            
+
             tt.className = isPlayer ? '' : 'tt-enemy';
-            
-            let html = `<div class="tt-header">${isPlayer ? '我方' : '敌方'}基地</div>`;
+
+            let html = `<div class="tt-header">${isPlayer ? '我方' : '敌方'}城镇中心</div>`;
             // 精确显示当前血量
             html += `<div class="tt-row"><span>❤️ 生命:</span> <span>${Math.ceil(foundBase.baseHp)}/${CONSTANTS.BASE_HP}</span></div>`;
             html += `<div class="tt-row"><span>🛡️ 近战防御:</span> <span>2</span></div>`;
             html += `<div class="tt-row"><span>🎯 远程防御:</span> <span>50</span></div>`;
             html += `<div class="tt-row"><span>⚔️ 炮台伤害:</span> <span>${turretDmg}</span></div>`;
             html += `<div class="tt-row"><span>🏹 炮台射程:</span> <span>15</span></div>`;
-            
+
             tt.innerHTML = html;
-            tt.style.left = (e.clientX + 15) + 'px'; 
-            tt.style.top = (e.clientY + 15) + 'px'; 
+            tt.style.left = (e.clientX + 15) + 'px';
+            tt.style.top = (e.clientY + 15) + 'px';
             tt.style.display = 'block';
         } else {
             tt.style.display = 'none';
@@ -160,12 +160,12 @@ export class UIManager {
 
     public update() {
         const p = this.game.player;
-        
+
         // 1. 顶部面板更新
         (['food', 'wood', 'gold', 'stone'] as ResourceType[]).forEach(r => {
             document.getElementById(`res-stock-${r}`)!.innerText = Math.floor(p.resources[r]).toString();
             document.getElementById(`res-workers-${r}`)!.innerText = p.workers[r].toString();
-            
+
             // 按钮置灰逻辑
             const btnAdd = document.getElementById(`add-${r}`);
             const btnSub = document.getElementById(`sub-${r}`);
@@ -183,7 +183,7 @@ export class UIManager {
         document.getElementById('disp-idle')!.innerText = p.idleWorkers.toString();
         if (p.idleWorkers > 0) document.getElementById('disp-idle')?.classList.add('warning');
         else document.getElementById('disp-idle')?.classList.remove('warning');
-        
+
         document.getElementById('p-base-hp')!.style.width = (p.baseHp / 2000 * 100) + '%';
         document.getElementById('e-base-hp')!.style.width = (this.game.enemy.baseHp / 2000 * 100) + '%';
 
@@ -203,7 +203,7 @@ export class UIManager {
                     this.popoverRenderer.render(this.activePopoverId, this.activePopoverId === 'build_menu' ? 'dock-btn-build' : `dock-item-${this.activePopoverId}`);
                 }
             }
-            
+
             // 实时更新状态
             this.popoverRenderer.updateStatus(this.activePopoverId);
         } else {
@@ -213,12 +213,12 @@ export class UIManager {
 
     private handleDockClick(id: string, item: any) {
         if (item.type === 'construction') return;
-        
+
         if (this.activePopoverId === id) {
             this.closePopover();
             return;
         }
-        
+
         this.activePopoverId = id;
         // 渲染菜单
         const triggerId = id === 'build_menu' ? 'dock-btn-build' : `dock-item-${id}`;

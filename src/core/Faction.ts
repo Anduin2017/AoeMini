@@ -17,7 +17,7 @@ export class Faction {
     public constructions: any[] = []; // 建造中的任务
     public units: Unit[] = []; // *这个阵营拥有的单位引用*
 
-    // 基地状态
+    // 城镇中心状态
     public baseHp: number = CONSTANTS.BASE_HP;
     public popCap: number = CONSTANTS.INITIAL_POP_CAP;
     public armyCount: number = 0;

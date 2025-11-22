@@ -20,7 +20,7 @@ export abstract class Unit extends Entity {
     // 攻击冷却相关
     public attackCooldown: number = 0;
     public attackAnimTimer: number = 0;
-    public isDeployed: boolean = false;   // 是否已走出基地
+    public isDeployed: boolean = false;   // 是否已走出城镇中心
 
     constructor(id: number, type: string, owner: FactionType, pos: number) {
         super(id, type, owner, pos);

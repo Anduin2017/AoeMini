@@ -24,19 +24,19 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         cost: { food: 50 }, time: 200, hp: 10, damage: 0, def_m: 0, def_r: 0,
         range: 1, speed: 0, tags: [UnitTag.Worker], label: '村民', lane: 0
     },
-    [UnitType.Spearman]: { 
+    [UnitType.Spearman]: {
         cost: { food: 60, wood: 20 }, time: 150, hp: 90, damage: 8, def_m: 0, def_r: 0,
-        range: 5, speed: 1.25, 
-        tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Light], 
+        range: 5, speed: 1.25,
+        tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Light],
         label: '长枪兵', lane: 0, attackType: 'melee', cooldown: 19, canMoveAttack: true
     },
-    [UnitType.ManAtArms]: { 
+    [UnitType.ManAtArms]: {
         cost: { food: 100, gold: 20 }, time: 150, hp: 140, damage: 11, def_m: 2, def_r: 3,
         range: 3.75, speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Heavy],
         label: '武士', lane: 0, attackType: 'melee', cooldown: 14, canMoveAttack: true
     },
-    [UnitType.Longbowman]: { 
+    [UnitType.Longbowman]: {
         cost: { food: 40, wood: 50 }, time: 150, hp: 70, damage: 6, def_m: 0, def_r: 0,
         range: 11, // === 修改：射程提升 ===
         speed: 1.125,
@@ -45,10 +45,10 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
     }
 };
 
-export const BUILDING_CONFIG: Record<string, {cost: Cost, time: number, label: string, icon: string, pop?: number, desc: string}> = {
+export const BUILDING_CONFIG: Record<string, { cost: Cost, time: number, label: string, icon: string, pop?: number, desc: string }> = {
     'house': { cost: { wood: 50 }, time: 150, label: '房屋', icon: '🏠', pop: 10, desc: '提供 10 人口上限' },
     'barracks': { cost: { wood: 150 }, time: 300, label: '兵营', icon: '⚔️', desc: '训练步兵单位' },
     'archery_range': { cost: { wood: 150 }, time: 300, label: '靶场', icon: '🏹', desc: '训练远程单位' },
-    'towncenter': { cost: { wood: 400, stone: 350 }, time: 1200, label: '基地', icon: '🏛️', pop: 10, desc: '资源中心与村民生产' },
+    'towncenter': { cost: { wood: 400, stone: 350 }, time: 1200, label: '城镇中心', icon: '🏛️', pop: 10, desc: '资源中心与村民生产' },
     'blacksmith': { cost: { wood: 150 }, time: 250, label: '铁匠铺', icon: '⚒️', desc: '升级攻击与防御科技' }
 };

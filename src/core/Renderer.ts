@@ -43,7 +43,7 @@ export class Renderer {
         this.bgCtx.beginPath(); this.bgCtx.moveTo(0, h / 2 - 20); this.bgCtx.lineTo(w, h / 2 - 20); this.bgCtx.stroke();
         this.bgCtx.beginPath(); this.bgCtx.moveTo(0, h / 2 + 20); this.bgCtx.lineTo(w, h / 2 + 20); this.bgCtx.stroke();
 
-        // 2. 绘制基地
+        // 2. 绘制城镇中心
         this.drawBase(this.game.player, CONSTANTS.PLAYER_BASE_POS, CONSTANTS.COLORS.PLAYER);
         this.drawBase(this.game.enemy, CONSTANTS.ENEMY_BASE_POS, CONSTANTS.COLORS.ENEMY);
 

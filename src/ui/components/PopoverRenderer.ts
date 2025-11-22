@@ -34,14 +34,14 @@ export class PopoverRenderer {
             const b = this.game.player.buildings.find(x => x.id === activeId);
             if (b) this.renderBuildingMenu(b);
         }
-        
+
         this.updateStatus(activeId);
     }
 
     // === 实时刷新状态 (进度文字、按钮置灰) ===
     public updateStatus(activeId: string) {
         const p = this.game.player;
-        
+
         // 1. 按钮置灰
         this.container.querySelectorAll('.menu-btn').forEach((btn: any) => {
             if (btn.dataset.costWood !== undefined) {
@@ -49,7 +49,7 @@ export class PopoverRenderer {
                 const cW = parseInt(btn.dataset.costWood || '0');
                 const cG = parseInt(btn.dataset.costGold || '0');
                 const cS = parseInt(btn.dataset.costStone || '0');
-                
+
                 if (p.resources.food >= cF && p.resources.wood >= cW && p.resources.gold >= cG && p.resources.stone >= cS) {
                     btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
                 } else {
@@ -68,9 +68,9 @@ export class PopoverRenderer {
                         const q = b.queue[0];
                         const pct = Math.floor((1 - q.ticksLeft / q.totalTicks) * 100);
                         const isTech = TECH_CONFIG[q.type] || q.type === 'turret_tech';
-                        
+
                         if (q.ticksLeft <= 0.2) {
-                            statusEl.innerText = `⚠️ 生产阻塞`; 
+                            statusEl.innerText = `⚠️ 生产阻塞`;
                             statusEl.className = 'text-xs text-center mb-2 font-bold text-red-500';
                         } else {
                             statusEl.innerText = `${isTech ? '研发中' : '生产中'} ${pct}%`;
@@ -109,15 +109,15 @@ export class PopoverRenderer {
 
     private renderBuildMenu() {
         this.container.innerHTML = `<div class="popover-title">建造建筑</div>`;
-        
+
         Object.entries(BUILDING_CONFIG).forEach(([type, conf]) => {
-            // === 修复：允许建造基地 (移除了 if type == TownCenter return) ===
-            
+            // === 修复：允许建造城镇中心 (移除了 if type == TownCenter return) ===
+
             const btn = document.createElement('div');
             btn.className = 'menu-btn build-action-btn';
             btn.dataset.costWood = (conf.cost.wood || 0).toString();
             btn.dataset.costStone = (conf.cost.stone || 0).toString();
-            
+
             btn.innerHTML = `
                 <span class="btn-icon">${conf.icon}</span>
                 <div class="btn-info">
@@ -128,13 +128,13 @@ export class PopoverRenderer {
                     </div>
                 </div>
             `;
-            
+
             btn.onclick = () => {
                 const p = this.game.player;
-                if (p.resources.wood >= (conf.cost.wood||0) && p.resources.stone >= (conf.cost.stone||0)) {
-                    p.resources.wood -= (conf.cost.wood||0);
-                    p.resources.stone -= (conf.cost.stone||0);
-                    const constId = `const-${Math.floor(Math.random()*100000)}`;
+                if (p.resources.wood >= (conf.cost.wood || 0) && p.resources.stone >= (conf.cost.stone || 0)) {
+                    p.resources.wood -= (conf.cost.wood || 0);
+                    p.resources.stone -= (conf.cost.stone || 0);
+                    const constId = `const-${Math.floor(Math.random() * 100000)}`;
                     p.constructions.push({ id: constId, type: type, ticksLeft: conf.time, totalTicks: conf.time });
                     Helpers.showToast(`${conf.label} 开始建造`, '#3b82f6');
                     // 触发外部关闭 (通过状态同步)
@@ -152,7 +152,7 @@ export class PopoverRenderer {
     private renderBuildingMenu(b: Building) {
         const bConfig = BUILDING_CONFIG[b.type];
         const p = this.game.player;
-        
+
         // 状态占位符
         this.container.innerHTML = `
             <div class="popover-title">${bConfig.label}</div>
@@ -161,9 +161,9 @@ export class PopoverRenderer {
         `;
 
         const options = b.getMenuOptions(p);
-        
+
         if (options.length === 0) {
-             this.container.innerHTML += `<div class="text-xs text-gray-500 text-center p-2">无可用操作</div>`;
+            this.container.innerHTML += `<div class="text-xs text-gray-500 text-center p-2">无可用操作</div>`;
         } else {
             options.forEach(opt => {
                 const btn = document.createElement('div');
@@ -186,15 +186,15 @@ export class PopoverRenderer {
                         <span class="btn-cost">${costStr}</span>
                     </div>
                 `;
-                
+
                 btn.onclick = () => {
-                    if (p.resources.food >= (opt.cost.food||0) && p.resources.wood >= (opt.cost.wood||0) && p.resources.gold >= (opt.cost.gold||0) && p.resources.stone >= (opt.cost.stone||0)) {
+                    if (p.resources.food >= (opt.cost.food || 0) && p.resources.wood >= (opt.cost.wood || 0) && p.resources.gold >= (opt.cost.gold || 0) && p.resources.stone >= (opt.cost.stone || 0)) {
                         if (b.enqueue({ type: opt.id, ticksLeft: opt.time, totalTicks: opt.time })) {
-                            p.resources.food -= (opt.cost.food||0);
-                            p.resources.wood -= (opt.cost.wood||0);
-                            p.resources.gold -= (opt.cost.gold||0);
-                            p.resources.stone -= (opt.cost.stone||0);
-                            
+                            p.resources.food -= (opt.cost.food || 0);
+                            p.resources.wood -= (opt.cost.wood || 0);
+                            p.resources.gold -= (opt.cost.gold || 0);
+                            p.resources.stone -= (opt.cost.stone || 0);
+
                             // 立即重绘当前菜单以防止重复点击 (如科技)
                             this.renderBuildingMenu(b);
                             this.updateStatus(b.id as string);

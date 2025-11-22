@@ -14,7 +14,7 @@ export class House extends Building {
 
 // src/entities/buildings/ConcreteBuildings.ts 中的 TownCenter 类
 
-// === 基地 ===
+// === 城镇中心 ===
 export class TownCenter extends Building {
     constructor(id: string, owner: FactionType) {
         super(id, BuildingType.TownCenter, owner);
@@ -22,7 +22,7 @@ export class TownCenter extends Building {
 
     public override getMenuOptions(f: any): MenuOption[] {
         const options: MenuOption[] = [];
-        
+
         // 1. 造人 (保留)
         const w = UNIT_CONFIG[UnitType.Worker];
         options.push({
@@ -32,12 +32,12 @@ export class TownCenter extends Building {
 
         // 2. 科技：炮台 (=== 删除此处代码 ===)
         // 既然默认自带，这里就不再 push 任何科技选项了
-        
+
         return options;
     }
 
     // 这个辅助方法也可以删了，不过留着也没事，反正没人调用它了
-    private hasTechInQueue(f:any, techId: string): boolean {
+    private hasTechInQueue(f: any, techId: string): boolean {
         return f.buildings.some((b: Building) => b.queue.some(q => q.type === techId));
     }
 }
@@ -90,10 +90,10 @@ export class Blacksmith extends Building {
                 const nextLvl = currentLvl + 1;
                 const techId = `tech_${type}_${nextLvl}`;
                 const tech = TECH_CONFIG[techId];
-                
+
                 // 检查是否已经在研发中
                 const inQueue = f.buildings.some((b: Building) => b.queue.some(q => q.type === techId));
-                
+
                 if (tech && !inQueue) {
                     options.push({
                         id: techId, icon: tech.icon, label: tech.label,
