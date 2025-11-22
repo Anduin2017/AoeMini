@@ -4,23 +4,22 @@ import { CONSTANTS } from "../../core/Constants";
 
 export abstract class Unit extends Entity {
     public tags: UnitTag[] = [];
-    
+
     // 战斗属性
     public damage: number = 0;
     public def_m: number = 0; // 近战防御
     public def_r: number = 0; // 远程防御
     public range: number = 5;
     public speed: number = 0;
-    
+
     // 状态机
     public state: 'move' | 'attack' | 'idle' = 'move';
     public targetId: string | number | null = null;
     public lane: number = 0; // 0: 主路, 1: 侧路 (防重叠)
-    
+
     // 攻击冷却相关
     public attackCooldown: number = 0;
     public attackAnimTimer: number = 0;
-    public stopOnAttack: boolean = false; // 攻击时是否停止移动
     public isDeployed: boolean = false;   // 是否已走出基地
 
     constructor(id: number, type: string, owner: FactionType, pos: number) {

@@ -26,7 +26,7 @@ export class UIManager {
 
     private setupListeners() {
         // 姿态
-        ['defend', 'hold', 'attack'].forEach(s => {
+        ['defend', 'hold', 'attack', 'move'].forEach(s => {
             const btn = document.getElementById(`btn-stance-${s}`);
             if (btn) btn.onclick = () => {
                 this.game.playerStance = s as any;
@@ -231,9 +231,12 @@ export class UIManager {
     }
 
     private updateStanceUI() {
-        ['defend', 'hold', 'attack'].forEach(s => {
-            const el = document.getElementById(`btn-stance-${s}`)!;
-            el.className = `tactic-btn ${this.game.playerStance === s ? 'active' : ''}`;
+        // 把 'move' 加进去
+        ['defend', 'hold', 'attack', 'move'].forEach(s => {
+            const el = document.getElementById(`btn-stance-${s}`);
+            if (el) { // 加个判空更安全
+                el.className = `tactic-btn ${this.game.playerStance === s ? 'active' : ''}`;
+            }
         });
     }
 }

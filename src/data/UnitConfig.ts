@@ -16,6 +16,7 @@ interface UnitStats {
     widthScale?: number;
     attackType?: 'melee' | 'ranged';
     cooldown?: number;
+    canMoveAttack?: boolean; // === 新增：是否允许移动攻击 ===
 }
 
 export const UNIT_CONFIG: Record<string, UnitStats> = {
@@ -27,13 +28,13 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         cost: { food: 60, wood: 20 }, time: 150, hp: 90, damage: 8, def_m: 0, def_r: 0,
         range: 5, speed: 1.25, 
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Light], 
-        label: '长枪兵', lane: 0, attackType: 'melee', cooldown: 19
+        label: '长枪兵', lane: 0, attackType: 'melee', cooldown: 19, canMoveAttack: true
     },
     [UnitType.ManAtArms]: { 
         cost: { food: 100, gold: 20 }, time: 150, hp: 140, damage: 11, def_m: 2, def_r: 3,
         range: 3.75, speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Heavy],
-        label: '武士', lane: 0, attackType: 'melee', cooldown: 14
+        label: '武士', lane: 0, attackType: 'melee', cooldown: 14, canMoveAttack: true
     },
     [UnitType.Longbowman]: { 
         cost: { food: 40, wood: 50 }, time: 150, hp: 70, damage: 6, def_m: 0, def_r: 0,

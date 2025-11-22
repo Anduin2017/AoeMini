@@ -37,6 +37,5 @@ export class Longbowman extends Unit {
     constructor(id: number, owner: FactionType, pos: number) {
         super(id, UnitType.Longbowman, owner, pos);
         this.applyConfig(UNIT_CONFIG[UnitType.Longbowman]);
-        this.stopOnAttack = true; // 弓兵攻击时必须站桩
     }
 }

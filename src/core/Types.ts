@@ -42,7 +42,7 @@ export enum BuildingType {
 export type ResourceType = 'food' | 'wood' | 'gold' | 'stone';
 
 // 战术姿态
-export type StanceType = 'defend' | 'hold' | 'attack';
+export type StanceType = 'defend' | 'hold' | 'attack' | 'move';
 
 // === 接口定义 ===
 

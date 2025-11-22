@@ -7,10 +7,10 @@ import { UNIT_CONFIG } from "../data/UnitConfig";
 
 export class CombatSystem {
     private game: Game;
-    
+
     // 定义箭矢飞行时间 (ms) = (1 / speed) * TICK_RATE
     // 1 / 0.25 * 100 = 400ms
-    private readonly ARROW_FLIGHT_TIME = 400; 
+    private readonly ARROW_FLIGHT_TIME = 400;
     private readonly ARROW_SPEED = 0.25;
 
     constructor(game: Game) {
@@ -27,23 +27,33 @@ export class CombatSystem {
     private processFaction(friendFaction: any, enemyFaction: any, dir: number) {
         const friends = [...friendFaction.units];
         const stance = dir === 1 ? this.game.playerStance : this.game.enemyStance;
-        
-        if (stance === 'attack') {
+
+        // 排序：进攻/前进模式靠前的先动，防守模式靠后的先动
+        if (stance === 'attack' || stance === 'move') {
             friends.sort((a, b) => dir === 1 ? b.pos - a.pos : a.pos - b.pos);
         } else {
             friends.sort((a, b) => dir === 1 ? a.pos - b.pos : b.pos - a.pos);
         }
 
-        const enemies = [...enemyFaction.units]; 
+        const enemies = [...enemyFaction.units];
 
         friends.forEach((u, i) => {
+            // 1. 尝试战斗
             const hasTarget = this.handleCombat(u, enemies, enemyFaction, dir);
-            
-            if (!(u.stopOnAttack && u.state === 'attack')) {
+
+            // 2. 尝试移动
+            // === 核心重构：基于 canMoveAttack 判断是否需要停下 ===
+            const uConfig = UNIT_CONFIG[u.type];
+
+            // 如果 (正在攻击 且 无法移动攻击)，则必须停下 (禁止进入移动逻辑)
+            const mustStop = u.state === 'attack' && !uConfig.canMoveAttack;
+
+            if (!mustStop) {
                 const laneFriends = friends.filter(f => f.lane === u.lane);
                 const laneIndex = laneFriends.findIndex(f => f.id === u.id);
                 this.handleMovement(u, laneFriends, enemies, laneIndex, dir, stance);
             }
+            // ==================================================
         });
     }
 
@@ -52,8 +62,20 @@ export class CombatSystem {
         if (u.attackCooldown > 0) u.attackCooldown--;
 
         const uConfig = UNIT_CONFIG[u.type];
-        const attackType = uConfig.attackType || 'melee'; 
+        const attackType = uConfig.attackType || 'melee';
         const isMeleeUnit = attackType === 'melee';
+
+        const stance = dir === 1 ? this.game.playerStance : this.game.enemyStance;
+
+        // === Move 模式逻辑 ===
+        // 如果是前进模式，且单位不支持移动攻击（如弓箭手），强制放弃索敌
+        // 这样它就不会进入 attack 状态，从而在 processFaction 里可以继续移动
+        if (stance === 'move') {
+            if (!uConfig.canMoveAttack) {
+                u.state = 'move';
+                return false;
+            }
+        }
 
         const enemyBasePos = dir === 1 ? CONSTANTS.ENEMY_BASE_POS : CONSTANTS.PLAYER_BASE_POS;
         const enemyBaseEdge = enemyBasePos - (dir * CONSTANTS.BASE_WIDTH / 2);
@@ -82,7 +104,7 @@ export class CombatSystem {
             u.targetId = target === "base" ? "base" : target.id;
 
             if (u.attackCooldown <= 0) {
-                u.attackCooldown = uConfig.cooldown || 15; 
+                u.attackCooldown = uConfig.cooldown || 15;
                 u.attackAnimTimer = 3;
 
                 let dmg = u.damage;
@@ -90,17 +112,16 @@ export class CombatSystem {
                     dmg += u.getBonusDamage(target.tags);
                 }
 
-                // 生成弹道
                 if (!isMeleeUnit) {
                     this.createProjectile(u, target, dir, u.owner === FactionType.Player ? '#8b5cf6' : '#a855f7');
                 }
 
-                // 伤害计算
                 let actualDmg = 0;
                 let hitPos = 0;
                 let color = '';
 
                 if (target === "base") {
+                    // 基地远程防御 50
                     const baseDef = (attackType === 'ranged') ? 50 : 2;
                     actualDmg = Math.max(1, dmg - baseDef);
                     enemyFaction.baseHp -= actualDmg;
@@ -114,19 +135,13 @@ export class CombatSystem {
                     color = CONSTANTS.COLORS.TEXT_FLOAT_DMG;
                 }
 
-                // === 修复核心：如果是远程，延迟显示伤害数字 ===
                 if (isMeleeUnit) {
-                    // 近战：立刻显示
                     Helpers.spawnFloater(hitPos, `-${actualDmg}`, color);
                 } else {
-                    // 远程：等待箭矢飞行时间后显示，以此在视觉上“骗”过玩家
                     setTimeout(() => {
-                        // 简单的存活检查：如果目标位置太离谱（比如死了被移除），飘字可能不准确，
-                        // 但对于 RTS 来说，飘在死亡地点也是可以接受的
                         Helpers.spawnFloater(hitPos, `-${actualDmg}`, color);
                     }, this.ARROW_FLIGHT_TIME);
                 }
-                // ==========================================
             }
             return true;
         } else {
@@ -136,27 +151,27 @@ export class CombatSystem {
     }
 
     private createProjectile(u: Unit, target: Unit | "base", dir: number, color: string) {
-        const w = this.game.worldWidth; 
-        const h = document.getElementById('gameCanvas')?.offsetHeight || 600; 
+        const w = this.game.worldWidth;
+        const h = document.getElementById('gameCanvas')?.offsetHeight || 600;
 
         const startX = (u.pos / 100) * w;
-        const startY = u.lane === 1 ? (h/2 - 20) : (h/2 + 20);
+        const startY = u.lane === 1 ? (h / 2 - 20) : (h / 2 + 20);
 
         let endX = 0;
         let endY = 0;
 
         if (target === "base") {
             const enemyBasePos = dir === 1 ? CONSTANTS.ENEMY_BASE_POS : CONSTANTS.PLAYER_BASE_POS;
-            endX = (enemyBasePos / 100) * w; 
-            endY = h/2; 
+            endX = (enemyBasePos / 100) * w;
+            endY = h / 2;
         } else {
             endX = (target.pos / 100) * w;
-            endY = target.lane === 1 ? (h/2 - 20) : (h/2 + 20);
+            endY = target.lane === 1 ? (h / 2 - 20) : (h / 2 + 20);
         }
 
         const midX = (startX + endX) / 2;
         const distance = Math.abs(endX - startX);
-        const arcHeight = Math.max(30, distance * 0.3); 
+        const arcHeight = Math.max(30, distance * 0.3);
         const midY = Math.min(startY, endY) - arcHeight;
 
         this.game.projectiles.push({
@@ -164,9 +179,9 @@ export class CombatSystem {
             p1: { x: midX, y: midY },
             p2: { x: endX, y: endY },
             progress: 0,
-            speed: this.ARROW_SPEED, // 0.25 -> 400ms
+            speed: this.ARROW_SPEED,
             color: color,
-            trailLength: 0.15 
+            trailLength: 0.15
         });
     }
 
@@ -175,8 +190,8 @@ export class CombatSystem {
         const myBaseEdge = myBaseCenter + (dir * CONSTANTS.BASE_WIDTH / 2);
 
         if (!u.isDeployed) {
-            if ((dir === 1 && u.pos > myBaseEdge + u.width/2) || 
-                (dir === -1 && u.pos < myBaseEdge - u.width/2)) {
+            if ((dir === 1 && u.pos > myBaseEdge + u.width / 2) ||
+                (dir === -1 && u.pos < myBaseEdge - u.width / 2)) {
                 u.isDeployed = true;
             }
         }
@@ -184,7 +199,7 @@ export class CombatSystem {
         let nextPos = u.pos;
         const speed = u.speed * dir;
 
-        if (stance === 'attack') {
+        if (stance === 'attack' || stance === 'move') {
             nextPos += speed;
             if (index > 0) {
                 const friend = friends[index - 1];
@@ -193,12 +208,12 @@ export class CombatSystem {
             }
             const enemiesInLane = enemies.filter(e => e.lane === u.lane);
             if (enemiesInLane.length > 0) {
-                 const nearestEnemy = enemiesInLane.sort((a,b) => Math.abs(u.pos - a.pos) - Math.abs(u.pos - b.pos))[0];
-                 const limit = nearestEnemy.pos - (dir * (u.width + 0.1)); 
-                 if (dir === 1 ? nextPos > limit : nextPos < limit) nextPos = limit;
+                const nearestEnemy = enemiesInLane.sort((a, b) => Math.abs(u.pos - a.pos) - Math.abs(u.pos - b.pos))[0];
+                const limit = nearestEnemy.pos - (dir * (u.width + 0.1));
+                if (dir === 1 ? nextPos > limit : nextPos < limit) nextPos = limit;
             }
             const enemyBaseCenter = dir === 1 ? CONSTANTS.ENEMY_BASE_POS : CONSTANTS.PLAYER_BASE_POS;
-            const attackLimit = enemyBaseCenter - (dir * (CONSTANTS.BASE_WIDTH/2 + u.width/2)); 
+            const attackLimit = enemyBaseCenter - (dir * (CONSTANTS.BASE_WIDTH / 2 + u.width / 2));
             if (dir === 1) {
                 if (nextPos > attackLimit) nextPos = attackLimit;
             } else {
@@ -206,12 +221,12 @@ export class CombatSystem {
             }
         } else if (stance === 'defend') {
             nextPos -= speed;
-            const wallLimit = myBaseCenter + (dir * (CONSTANTS.BASE_WIDTH/2 + u.width/2));
-            if (dir === 1) { 
+            const wallLimit = myBaseCenter + (dir * (CONSTANTS.BASE_WIDTH / 2 + u.width / 2));
+            if (dir === 1) {
                 let limit = u.isDeployed ? wallLimit : myBaseCenter;
                 if (index > 0) limit = Math.max(limit, friends[index - 1].pos + u.width);
                 if (nextPos < limit) nextPos = limit;
-            } else { 
+            } else {
                 let limit = u.isDeployed ? wallLimit : myBaseCenter;
                 if (index > 0) limit = Math.min(limit, friends[index - 1].pos - u.width);
                 if (nextPos > limit) nextPos = limit;
@@ -226,7 +241,7 @@ export class CombatSystem {
             deadUnits.forEach(u => {
                 if (u.tags.includes(UnitTag.Worker)) {
                     f.totalWorkers--;
-                    f.workers['food']--; 
+                    f.workers['food']--;
                     if (f.workers['food'] < 0) f.workers['food'] = 0;
                 } else {
                     f.armyCount--;
@@ -241,30 +256,31 @@ export class CombatSystem {
 
     private processTurrets() {
         [this.game.player, this.game.enemy].forEach(f => {
+            if (!f.hasTurret) return;
             if (f.turretCooldown > 0) { f.turretCooldown--; return; }
-            
+
             const enemies = f === this.game.player ? this.game.enemy.units : this.game.player.units;
             const turretPos = f === this.game.player ? CONSTANTS.PLAYER_BASE_POS : CONSTANTS.ENEMY_BASE_POS;
-            const range = 15;
+            const range = 15; // 炮台射程 15
 
             const targets = enemies.filter(e => Math.abs(e.pos - turretPos) <= range);
             if (targets.length > 0) {
-                f.turretCooldown = 8; 
+                f.turretCooldown = 8;
                 const shotCount = Math.min(targets.length, 3);
-                for(let i=0; i<shotCount; i++) {
-                    const t = targets[Math.floor(Math.random()*targets.length)];
+                for (let i = 0; i < shotCount; i++) {
+                    const t = targets[Math.floor(Math.random() * targets.length)];
                     const dmg = UNIT_CONFIG[UnitType.Spearman].damage * 1.5;
                     const actualDmg = Math.max(1, dmg - t.def_r);
                     t.hp -= actualDmg;
-                    
+
                     const w = this.game.worldWidth;
                     const h = document.getElementById('gameCanvas')?.offsetHeight || 600;
                     const startX = (turretPos / 100) * w;
-                    const startY = h/2 - 45; 
-                    
+                    const startY = h / 2 - 45;
+
                     const endX = (t.pos / 100) * w;
-                    const endY = t.lane === 1 ? (h/2 - 20) : (h/2 + 20);
-                    
+                    const endY = t.lane === 1 ? (h / 2 - 20) : (h / 2 + 20);
+
                     const midX = (startX + endX) / 2;
                     const distance = Math.abs(endX - startX);
                     const arcHeight = Math.max(30, distance * 0.3);
@@ -275,16 +291,14 @@ export class CombatSystem {
                         p1: { x: midX, y: midY },
                         p2: { x: endX, y: endY },
                         progress: 0,
-                        speed: this.ARROW_SPEED, // 同样使用 0.25 
+                        speed: this.ARROW_SPEED,
                         color: f === this.game.player ? '#60a5fa' : '#f87171',
                         trailLength: 0.2
                     });
 
-                    // === 修复核心：炮台攻击也延迟显示 ===
                     setTimeout(() => {
                         Helpers.spawnFloater(t.pos, `-${actualDmg.toFixed(1)}`, '#f0f');
                     }, this.ARROW_FLIGHT_TIME);
-                    // =================================
                 }
             }
         });
