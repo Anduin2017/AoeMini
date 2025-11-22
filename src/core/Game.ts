@@ -1,28 +1,27 @@
 import { Faction } from "./Faction";
-import { FactionType, Projectile, StanceType } from "./Types";
+import { FactionType, Projectile, StanceType, BuildingType } from "./Types";
 import { Renderer } from "./Renderer";
 import { Loop } from "./Loop";
 import { CombatSystem } from "../systems/CombatSystem";
 import { EconomySystem } from "../systems/EconomySystem";
 import { AISystem } from "../systems/AISystem";
 import { UIManager } from "../ui/UIManager";
-import { TownCenter } from "../entities/buildings/ConcreteBuildings"; 
-import { BuildingType } from "./Types"; 
+import { TownCenter } from "../entities/buildings/ConcreteBuildings";
 
 export class Game {
     public player: Faction;
     public enemy: Faction;
     public tickCount: number = 0;
     public gameOver: boolean = false;
-    public isInstantBuild: boolean = false;
-    
+    public isInstantBuild: boolean = false; // 作弊标记
+
     public projectiles: Projectile[] = [];
     public worldWidth: number = 0;
-    public baseWidthPct: number = 6; 
+    public baseWidthPct: number = 6;
 
     public renderer: Renderer;
     public loop: Loop;
-    
+
     public combatSystem: CombatSystem;
     public economySystem: EconomySystem;
     public aiSystem: AISystem;
@@ -37,7 +36,7 @@ export class Game {
     constructor() {
         this.player = new Faction(FactionType.Player);
         this.enemy = new Faction(FactionType.Enemy);
-        
+
         this.player.buildings.push(new TownCenter("p-tc", FactionType.Player));
         this.enemy.buildings.push(new TownCenter("e-tc", FactionType.Enemy));
 
@@ -52,38 +51,51 @@ export class Game {
         this.loop.start();
         (window as any).game = this;
 
+        // AI 调试
         setInterval(() => this.debugAI(), 3000);
     }
 
     public update() {
         if (this.gameOver) return;
-        
+
         this.tickCount++;
 
         this.economySystem.update();
         this.aiSystem.update();
         this.combatSystem.update();
-        
-        this.uiManager.update();
-        
-        // === 修复核心：这里漏掉了让子弹飞的代码！ ===
-        this.projectiles.forEach(p => {
-            p.progress += p.speed; // 让进度条动起来！
-        });
-        // ==========================================
 
-        // 移除已经飞完的
+        this.uiManager.update();
+
+        // 更新投射物
+        this.projectiles.forEach(p => {
+            p.progress += p.speed;
+        });
         this.projectiles = this.projectiles.filter(p => p.progress < 1);
-        
+
         this.renderer.draw();
     }
 
-    public endGame(isVictory: boolean) {
+    // === 核心修复：接收消息并更新 UI ===
+    public endGame(isVictory: boolean, message: string) {
         this.gameOver = true;
         this.loop.stop();
+
         const el = document.getElementById('game-over')!;
         el.style.display = 'flex';
-        document.getElementById('end-title')!.innerText = isVictory ? "VICTORY" : "DEFEAT";
+
+        const titleEl = document.getElementById('end-title')!;
+        const reasonEl = document.getElementById('end-reason')!;
+
+        if (isVictory) {
+            titleEl.innerText = "VICTORY";
+            // 使用 style.css 中的工具类
+            titleEl.className = "text-5xl font-bold mb-4 text-green-500";
+        } else {
+            titleEl.innerText = "DEFEAT";
+            titleEl.className = "text-5xl font-bold mb-4 text-red-500";
+        }
+
+        reasonEl.innerText = message;
     }
 
     private debugAI() {

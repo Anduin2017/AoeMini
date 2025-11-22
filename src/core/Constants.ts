@@ -1,5 +1,5 @@
 export const CONSTANTS = {
-    TICK_RATE: 100,
+    TICK_RATE: 80,
     MAX_QUEUE_SIZE: 5,
     MAX_TOTAL_POP: 200,
 
