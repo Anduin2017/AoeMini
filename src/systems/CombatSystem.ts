@@ -101,7 +101,7 @@ export class CombatSystem {
                 let color = '';
 
                 if (target === "base") {
-                    const baseDef = 2; 
+                    const baseDef = (attackType === 'ranged') ? 50 : 2;
                     actualDmg = Math.max(1, dmg - baseDef);
                     enemyFaction.baseHp -= actualDmg;
                     hitPos = enemyBaseEdge;
@@ -241,12 +241,11 @@ export class CombatSystem {
 
     private processTurrets() {
         [this.game.player, this.game.enemy].forEach(f => {
-            if (!f.hasTurret) return;
             if (f.turretCooldown > 0) { f.turretCooldown--; return; }
             
             const enemies = f === this.game.player ? this.game.enemy.units : this.game.player.units;
             const turretPos = f === this.game.player ? CONSTANTS.PLAYER_BASE_POS : CONSTANTS.ENEMY_BASE_POS;
-            const range = 12;
+            const range = 15;
 
             const targets = enemies.filter(e => Math.abs(e.pos - turretPos) <= range);
             if (targets.length > 0) {

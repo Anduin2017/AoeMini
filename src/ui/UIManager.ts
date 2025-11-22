@@ -65,7 +65,7 @@ export class UIManager {
         });
     }
     
-private handleTooltip(e: MouseEvent) {
+    private handleTooltip(e: MouseEvent) {
         if (this.game.gameOver) return;
         
         const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -136,9 +136,9 @@ private handleTooltip(e: MouseEvent) {
             // 精确显示当前血量
             html += `<div class="tt-row"><span>❤️ 生命:</span> <span>${Math.ceil(foundBase.baseHp)}/${CONSTANTS.BASE_HP}</span></div>`;
             html += `<div class="tt-row"><span>🛡️ 近战防御:</span> <span>2</span></div>`;
-            html += `<div class="tt-row"><span>🎯 远程防御:</span> <span>2</span></div>`;
+            html += `<div class="tt-row"><span>🎯 远程防御:</span> <span>50</span></div>`;
             html += `<div class="tt-row"><span>⚔️ 炮台伤害:</span> <span>${turretDmg}</span></div>`;
-            html += `<div class="tt-row"><span>🏹 炮台射程:</span> <span>12</span></div>`;
+            html += `<div class="tt-row"><span>🏹 炮台射程:</span> <span>15</span></div>`;
             
             tt.innerHTML = html;
             tt.style.left = (e.clientX + 15) + 'px'; 
