@@ -264,8 +264,8 @@ export class CombatSystem {
 
             const targets = enemies.filter(e => Math.abs(e.pos - turretPos) <= range);
             if (targets.length > 0) {
-                f.turretCooldown = 8;
-                const shotCount = Math.min(targets.length, 3);
+                f.turretCooldown = 32;
+                const shotCount = Math.min(targets.length, 2);
                 for (let i = 0; i < shotCount; i++) {
                     const t = targets[Math.floor(Math.random() * targets.length)];
                     const dmg = UNIT_CONFIG[UnitType.Spearman].damage * 1.5;
