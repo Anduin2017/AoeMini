@@ -1,0 +1,23 @@
+{
+  "name": "ageofempiresminimal",
+  "version": "1.0.0",
+  "description": "> 一个基于 HTML5 Canvas 的极简即时战略（RTS）网页游戏。 > 无需安装，单文件运行，致敬经典的《帝国时代》核心玩法。",
+  "main": "index.js",
+  "author": "anduin@aiursoft.com",
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@gitlab.aiursoft.com:2202/anduin/aoemini.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0",
+    "tailwindcss": "^3.4.0"
+  },
+  "license": "MIT"
+}
