@@ -5,6 +5,7 @@ declare global {
         game: Game;
         show_me_the_money: () => void;
         operation_cwal: () => void; // 新增类型声明
+        let_ai_control_me: () => void;
     }
 }
 
@@ -28,8 +29,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // 3. AI 托管秘籍
+    window.let_ai_control_me = () => {
+        if (game) {
+            if (game.isAIControllingPlayer) {
+                console.warn("⚠️ AI is already controlling you!");
+            } else {
+                game.isAIControllingPlayer = true;
+                console.log("🤖 AI Control ENABLED: Sit back and relax!");
+            }
+        }
+    };
+
     console.log("Minimalist Empire Engine Started!");
     console.log("Cheats:");
     console.log("  - show_me_the_money(): Get resources");
     console.log("  - operation_cwal(): Instant build/research");
+    console.log("  - let_ai_control_me(): Enable AI auto-play");
 });

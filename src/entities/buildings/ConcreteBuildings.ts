@@ -7,6 +7,8 @@ export class House extends Building {
     constructor(id: number | string, owner: FactionType) {
         super(id, BuildingType.House, owner);
     }
+
+    public get isGroupable(): boolean { return true; }
     // House has no menu options
 }
 

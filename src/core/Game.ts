@@ -14,6 +14,7 @@ export class Game {
     public tickCount: number = 0;
     public gameOver: boolean = false;
     public isInstantBuild: boolean = false; // 作弊标记
+    public isAIControllingPlayer: boolean = false; // AI 托管标记
 
     public projectiles: Projectile[] = [];
     public worldWidth: number = 0;
