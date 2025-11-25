@@ -13,8 +13,9 @@ export class DockRenderer {
         [BuildingType.TownCenter]: 1,
         [BuildingType.Barracks]: 2,
         [BuildingType.ArcheryRange]: 3,
-        [BuildingType.Blacksmith]: 4,
-        [BuildingType.House]: 5
+        [BuildingType.Stable]: 4,
+        [BuildingType.Blacksmith]: 5,
+        [BuildingType.House]: 6
     };
 
     constructor(game: Game) {
@@ -43,25 +44,25 @@ export class DockRenderer {
             if (b.isGroupable) {
                 houses.push(b);
             } else {
-                dockItems.set(b.id, { 
+                dockItems.set(b.id, {
                     id: b.id, type: 'building', entity: b, origin: b,
-                    queue: b.queue, isConstruction: false, sortType: b.type 
+                    queue: b.queue, isConstruction: false, sortType: b.type
                 });
             }
         });
 
         if (houses.length > 0) {
-            dockItems.set('group-house', { 
-                id: 'group-house', type: 'group', entity: houses, 
-                icon: '🏠', sortType: BuildingType.House 
+            dockItems.set('group-house', {
+                id: 'group-house', type: 'group', entity: houses,
+                icon: '🏠', sortType: BuildingType.House
             });
         }
 
         p.constructions.forEach(c => {
-            dockItems.set(`const-${c.id}`, { 
+            dockItems.set(`const-${c.id}`, {
                 id: `const-${c.id}`, type: 'construction', entity: c, origin: c,
                 isConstruction: true, ticksLeft: c.ticksLeft, totalTicks: c.totalTicks,
-                sortType: c.type 
+                sortType: c.type
             });
         });
 
@@ -70,7 +71,7 @@ export class DockRenderer {
             const scoreA = DockRenderer.SORT_ORDER[a.sortType] || 99;
             const scoreB = DockRenderer.SORT_ORDER[b.sortType] || 99;
             if (scoreA !== scoreB) return scoreA - scoreB;
-            if (a.isConstruction !== b.isConstruction) return a.isConstruction ? 1 : -1; 
+            if (a.isConstruction !== b.isConstruction) return a.isConstruction ? 1 : -1;
             return a.id > b.id ? 1 : -1;
         });
 
@@ -86,7 +87,7 @@ export class DockRenderer {
 
         // 4. === 关键优化：Diff & Patch (仅在位置不对时移动) ===
         // 我们遍历排序后的数据，并依次检查 DOM 的对应位置
-        
+
         let domIndex = 0; // 当前应该在 DOM 中的位置索引
 
         sortedItems.forEach(item => {
@@ -104,7 +105,7 @@ export class DockRenderer {
             } else {
                 // 如果图标已存在，检查位置是否正确
                 const currentChildAtPos = this.dockEl.children[domIndex];
-                
+
                 // 如果当前位置的元素不是我们想要的 icon，说明顺序不对，需要移动
                 if (currentChildAtPos !== icon) {
                     this.dockEl.insertBefore(icon, currentChildAtPos || null);
@@ -127,7 +128,7 @@ export class DockRenderer {
             if (this.dockEl.lastElementChild !== this.buildBtn) {
                 this.dockEl.appendChild(this.buildBtn);
             }
-            
+
             this.buildBtn.onclick = () => onClickCallback('build_menu', { type: 'menu' });
             if (activeId === 'build_menu') this.buildBtn.classList.add('active');
             else this.buildBtn.classList.remove('active');
@@ -164,13 +165,13 @@ export class DockRenderer {
             const pct = Math.floor(100 - (item.ticksLeft / item.totalTicks * 100));
             fill.style.width = pct + '%';
             fill.style.backgroundColor = '#eab308';
-            
+
             if (overlay) {
                 overlay.style.display = 'flex';
                 overlay.innerText = `${pct}%`;
             }
             badge.style.display = 'none';
-            icon.style.pointerEvents = 'none'; 
+            icon.style.pointerEvents = 'none';
 
         } else {
             icon.style.pointerEvents = 'auto';
@@ -189,7 +190,7 @@ export class DockRenderer {
                     const q = b.queue[0];
                     const pct = (100 - (q.ticksLeft / q.totalTicks * 100));
                     fill.style.width = pct + '%';
-                    
+
                     if (q.ticksLeft <= 0.2) fill.style.backgroundColor = '#ef4444';
                     else if (TECH_CONFIG[q.type] || q.type === 'turret_tech') fill.style.backgroundColor = '#22c55e';
                     else fill.style.backgroundColor = '#3b82f6';
