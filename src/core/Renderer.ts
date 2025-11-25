@@ -67,10 +67,11 @@ export class Renderer {
             const laneY = h / 2 + laneOffset;
             // ==========================================
 
-            // 阴影
-            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            // 阴影 (改为阵营颜色)
+            const shadowColor = u.owner === FactionType.Player ? 'rgba(59, 130, 246, 0.6)' : 'rgba(239, 68, 68, 0.6)';
+            this.ctx.fillStyle = shadowColor;
             this.ctx.beginPath();
-            this.ctx.ellipse(x, laneY - 2, 6, 3, 0, 0, Math.PI * 2);
+            this.ctx.ellipse(x, laneY - 2, 8, 4, 0, 0, Math.PI * 2); // 稍微加大一点
             this.ctx.fill();
 
             // 单位主体
@@ -81,10 +82,7 @@ export class Renderer {
                 this.ctx.textAlign = 'center';
                 this.ctx.textBaseline = 'middle';
 
-                // 翻转处理：如果是玩家（向右），保持原样；如果是敌人（向左），可能需要翻转？
-                // Emoji 通常朝左，所以玩家(dir=1)可能需要 scale(-1, 1)
-                // 但大部分 Emoji 是正面的或朝左的。
-                // 让我们简单点，先直接画。
+                // (移除之前的 drop-shadow filter)
 
                 this.ctx.save();
 
@@ -113,7 +111,8 @@ export class Renderer {
                 } else {
                     this.ctx.fillText(uConfig.visual.value, x, laneY - 10);
                 }
-                this.ctx.restore();
+
+                this.ctx.restore(); // restore 会自动重置 filter
             } else {
                 // Fallback for unknown visuals
                 this.ctx.fillStyle = u.owner === FactionType.Player ? CONSTANTS.COLORS.PLAYER : CONSTANTS.COLORS.ENEMY;
