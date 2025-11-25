@@ -194,9 +194,8 @@ export class CombatSystem {
             const enemyBaseCenter = dir === 1 ? CONSTANTS.ENEMY_BASE_POS : CONSTANTS.PLAYER_BASE_POS;
             const enemyBaseEdge = enemyBaseCenter - (dir * CONSTANTS.BASE_WIDTH / 2);
 
-            // Advance: 冲到基地中心 (Center)
-            // Attack: 停在城门口 (Edge)
-            const baseLimit = stance === 'advance' ? enemyBaseCenter : enemyBaseEdge;
+            // Advance/Attack: 都应该停在城门口 (Edge)，不能穿模进基地
+            const baseLimit = enemyBaseEdge;
             const finalLimit = baseLimit - (dir * u.width / 2); // 减去半身位
 
             if (dir === 1) {
@@ -211,9 +210,9 @@ export class CombatSystem {
 
             const wallEdge = myBaseCenter + (dir * CONSTANTS.BASE_WIDTH / 2);
 
-            // Retreat: 退回基地中心 (Center)
-            // Defend: 停在城门口 (Edge)
-            const baseLimit = stance === 'retreat' ? myBaseCenter : wallEdge;
+            // Retreat: 如果未部署(在基地内)，可以退回中心；如果已部署(在外面)，只能退到门口
+            // Defend: 停在城门口
+            const baseLimit = (stance === 'retreat' && !u.isDeployed) ? myBaseCenter : wallEdge;
             const finalLimit = baseLimit + (dir * u.width / 2); // 加上半身位
 
             if (dir === 1) {
