@@ -30,7 +30,7 @@ export class Renderer {
         this.game.worldWidth = w;
     }
 
-    public draw() {
+    public draw(alpha: number = 1) {
         const w = this.canvas.width;
         const h = this.canvas.height;
 
@@ -60,7 +60,10 @@ export class Renderer {
         allUnits.sort((a, b) => a.lane - b.lane);
 
         for (const u of allUnits) {
-            const x = (u.pos / 100) * w;
+            // === 核心修正：使用插值计算渲染位置 ===
+            // renderPos = prevPos + (currPos - prevPos) * alpha
+            const renderPos = u.prevPos + (u.pos - u.prevPos) * alpha;
+            const x = (renderPos / 100) * w;
 
             // === 核心修正：使用配置表获取轨道 Y 轴偏移 ===
             const laneOffset = CONSTANTS.LANE_CONFIG[u.lane] || 0;

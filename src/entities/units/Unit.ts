@@ -22,9 +22,11 @@ export abstract class Unit extends Entity {
     public maxAttackCooldown: number = 15; // 默认值
     public attackAnimTimer: number = 0;
     public isDeployed: boolean = false;   // 是否已走出城镇中心
+    public prevPos: number = 0; // 上一帧位置 (用于插值)
 
     constructor(id: number, type: string, owner: FactionType, pos: number) {
         super(id, type, owner, pos);
+        this.prevPos = pos;
     }
 
     // 获取对某个标签的攻击加成 (将在 Phase 3 的具体兵种中覆盖)

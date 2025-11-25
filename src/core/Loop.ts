@@ -14,22 +14,37 @@ export class Loop {
         if (this.isRunning) return;
         this.isRunning = true;
 
-        // 逻辑循环 (固定 Tick Rate)
-        this.intervalId = setInterval(() => {
-            this.game.update();
-        }, CONSTANTS.TICK_RATE);
+        let lastTime = performance.now();
+        let accumulator = 0;
+        const step = CONSTANTS.TICK_RATE; // 80ms
 
-        // 渲染循环 (依赖屏幕刷新率)
-        const animate = () => {
+        const loop = (currentTime: number) => {
             if (!this.isRunning) return;
-            this.game.renderer.draw(); // 强制重绘，保证流畅度
-            requestAnimationFrame(animate);
+
+            const dt = currentTime - lastTime;
+            lastTime = currentTime;
+            accumulator += dt;
+
+            // 螺旋死亡保护：如果 dt 太大（比如切后台回来），限制最大循环次数
+            if (accumulator > 1000) accumulator = 1000;
+
+            while (accumulator >= step) {
+                this.game.update(); // 逻辑更新 (固定步长)
+                accumulator -= step;
+            }
+
+            // 计算插值系数 alpha (0 ~ 1)
+            const alpha = accumulator / step;
+            this.game.renderer.draw(alpha); // 渲染更新 (带插值)
+
+            this.intervalId = requestAnimationFrame(loop);
         };
-        requestAnimationFrame(animate);
+
+        this.intervalId = requestAnimationFrame(loop);
     }
 
     public stop() {
         this.isRunning = false;
-        clearInterval(this.intervalId);
+        cancelAnimationFrame(this.intervalId);
     }
 }

@@ -40,6 +40,10 @@ export class CombatSystem {
 
         const enemies = [...enemyFaction.units];
 
+        // === 核心修正：插值前置处理 ===
+        // 在每一帧逻辑开始前，记录当前位置为 prevPos
+        friends.forEach(u => u.prevPos = u.pos);
+
         friends.forEach((u, i) => {
             // 尝试战斗
             this.handleCombat(u, enemies, enemyFaction, dir);
