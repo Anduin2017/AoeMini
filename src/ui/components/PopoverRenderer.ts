@@ -19,13 +19,15 @@ export class PopoverRenderer {
         this.container.style.display = 'none';
     }
 
-    public render(activeId: string, triggerElId: string) {
+    public render(activeId: string | number, triggerElId: string) {
         this.container.style.display = 'flex';
         this.setPosition(triggerElId);
 
-        if (activeId === 'build_menu') {
+        const idStr = String(activeId);
+
+        if (idStr === 'build_menu') {
             this.renderBuildMenu();
-        } else if (activeId.startsWith('group')) {
+        } else if (idStr.startsWith('group')) {
             // 简单处理房屋组
             // 实际项目中可以传入 group data，这里简化直接找
             const houses = this.game.player.buildings.filter(b => b.isGroupable) as House[];
@@ -39,8 +41,9 @@ export class PopoverRenderer {
     }
 
     // === 实时刷新状态 (进度文字、按钮置灰) ===
-    public updateStatus(activeId: string) {
+    public updateStatus(activeId: string | number) {
         const p = this.game.player;
+        const idStr = String(activeId);
 
         // 1. 按钮置灰
         this.container.querySelectorAll('.menu-btn').forEach((btn: any) => {
@@ -59,7 +62,7 @@ export class PopoverRenderer {
         });
 
         // 2. 建筑状态文本
-        if (activeId !== 'build_menu' && !activeId.startsWith('group')) {
+        if (idStr !== 'build_menu' && !idStr.startsWith('group')) {
             const b = p.buildings.find(x => x.id === activeId);
             if (b) {
                 const statusEl = document.getElementById('popover-status-text');

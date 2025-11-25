@@ -94,13 +94,21 @@ export class AISystem {
             }
         }
 
-        // 3.5 [优先级 5] 铁匠铺升级
+        // 3.5 [优先级 5] 建造铁匠铺 (如果军队数量 > 8 且没有铁匠铺)
+        const hasBlacksmith = me.buildings.some((b: any) => b.type === BuildingType.Blacksmith) ||
+            me.constructions.some((c: any) => c.type === BuildingType.Blacksmith);
+
+        if (me.armyCount > 8 && !hasBlacksmith) {
+            this.tryBuild(me, BuildingType.Blacksmith);
+        }
+
+        // 3.6 [优先级 6] 铁匠铺升级
         const blacksmith = me.buildings.find((b: any) => b.type === BuildingType.Blacksmith);
         if (blacksmith && blacksmith.queue.length === 0) {
             this.tryUpgradeTech(me, blacksmith);
         }
 
-        // 3.6 [优先级 6] 生产对应的兵
+        // 3.7 [优先级 7] 生产对应的兵
         if (prodBuildingType) {
             const buildings = me.buildings.filter((b: any) => b.type === prodBuildingType);
             buildings.forEach((b: any) => {
@@ -113,7 +121,7 @@ export class AISystem {
 
     // === 核心算法：克制分析 ===
     private getCounterUnit(playerUnits: any[]): UnitType {
-        if (playerUnits.length === 0) return UnitType.Longbowman; // 默认出长弓
+        if (playerUnits.length === 0) return UnitType.Spearman; // 默认出长枪
 
         // 1. 统计玩家兵种数量
         const counts: Record<string, number> = {};
