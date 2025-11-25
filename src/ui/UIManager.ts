@@ -31,9 +31,34 @@ export class UIManager {
             if (btn) {
                 btn.onclick = () => {
                     this.game.playerStance = s as any;
+                    // 同时更新所有 Lane 的姿态
+                    this.game.laneStances[0] = s as any;
+                    this.game.laneStances[1] = s as any;
+                    this.game.laneStances[2] = s as any;
                     this.updateStanceUI();
                 };
             }
+        });
+
+        // === 新增：Lane Toggle 逻辑 ===
+        const toggleBtn = document.getElementById('btn-lane-toggle');
+        const laneControls = document.getElementById('lane-controls');
+        if (toggleBtn && laneControls) {
+            toggleBtn.onclick = (e) => {
+                e.stopPropagation(); // 防止冒泡触发 document click
+                laneControls.classList.toggle('hidden');
+            };
+        }
+
+        // === 新增：Lane Button 逻辑 (Refactored) ===
+        const laneBtns = document.querySelectorAll('.lane-btn');
+        laneBtns.forEach((btn: any) => {
+            btn.onclick = () => {
+                const lane = parseInt(btn.dataset.lane);
+                const stance = btn.dataset.stance;
+                this.game.laneStances[lane] = stance;
+                this.checkGlobalStance();
+            };
         });
 
         // 资源
@@ -50,6 +75,10 @@ export class UIManager {
             // 如果点击的不是dock图标也不是菜单内部，就关闭
             if (!e.target.closest('.dock-icon') && !e.target.closest('.popover-menu')) {
                 this.closePopover();
+            }
+            // === 新增：点击外部关闭 Lane Controls ===
+            if (laneControls && !laneControls.classList.contains('hidden') && !e.target.closest('.lane-controls') && !e.target.closest('.lane-toggle-btn')) {
+                laneControls.classList.add('hidden');
             }
         });
     }
@@ -246,10 +275,46 @@ export class UIManager {
     }
 
     private updateStanceUI() {
+        // 1. 更新全局按钮高亮
+        // 只有当所有 Lane 姿态一致且等于全局姿态时，才高亮全局按钮
+        const isUniform = Object.values(this.game.laneStances).every(s => s === this.game.playerStance);
+
         ['retreat', 'defend', 'hold', 'attack', 'advance'].forEach(s => {
             const el = document.getElementById(`btn-stance-${s}`)!;
-            // 简单的空值检查，防止报错
-            if (el) el.className = `tactic-btn ${this.game.playerStance === s ? 'active' : ''}`;
+            if (el) {
+                if (isUniform && this.game.playerStance === s) {
+                    el.className = 'tactic-btn active';
+                } else {
+                    el.className = 'tactic-btn';
+                }
+            }
         });
+
+        // 2. 更新 Lane 按钮的高亮
+        const laneBtns = document.querySelectorAll('.lane-btn');
+        laneBtns.forEach((btn: any) => {
+            const lane = parseInt(btn.dataset.lane);
+            const stance = btn.dataset.stance;
+            if (this.game.laneStances[lane] === stance) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    private checkGlobalStance() {
+        const s0 = this.game.laneStances[0];
+        const s1 = this.game.laneStances[1];
+        const s2 = this.game.laneStances[2];
+
+        // 如果三个 Lane 姿态一致，则更新全局姿态并高亮对应按钮
+        if (s0 === s1 && s1 === s2) {
+            this.game.playerStance = s0;
+        } else {
+            // 否则，全局姿态设为一个特殊值或保持原样，但不高亮任何全局按钮
+            // 这里我们保持 playerStance 不变，但在 updateStanceUI 中处理高亮逻辑
+        }
+        this.updateStanceUI();
     }
 }

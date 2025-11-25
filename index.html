@@ -28,6 +28,39 @@
             <button id="btn-stance-hold" class="tactic-btn">✋ 待命</button>
             <button id="btn-stance-attack" class="tactic-btn active">⚔️ 进攻</button>
             <button id="btn-stance-advance" class="tactic-btn">🚀 前进</button>
+            <button id="btn-lane-toggle" class="tactic-btn lane-toggle-btn">▼</button>
+        </div>
+        <div id="lane-controls" class="lane-controls hidden">
+            <div class="lane-row">
+                <span class="lane-label">🏹 射手</span>
+                <div class="lane-btn-group">
+                    <button class="lane-btn" data-lane="1" data-stance="retreat">⏪</button>
+                    <button class="lane-btn" data-lane="1" data-stance="defend">🛡️</button>
+                    <button class="lane-btn" data-lane="1" data-stance="hold">✋</button>
+                    <button class="lane-btn active" data-lane="1" data-stance="attack">⚔️</button>
+                    <button class="lane-btn" data-lane="1" data-stance="advance">🚀</button>
+                </div>
+            </div>
+            <div class="lane-row">
+                <span class="lane-label">🐎 骑兵</span>
+                <div class="lane-btn-group">
+                    <button class="lane-btn" data-lane="2" data-stance="retreat">⏪</button>
+                    <button class="lane-btn" data-lane="2" data-stance="defend">🛡️</button>
+                    <button class="lane-btn" data-lane="2" data-stance="hold">✋</button>
+                    <button class="lane-btn active" data-lane="2" data-stance="attack">⚔️</button>
+                    <button class="lane-btn" data-lane="2" data-stance="advance">🚀</button>
+                </div>
+            </div>
+            <div class="lane-row">
+                <span class="lane-label">🛡️ 步兵</span>
+                <div class="lane-btn-group">
+                    <button class="lane-btn" data-lane="0" data-stance="retreat">⏪</button>
+                    <button class="lane-btn" data-lane="0" data-stance="defend">🛡️</button>
+                    <button class="lane-btn" data-lane="0" data-stance="hold">✋</button>
+                    <button class="lane-btn active" data-lane="0" data-stance="attack">⚔️</button>
+                    <button class="lane-btn" data-lane="0" data-stance="advance">🚀</button>
+                </div>
+            </div>
         </div>
         <canvas id="bgCanvas"></canvas>
         <canvas id="gameCanvas"></canvas>

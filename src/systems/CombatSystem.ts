@@ -25,18 +25,12 @@ export class CombatSystem {
     // 1. 调度逻辑
     private processFaction(friendFaction: any, enemyFaction: any, dir: number) {
         const friends = [...friendFaction.units];
-        const stance = dir === 1 ? this.game.playerStance : this.game.enemyStance;
+        // const stance = dir === 1 ? this.game.playerStance : this.game.enemyStance; // OLD
 
         // === 排序逻辑 ===
-        // 向右走 (进攻/前进)：靠右的先动
-        if (stance === 'attack' || stance === 'advance') {
-            friends.sort((a, b) => dir === 1 ? b.pos - a.pos : a.pos - b.pos);
-        }
-        // 向左走 (防御/撤退)：靠左的先动
-        else if (stance === 'defend' || stance === 'retreat') {
-            friends.sort((a, b) => dir === 1 ? a.pos - b.pos : b.pos - a.pos);
-        }
-        // 待命：不重要
+        // 简化：统一按进攻方向排序 (靠前的先动)
+        // 如果需要更精细的排序，需要对每个 Lane 单独排序，这里为了性能暂且统一
+        friends.sort((a, b) => dir === 1 ? b.pos - a.pos : a.pos - b.pos);
 
         const enemies = [...enemyFaction.units];
 
@@ -45,6 +39,10 @@ export class CombatSystem {
         friends.forEach(u => u.prevPos = u.pos);
 
         friends.forEach((u, i) => {
+            // === 获取当前单位的姿态 ===
+            // 玩家：使用 laneStances；电脑：使用全局 enemyStance
+            const stance = dir === 1 ? this.game.laneStances[u.lane] : this.game.enemyStance;
+
             // 尝试战斗
             this.handleCombat(u, enemies, enemyFaction, dir);
 
@@ -73,7 +71,7 @@ export class CombatSystem {
         const uConfig = UNIT_CONFIG[u.type];
         const attackType = uConfig.attackType || 'melee';
         const isMeleeUnit = attackType === 'melee';
-        const stance = dir === 1 ? this.game.playerStance : this.game.enemyStance;
+        const stance = dir === 1 ? this.game.laneStances[u.lane] : this.game.enemyStance;
 
         // === 强制移动逻辑 (Blind Move) ===
         // 如果是 [前进/撤退] 模式，且单位不支持移动攻击（如弓箭手）
@@ -222,20 +220,33 @@ export class CombatSystem {
             if (dir === 1) {
                 let limit = u.isDeployed ? finalLimit : myBaseCenter; // 未部署的永远可以回出生点
 
-                // 防守队列逻辑
-                if (index > 0) {
-                    const friend = friends[index - 1];
-                    // 防守时是向后排队，所以不能超过身后友军的位置 + 宽度
-                    const friendLimit = friend.pos + (dir * u.width);
-                    limit = Math.max(limit, friendLimit);
+                // 防守/撤退时，向左移动，应该检查左边的友军 (index + 1)
+                // 因为 friends 是按 pos 从大到小排序 (右到左)，所以 index+1 是左边的单位
+                if (index < friends.length - 1) {
+                    const friend = friends[index + 1];
+                    // 修正：friend.pos 是中心点。
+                    // 自身中心 nextPos 必须 >= friend.pos + friend.width/2 + u.width/2
+                    // 简化模型：假设 width 是全宽。
+                    // 碰撞条件：|posA - posB| >= (widthA + widthB)/2
+                    // friend 在左，u 在右。 nextPos >= friend.pos + (friend.width + u.width)/2
+
+                    // 让我们用更精确的计算：
+                    const spacing = (friend.width + u.width) / 2;
+                    limit = Math.max(limit, friend.pos + spacing);
                 }
 
                 if (nextPos < limit) nextPos = limit;
             } else {
                 let limit = u.isDeployed ? finalLimit : myBaseCenter;
-                if (index > 0) {
-                    const friend = friends[index - 1];
-                    const friendLimit = friend.pos + (dir * u.width);
+
+                // Enemy (dir = -1): Retreat moves Right.
+                // Friends sorted Ascending (Left to Right). [0] is Leftmost.
+                // Moving Right means moving towards [index + 1] (Right neighbor).
+                if (index < friends.length - 1) {
+                    const friend = friends[index + 1];
+                    // friend 在右，u 在左。 nextPos <= friend.pos - spacing
+                    const spacing = (friend.width + u.width) / 2;
+                    const friendLimit = friend.pos - spacing;
                     limit = Math.min(limit, friendLimit);
                 }
                 if (nextPos > limit) nextPos = limit;

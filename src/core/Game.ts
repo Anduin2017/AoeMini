@@ -29,6 +29,11 @@ export class Game {
 
     public playerStance: StanceType = 'attack';
     public enemyStance: StanceType = 'attack';
+    public laneStances: Record<number, StanceType> = {
+        0: 'attack', // Infantry
+        1: 'attack', // Ranged
+        2: 'attack'  // Cavalry
+    };
 
     private static entityIdCounter: number = 0;
     public static nextId(): number { return ++this.entityIdCounter; }
