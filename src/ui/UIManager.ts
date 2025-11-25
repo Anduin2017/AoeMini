@@ -83,7 +83,8 @@ export class UIManager {
         for (let i = allUnits.length - 1; i >= 0; i--) {
             const u = allUnits[i];
             const unitX = (u.pos / 100) * w;
-            const laneY = u.lane === 1 ? (h / 2 - 20) : (h / 2 + 20);
+            const laneOffset = CONSTANTS.LANE_CONFIG[u.lane] || 0;
+            const laneY = h / 2 + laneOffset;
             if (Math.abs(mx - unitX) < 15 && Math.abs(my - laneY) < 20) {
                 foundUnit = u; break;
             }

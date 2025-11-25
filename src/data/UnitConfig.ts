@@ -60,6 +60,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         range: 3.75, speed: 1.875,
         tags: [UnitTag.Cavalry, UnitTag.Melee, UnitTag.Light],
         label: '骑手', lane: 2, attackType: 'melee', attackSpeed: 1.75, canMoveAttack: true,
+        widthScale: 1.5,
         visual: { type: 'emoji', value: '🐎' }
     },
     [UnitType.Knight]: {
@@ -68,6 +69,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         range: 3.75, speed: 1.625,
         tags: [UnitTag.Cavalry, UnitTag.Melee, UnitTag.Heavy],
         label: '骑士', lane: 2, attackType: 'melee', attackSpeed: 1.5, canMoveAttack: true,
+        widthScale: 1.5,
         visual: { type: 'emoji', value: '🦁' }
     }
 };
