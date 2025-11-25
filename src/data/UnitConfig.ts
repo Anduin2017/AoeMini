@@ -75,7 +75,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Ranged, UnitTag.Light],
         label: '弩手', lane: 1, widthScale: 0.5, attackType: 'ranged', attackSpeed: 2.125,
-        visual: { type: 'emoji', value: '🦾' }, // 机械臂代表弩? 或者用 🏹
+        visual: { type: 'emoji', value: '☦️' }, // 机械臂代表弩? 或者用 🏹
         // === 对 Heavy 单位 +10 ===
         bonusAttack: (tags: UnitTag[]) => {
             if (tags.includes(UnitTag.Heavy)) return 10;
