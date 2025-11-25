@@ -25,5 +25,13 @@ export const CONSTANTS = {
         PLAYER_HP: '#22c55e',
         TEXT_FLOAT_DMG: '#fff',
         TEXT_FLOAT_BASE: '#f00'
-    }
+    },
+
+    // === 轨道配置 ===
+    // 定义每个轨道的 Y 轴偏移量 (相对于屏幕中心)
+    LANE_CONFIG: {
+        0: 20,   // 主路 (步兵): 下方
+        1: -20,  // 侧路 (射手): 上方
+        2: 0     // 中路 (预留): 中间
+    } as Record<number, number>
 };

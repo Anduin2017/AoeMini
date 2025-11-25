@@ -19,6 +19,7 @@ export abstract class Unit extends Entity {
 
     // 攻击冷却相关
     public attackCooldown: number = 0;
+    public maxAttackCooldown: number = 15; // 默认值
     public attackAnimTimer: number = 0;
     public isDeployed: boolean = false;   // 是否已走出城镇中心
 
@@ -42,6 +43,15 @@ export abstract class Unit extends Entity {
         this.tags = [...conf.tags];
         this.lane = conf.lane;
         this.width = CONSTANTS.UNIT_SIZE_PERCENT * (conf.widthScale || 1);
+
+        // === 核心修正：attackSpeed (秒) -> cooldown (ticks) ===
+        // 1.875s / 0.1s = 18.75 -> 19 ticks (假设逻辑刻是 0.1s)
+        // 用户要求：attackSpeed / 0.1
+        if (conf.attackSpeed) {
+            this.maxAttackCooldown = Math.round(conf.attackSpeed / 0.1);
+        } else {
+            this.maxAttackCooldown = 15;
+        }
         this.attackCooldown = Math.floor(Math.random() * 10);
     }
 }

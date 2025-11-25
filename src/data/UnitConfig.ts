@@ -15,7 +15,7 @@ interface UnitStats {
     lane: number;
     widthScale?: number;
     attackType?: 'melee' | 'ranged';
-    cooldown?: number;
+    attackSpeed?: number; // 秒 (1.875s 等)
     canMoveAttack?: boolean; // === 新增：是否允许移动攻击 ===
 }
 
@@ -28,20 +28,35 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         cost: { food: 60, wood: 20 }, time: 150, hp: 90, damage: 8, def_m: 0, def_r: 0,
         range: 5, speed: 1.25,
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Light],
-        label: '长枪兵', lane: 0, attackType: 'melee', cooldown: 19, canMoveAttack: true
+        label: '长枪兵', lane: 0, attackType: 'melee', attackSpeed: 1.875, canMoveAttack: true
     },
     [UnitType.ManAtArms]: {
         cost: { food: 100, gold: 20 }, time: 150, hp: 140, damage: 11, def_m: 2, def_r: 3,
         range: 3.75, speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Heavy],
-        label: '武士', lane: 0, attackType: 'melee', cooldown: 14, canMoveAttack: true
+        label: '武士', lane: 0, attackType: 'melee', attackSpeed: 1.375, canMoveAttack: true
     },
     [UnitType.Longbowman]: {
         cost: { food: 40, wood: 50 }, time: 150, hp: 70, damage: 6, def_m: 0, def_r: 0,
         range: 11, // === 修改：射程提升 ===
         speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Ranged, UnitTag.Light],
-        label: '长弓兵', lane: 1, widthScale: 0.5, attackType: 'ranged', cooldown: 16
+        label: '长弓兵', lane: 1, widthScale: 0.5, attackType: 'ranged', attackSpeed: 1.625
+    },
+    [UnitType.Horseman]: {
+        cost: { food: 100, wood: 20 },
+        time: 230, // 23s * 10
+        hp: 125, damage: 9, def_m: 0, def_r: 2,
+        range: 3.75, speed: 1.875,
+        tags: [UnitTag.Cavalry, UnitTag.Melee, UnitTag.Light],
+        label: '骑手', lane: 2, attackType: 'melee', attackSpeed: 1.75, canMoveAttack: true
+    },
+    [UnitType.Knight]: {
+        cost: { food: 140, gold: 100 }, time: 350, // 35s * 10
+        hp: 230, damage: 24, def_m: 4, def_r: 4,
+        range: 3.75, speed: 1.625,
+        tags: [UnitTag.Cavalry, UnitTag.Melee, UnitTag.Heavy],
+        label: '骑士', lane: 2, attackType: 'melee', attackSpeed: 1.5, canMoveAttack: true
     }
 };
 
@@ -49,6 +64,7 @@ export const BUILDING_CONFIG: Record<string, { cost: Cost, time: number, label: 
     'house': { cost: { wood: 50 }, time: 150, label: '房屋', icon: '🏠', pop: 10, desc: '提供人口上限' },
     'barracks': { cost: { wood: 150 }, time: 300, label: '兵营', icon: '⚔️', desc: '训练步兵单位' },
     'archery_range': { cost: { wood: 150 }, time: 300, label: '靶场', icon: '🏹', desc: '训练远程单位' },
+    'stable': { cost: { wood: 150 }, time: 300, label: '马厩', icon: '🐎', desc: '训练骑兵单位' }, // 30s * 10
     'towncenter': { cost: { wood: 400, stone: 350 }, time: 1200, label: '城镇中心', icon: '🏛️', pop: 10, desc: '村民生产建筑' },
     'blacksmith': { cost: { wood: 150 }, time: 250, label: '铁匠铺', icon: '⚒️', desc: '升级攻击与防御科技' }
 };

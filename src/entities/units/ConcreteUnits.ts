@@ -39,3 +39,17 @@ export class Longbowman extends Unit {
         this.applyConfig(UNIT_CONFIG[UnitType.Longbowman]);
     }
 }
+
+export class Horseman extends Unit {
+    constructor(id: number, owner: FactionType, pos: number) {
+        super(id, UnitType.Horseman, owner, pos);
+        this.applyConfig(UNIT_CONFIG[UnitType.Horseman]);
+    }
+}
+
+export class Knight extends Unit {
+    constructor(id: number, owner: FactionType, pos: number) {
+        super(id, UnitType.Knight, owner, pos);
+        this.applyConfig(UNIT_CONFIG[UnitType.Knight]);
+    }
+}

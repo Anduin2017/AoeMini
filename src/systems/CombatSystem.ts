@@ -110,7 +110,7 @@ export class CombatSystem {
             u.targetId = target === "base" ? "base" : target.id;
 
             if (u.attackCooldown <= 0) {
-                u.attackCooldown = uConfig.cooldown || 15;
+                u.attackCooldown = u.maxAttackCooldown;
                 u.attackAnimTimer = 3;
 
                 let dmg = u.damage;
@@ -247,7 +247,8 @@ export class CombatSystem {
         const h = document.getElementById('gameCanvas')?.offsetHeight || 600;
 
         const startX = (u.pos / 100) * w;
-        const startY = u.lane === 1 ? (h / 2 - 20) : (h / 2 + 20);
+        const startLaneOffset = CONSTANTS.LANE_CONFIG[u.lane] || 0;
+        const startY = h / 2 + startLaneOffset;
 
         let endX = 0;
         let endY = 0;
@@ -258,7 +259,8 @@ export class CombatSystem {
             endY = h / 2;
         } else {
             endX = (target.pos / 100) * w;
-            endY = target.lane === 1 ? (h / 2 - 20) : (h / 2 + 20);
+            const endLaneOffset = CONSTANTS.LANE_CONFIG[target.lane] || 0;
+            endY = h / 2 + endLaneOffset;
         }
 
         const midX = (startX + endX) / 2;
@@ -320,7 +322,8 @@ export class CombatSystem {
                     const startY = h / 2 - 45;
 
                     const endX = (t.pos / 100) * w;
-                    const endY = t.lane === 1 ? (h / 2 - 20) : (h / 2 + 20);
+                    const endLaneOffset = CONSTANTS.LANE_CONFIG[t.lane] || 0;
+                    const endY = h / 2 + endLaneOffset;
 
                     const midX = (startX + endX) / 2;
                     const distance = Math.abs(endX - startX);

@@ -40,8 +40,14 @@ export class Renderer {
         // 1. 绘制背景线条
         this.bgCtx.strokeStyle = '#333';
         this.bgCtx.lineWidth = 2;
-        this.bgCtx.beginPath(); this.bgCtx.moveTo(0, h / 2 - 20); this.bgCtx.lineTo(w, h / 2 - 20); this.bgCtx.stroke();
-        this.bgCtx.beginPath(); this.bgCtx.moveTo(0, h / 2 + 20); this.bgCtx.lineTo(w, h / 2 + 20); this.bgCtx.stroke();
+
+        Object.values(CONSTANTS.LANE_CONFIG).forEach(offset => {
+            const y = h / 2 + offset;
+            this.bgCtx.beginPath();
+            this.bgCtx.moveTo(0, y);
+            this.bgCtx.lineTo(w, y);
+            this.bgCtx.stroke();
+        });
 
         // 2. 绘制城镇中心
         this.drawBase(this.game.player, CONSTANTS.PLAYER_BASE_POS, CONSTANTS.COLORS.PLAYER);
@@ -55,7 +61,11 @@ export class Renderer {
 
         for (const u of allUnits) {
             const x = (u.pos / 100) * w;
-            const laneY = u.lane === 1 ? (h / 2 - 20) : (h / 2 + 20);
+
+            // === 核心修正：使用配置表获取轨道 Y 轴偏移 ===
+            const laneOffset = CONSTANTS.LANE_CONFIG[u.lane] || 0;
+            const laneY = h / 2 + laneOffset;
+            // ==========================================
 
             // 阴影
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -76,6 +86,16 @@ export class Renderer {
                 this.ctx.lineTo(x - 6, laneY);
                 this.ctx.lineTo(x + 6, laneY);
                 this.ctx.fill();
+            } else if (u.type === UnitType.Horseman) {
+                // 骑手：三角形，速度快
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, laneY - 15);
+                this.ctx.lineTo(x - 8, laneY);
+                this.ctx.lineTo(x + 8, laneY);
+                this.ctx.fill();
+            } else if (u.type === UnitType.Knight) {
+                // 骑士：更大的矩形/盾牌形状
+                this.ctx.fillRect(x - 10, laneY - 22, 20, 22);
             } else {
                 this.ctx.fillRect(x - 5, laneY - 15, 10, 15);
             }
@@ -84,7 +104,10 @@ export class Renderer {
             this.ctx.fillStyle = '#ccc';
             if (u.type === UnitType.Spearman) {
                 this.ctx.fillRect(u.owner === FactionType.Player ? x + 2 : x - 12, laneY - 10, 10, 2);
-            } else if (u.type !== UnitType.Longbowman) {
+            } else if (u.type === UnitType.Knight) {
+                // 骑士长枪
+                this.ctx.fillRect(u.owner === FactionType.Player ? x + 8 : x - 18, laneY - 12, 14, 3);
+            } else if (u.type !== UnitType.Longbowman && u.type !== UnitType.Horseman) {
                 this.ctx.fillRect(u.owner === FactionType.Player ? x + 5 : x - 5, laneY - 15, 8, 2);
             }
 

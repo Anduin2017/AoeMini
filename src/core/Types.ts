@@ -8,7 +8,7 @@ export enum FactionType {
 // 兵种标签系统 (Tags)
 export enum UnitTag {
     Infantry = 'INFANTRY',   // 步兵
-    Cavalry = 'CAVALRY',     // 骑兵 (预留)
+    Cavalry = 'CAVALRY',     // 骑兵
     Archer = 'ARCHER',       // 射手
     Siege = 'SIEGE',         // 攻城 (预留)
 
@@ -26,7 +26,9 @@ export enum UnitType {
     Worker = 'worker',
     Spearman = 'spearman',       // 原 Clubman
     ManAtArms = 'man_at_arms',   // 原 Samurai
-    Longbowman = 'longbowman'    // 原 Longbowman
+    Longbowman = 'longbowman',   // 原 Longbowman
+    Horseman = 'Horseman',             // 骑手 (Rider)
+    Knight = 'knight'            // 骑士
 }
 
 // 建筑类型标识符
@@ -35,6 +37,7 @@ export enum BuildingType {
     House = 'house',
     Barracks = 'barracks',
     ArcheryRange = 'archery_range',
+    Stable = 'stable',
     Blacksmith = 'blacksmith'
 }
 

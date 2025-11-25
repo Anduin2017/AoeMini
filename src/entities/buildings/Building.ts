@@ -14,8 +14,8 @@ export interface MenuOption {
 
 export abstract class Building extends Entity {
     public queue: QueueItem[] = [];
-    
-    constructor(id: string, type: string, owner: FactionType) {
+
+    constructor(id: number | string, type: string, owner: FactionType) {
         super(id, type, owner, owner === FactionType.Player ? 0 : 100);
     }
 
@@ -35,14 +35,14 @@ export abstract class Building extends Entity {
         if (current.ticksLeft <= 0.5 && current.ticksLeft > 0) return "⚠️ 生产阻塞";
         const pct = Math.floor((1 - current.ticksLeft / current.totalTicks) * 100);
         // 这里其实应该去 Config 查 label，暂时简化
-        return `生产中 ${pct}%`; 
+        return `生产中 ${pct}%`;
     }
 
     // 2. 获取菜单选项 (核心：子类重写此方法)
     public getMenuOptions(factionData: any): MenuOption[] {
         return [];
     }
-    
+
     // 3. 是否支持分组 (如房屋)
     public get isGroupable(): boolean { return false; }
 }

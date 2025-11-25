@@ -2,11 +2,11 @@ import { Game } from "../core/Game";
 import { FactionType, UnitType, QueueItem, BuildingType, UnitTag } from "../core/Types";
 import { UNIT_CONFIG, BUILDING_CONFIG } from "../data/UnitConfig";
 import { TECH_CONFIG } from "../data/TechConfig";
-import { Worker, Spearman, ManAtArms, Longbowman } from "../entities/units/ConcreteUnits";
+import { Worker, Spearman, ManAtArms, Longbowman, Horseman, Knight } from "../entities/units/ConcreteUnits";
 import { Helpers } from "../utils/Helpers";
 import { Building } from "../entities/buildings/Building";
 import { CONSTANTS } from "../core/Constants";
-import { House, TownCenter, Barracks, ArcheryRange, Blacksmith } from "../entities/buildings/ConcreteBuildings";
+import { House, TownCenter, Barracks, ArcheryRange, Blacksmith, Stable } from "../entities/buildings/ConcreteBuildings";
 import { Unit } from "../entities/units/Unit";
 
 export class EconomySystem {
@@ -116,6 +116,8 @@ export class EconomySystem {
             case UnitType.Spearman: u = new Spearman(nextId, f.type, spawnPos); break;
             case UnitType.ManAtArms: u = new ManAtArms(nextId, f.type, spawnPos); break;
             case UnitType.Longbowman: u = new Longbowman(nextId, f.type, spawnPos); break;
+            case UnitType.Horseman: u = new Horseman(nextId, f.type, spawnPos); break;
+            case UnitType.Knight: u = new Knight(nextId, f.type, spawnPos); break;
         }
 
         if (u) {
@@ -160,6 +162,7 @@ export class EconomySystem {
                     case BuildingType.ArcheryRange: newBuilding = new ArcheryRange(c.id, f.type); break;
                     case BuildingType.TownCenter: newBuilding = new TownCenter(c.id, f.type); break;
                     case BuildingType.Blacksmith: newBuilding = new Blacksmith(c.id, f.type); break;
+                    case BuildingType.Stable: newBuilding = new Stable(c.id, f.type); break;
                     default: newBuilding = new Barracks(c.id, f.type); break;
                 }
 
