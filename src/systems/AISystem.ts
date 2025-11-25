@@ -39,10 +39,16 @@ export class AISystem {
             if (b.queue.length > 0 && b.queue[0].ticksLeft <= 0.2) isJammed = true;
         });
 
-        if (isJammed) {
+        // 2.2 基地防御 (Base Defense)
+        // 如果基地的二倍射程内 (15 * 2 = 30) 有对方单位，不顾一切进攻
+        const basePos = isPlayer ? CONSTANTS.PLAYER_BASE_POS : CONSTANTS.ENEMY_BASE_POS;
+        const threatRange = 16;
+        const hasThreat = opponent.units.some((u: any) => Math.abs(u.pos - basePos) <= threatRange);
+
+        if (isJammed || hasThreat) {
             stance = 'attack';
         } else {
-            // 2.2 正常战术判断
+            // 2.3 正常战术判断
             if (me.armyCount > opponent.armyCount * 1.2 || me.armyCount > 20) {
                 stance = 'attack';
             } else {
@@ -100,12 +106,14 @@ export class AISystem {
 
         if (me.armyCount > 8 && !hasBlacksmith) {
             this.tryBuild(me, BuildingType.Blacksmith);
+            return; // 暂停后续生产，攒钱造铁匠铺
         }
 
         // 3.6 [优先级 6] 铁匠铺升级
         const blacksmith = me.buildings.find((b: any) => b.type === BuildingType.Blacksmith);
         if (blacksmith && blacksmith.queue.length === 0) {
             this.tryUpgradeTech(me, blacksmith);
+            return; // 暂停后续生产，攒钱升级铁匠铺
         }
 
         // 3.7 [优先级 7] 生产对应的兵
