@@ -23,6 +23,7 @@ export abstract class Unit extends Entity {
     public attackAnimTimer: number = 0;
     public isDeployed: boolean = false;   // 是否已走出城镇中心
     public prevPos: number = 0; // 上一帧位置 (用于插值)
+    public bonusAttack?: (targetTags: UnitTag[]) => number; // 攻击加成函数
 
     constructor(id: number, type: string, owner: FactionType, pos: number) {
         super(id, type, owner, pos);
@@ -31,6 +32,9 @@ export abstract class Unit extends Entity {
 
     // 获取对某个标签的攻击加成 (将在 Phase 3 的具体兵种中覆盖)
     public getBonusDamage(targetTags: UnitTag[]): number {
+        if (this.bonusAttack) {
+            return this.bonusAttack(targetTags);
+        }
         return 0;
     }
 
@@ -45,6 +49,7 @@ export abstract class Unit extends Entity {
         this.tags = [...conf.tags];
         this.lane = conf.lane;
         this.width = CONSTANTS.UNIT_SIZE_PERCENT * (conf.widthScale || 1);
+        this.bonusAttack = conf.bonusAttack; // 绑定加成函数
 
         // === 核心修正：attackSpeed (秒) -> cooldown (ticks) ===
         // 1.875s / 0.1s = 18.75 -> 19 ticks (假设逻辑刻是 0.1s)

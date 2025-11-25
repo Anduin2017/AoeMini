@@ -102,6 +102,18 @@ export class UIManager {
             html += `<div class="tt-row"><span>❤️ 生命:</span> <span>${Math.ceil(foundUnit.hp)}/${foundUnit.maxHp}</span></div>`;
             html += `<div class="tt-row"><span>🗡️ 基础攻击:</span> <span>${baseDmg}</span></div>`;
             if (bonusDmg > 0) html += `<div class="tt-row"><span>🔥 攻击加成:</span> <span class="val-bonus">+${bonusDmg}</span></div>`;
+
+            // === 新增：显示标签 ===
+            if (uData.tags && uData.tags.length > 0) {
+                const tagStr = uData.tags.map(t => Helpers.translateTag(t)).join(', ');
+                html += `<div class="tt-row" style="font-size:10px; color:#94a3b8;">🏷️ ${tagStr}</div>`;
+            }
+
+            // === 新增：显示加成描述 ===
+            if (uData.bonusDesc) {
+                html += `<div class="tt-row" style="font-size:10px; color:#fbbf24;">🌟 ${uData.bonusDesc}</div>`;
+            }
+
             html += `<div class="tt-row"><span>🛡️ 近战防御:</span> <span>${foundUnit.def_m}</span></div>`;
             html += `<div class="tt-row"><span>🎯 远程防御:</span> <span>${foundUnit.def_r}</span></div>`;
             html += `<div class="tt-row"><span>🏹 射程:</span> <span>${foundUnit.range}</span></div>`;

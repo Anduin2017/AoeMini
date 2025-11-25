@@ -17,6 +17,8 @@ interface UnitStats {
     attackType?: 'melee' | 'ranged';
     attackSpeed?: number; // 秒 (1.875s 等)
     canMoveAttack?: boolean; // === 新增：是否允许移动攻击 ===
+    bonusAttack?: (targetTags: UnitTag[]) => number; // === 新增：攻击加成 Lambda ===
+    bonusDesc?: string; // === 新增：加成描述 ===
     visual?: {
         type: 'emoji';
         value: string;
@@ -51,7 +53,15 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Ranged, UnitTag.Light],
         label: '长弓兵', lane: 1, widthScale: 0.5, attackType: 'ranged', attackSpeed: 1.625,
-        visual: { type: 'emoji', value: '🏹', shouldMirrorIcon: false }
+        visual: { type: 'emoji', value: '🏹', shouldMirrorIcon: false },
+        // === 新增：对 Light + Melee + Infantry 造成 +6 伤害 ===
+        bonusAttack: (tags: UnitTag[]) => {
+            if (tags.includes(UnitTag.Light) && tags.includes(UnitTag.Melee) && tags.includes(UnitTag.Infantry)) {
+                return 6;
+            }
+            return 0;
+        },
+        bonusDesc: "+6 vs 轻装近战步兵"
     },
     [UnitType.Horseman]: {
         cost: { food: 100, wood: 20 },
