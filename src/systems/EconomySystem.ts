@@ -2,7 +2,7 @@ import { Game } from "../core/Game";
 import { FactionType, UnitType, QueueItem, BuildingType, UnitTag } from "../core/Types";
 import { UNIT_CONFIG, BUILDING_CONFIG } from "../data/UnitConfig";
 import { TECH_CONFIG } from "../data/TechConfig";
-import { Worker, Spearman, ManAtArms, Longbowman, Horseman, Knight } from "../entities/units/ConcreteUnits";
+import { Worker, Spearman, ManAtArms, Longbowman, Crossbowman, Horseman, Knight } from "../entities/units/ConcreteUnits";
 import { Helpers } from "../utils/Helpers";
 import { Building } from "../entities/buildings/Building";
 import { CONSTANTS } from "../core/Constants";
@@ -116,6 +116,7 @@ export class EconomySystem {
             case UnitType.Spearman: u = new Spearman(nextId, f.type, spawnPos); break;
             case UnitType.ManAtArms: u = new ManAtArms(nextId, f.type, spawnPos); break;
             case UnitType.Longbowman: u = new Longbowman(nextId, f.type, spawnPos); break;
+            case UnitType.Crossbowman: u = new Crossbowman(nextId, f.type, spawnPos); break;
             case UnitType.Horseman: u = new Horseman(nextId, f.type, spawnPos); break;
             case UnitType.Knight: u = new Knight(nextId, f.type, spawnPos); break;
         }

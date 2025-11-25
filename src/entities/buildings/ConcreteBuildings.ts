@@ -38,11 +38,13 @@ export class Barracks extends Building {
 export class ArcheryRange extends Building {
     constructor(id: number | string, owner: FactionType) {
         super(id, BuildingType.ArcheryRange, owner);
+        this.productionList = [UnitType.Longbowman, UnitType.Crossbowman];
     }
 
     public getMenuOptions(factionData: any): MenuOption[] {
         return [
-            this.createUnitOption(UnitType.Longbowman)
+            this.createUnitOption(UnitType.Longbowman),
+            this.createUnitOption(UnitType.Crossbowman)
         ];
     }
 

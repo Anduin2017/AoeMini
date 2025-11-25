@@ -27,6 +27,7 @@ export enum UnitType {
     Spearman = 'spearman',       // 原 Clubman
     ManAtArms = 'man_at_arms',   // 原 Samurai
     Longbowman = 'longbowman',   // 原 Longbowman
+    Crossbowman = 'crossbowman', // 弩手
     Horseman = 'Horseman',             // 骑手 (Rider)
     Knight = 'knight'            // 骑士
 }

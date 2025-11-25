@@ -38,7 +38,13 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         range: 5, speed: 1.25,
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Light],
         label: '长枪兵', lane: 0, attackType: 'melee', attackSpeed: 1.875, canMoveAttack: true,
-        visual: { type: 'emoji', value: '🔱' }
+        visual: { type: 'emoji', value: '🔱' },
+        // === 新增：对骑兵造成 +20 伤害 ===
+        bonusAttack: (tags: UnitTag[]) => {
+            if (tags.includes(UnitTag.Cavalry)) return 20;
+            return 0;
+        },
+        bonusDesc: "+20 vs 骑兵"
     },
     [UnitType.ManAtArms]: {
         cost: { food: 100, gold: 20 }, time: 150, hp: 140, damage: 11, def_m: 2, def_r: 3,
@@ -63,6 +69,20 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         },
         bonusDesc: "+6 vs 轻装近战步兵"
     },
+    [UnitType.Crossbowman]: {
+        cost: { food: 80, gold: 40 }, time: 230, hp: 80, damage: 11, def_m: 0, def_r: 0,
+        range: 10, // 长弓兵(11) - 1
+        speed: 1.125,
+        tags: [UnitTag.Infantry, UnitTag.Ranged, UnitTag.Light],
+        label: '弩手', lane: 1, widthScale: 0.5, attackType: 'ranged', attackSpeed: 2.125,
+        visual: { type: 'emoji', value: '🦾' }, // 机械臂代表弩? 或者用 🏹
+        // === 对 Heavy 单位 +10 ===
+        bonusAttack: (tags: UnitTag[]) => {
+            if (tags.includes(UnitTag.Heavy)) return 10;
+            return 0;
+        },
+        bonusDesc: "+10 vs 重装单位"
+    },
     [UnitType.Horseman]: {
         cost: { food: 100, wood: 20 },
         time: 230, // 23s * 10
@@ -71,7 +91,13 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         tags: [UnitTag.Cavalry, UnitTag.Melee, UnitTag.Light],
         label: '骑手', lane: 2, attackType: 'melee', attackSpeed: 1.75, canMoveAttack: true,
         widthScale: 1.5,
-        visual: { type: 'emoji', value: '🐎' }
+        visual: { type: 'emoji', value: '🐎' },
+        // === 新增：对远程单位造成 +9 伤害 ===
+        bonusAttack: (tags: UnitTag[]) => {
+            if (tags.includes(UnitTag.Ranged)) return 9;
+            return 0;
+        },
+        bonusDesc: "+9 vs 远程单位"
     },
     [UnitType.Knight]: {
         cost: { food: 140, gold: 100 }, time: 350, // 35s * 10
