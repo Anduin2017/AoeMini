@@ -74,42 +74,52 @@ export class Renderer {
             this.ctx.fill();
 
             // 单位主体
-            this.ctx.fillStyle = u.owner === FactionType.Player ? CONSTANTS.COLORS.PLAYER : CONSTANTS.COLORS.ENEMY;
+            const uConfig = UNIT_CONFIG[u.type];
 
-            if (u.type === UnitType.ManAtArms) {
-                this.ctx.fillRect(x - 8, laneY - 20, 16, 20);
-            } else if (u.type === UnitType.Spearman) {
-                this.ctx.beginPath(); this.ctx.arc(x, laneY - 8, 8, 0, Math.PI * 2); this.ctx.fill();
-            } else if (u.type === UnitType.Longbowman) {
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, laneY - 20);
-                this.ctx.lineTo(x - 6, laneY);
-                this.ctx.lineTo(x + 6, laneY);
-                this.ctx.fill();
-            } else if (u.type === UnitType.Horseman) {
-                // 骑手：三角形，速度快
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, laneY - 15);
-                this.ctx.lineTo(x - 8, laneY);
-                this.ctx.lineTo(x + 8, laneY);
-                this.ctx.fill();
-            } else if (u.type === UnitType.Knight) {
-                // 骑士：更大的矩形/盾牌形状
-                this.ctx.fillRect(x - 10, laneY - 22, 20, 22);
+            if (uConfig.visual && uConfig.visual.type === 'emoji') {
+                this.ctx.font = '24px serif';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+
+                // 翻转处理：如果是玩家（向右），保持原样；如果是敌人（向左），可能需要翻转？
+                // Emoji 通常朝左，所以玩家(dir=1)可能需要 scale(-1, 1)
+                // 但大部分 Emoji 是正面的或朝左的。
+                // 让我们简单点，先直接画。
+
+                this.ctx.save();
+
+                // 默认认为 Emoji 是朝左的 (shouldMirrorIcon = true)
+                // 如果 shouldMirrorIcon = true:
+                //   - 玩家 (dir=1): 需要翻转 (scale -1, 1) -> 朝右
+                //   - 电脑 (dir=-1): 不需要翻转 (scale 1, 1) -> 朝左
+                // 如果 shouldMirrorIcon = false:
+                //   - 玩家 (dir=1): 不需要翻转 (scale 1, 1) -> 朝右 (原生朝右)
+                //   - 电脑 (dir=-1): 需要翻转 (scale -1, 1) -> 朝左
+
+                const shouldMirror = uConfig.visual.shouldMirrorIcon !== false; // 默认为 true
+                const isPlayer = u.owner === FactionType.Player;
+
+                let needFlip = false;
+                if (shouldMirror) {
+                    if (isPlayer) needFlip = true;
+                } else {
+                    if (!isPlayer) needFlip = true;
+                }
+
+                if (needFlip) {
+                    this.ctx.translate(x, laneY);
+                    this.ctx.scale(-1, 1);
+                    this.ctx.fillText(uConfig.visual.value, 0, -10);
+                } else {
+                    this.ctx.fillText(uConfig.visual.value, x, laneY - 10);
+                }
+                this.ctx.restore();
             } else {
+                // Fallback for unknown visuals
+                this.ctx.fillStyle = u.owner === FactionType.Player ? CONSTANTS.COLORS.PLAYER : CONSTANTS.COLORS.ENEMY;
                 this.ctx.fillRect(x - 5, laneY - 15, 10, 15);
             }
 
-            // 武器细节
-            this.ctx.fillStyle = '#ccc';
-            if (u.type === UnitType.Spearman) {
-                this.ctx.fillRect(u.owner === FactionType.Player ? x + 2 : x - 12, laneY - 10, 10, 2);
-            } else if (u.type === UnitType.Knight) {
-                // 骑士长枪
-                this.ctx.fillRect(u.owner === FactionType.Player ? x + 8 : x - 18, laneY - 12, 14, 3);
-            } else if (u.type !== UnitType.Longbowman && u.type !== UnitType.Horseman) {
-                this.ctx.fillRect(u.owner === FactionType.Player ? x + 5 : x - 5, laneY - 15, 8, 2);
-            }
 
             // === 核心修正：基于 attackType 绘制攻击闪光 ===
             if (u.attackAnimTimer > 0) {

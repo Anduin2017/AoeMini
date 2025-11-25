@@ -26,7 +26,7 @@ export class Barracks extends Building {
         const conf = UNIT_CONFIG[type];
         return {
             id: type,
-            icon: '⚔️', // 简化，实际可以用 conf.icon (如果加了的话)
+            icon: conf.visual?.value || '⚔️',
             label: conf.label,
             cost: conf.cost,
             time: conf.time,
@@ -50,7 +50,7 @@ export class ArcheryRange extends Building {
         const conf = UNIT_CONFIG[type];
         return {
             id: type,
-            icon: '🏹',
+            icon: conf.visual?.value || '🏹',
             label: conf.label,
             cost: conf.cost,
             time: conf.time,
@@ -75,7 +75,7 @@ export class Stable extends Building {
         const conf = UNIT_CONFIG[type];
         return {
             id: type,
-            icon: '🐎',
+            icon: conf.visual?.value || '🐎',
             label: conf.label,
             cost: conf.cost,
             time: conf.time,
@@ -99,7 +99,7 @@ export class TownCenter extends Building {
         const conf = UNIT_CONFIG[type];
         return {
             id: type,
-            icon: '村民',
+            icon: conf.visual?.value || '👨‍🌾',
             label: conf.label,
             cost: conf.cost,
             time: conf.time,

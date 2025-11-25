@@ -17,31 +17,41 @@ interface UnitStats {
     attackType?: 'melee' | 'ranged';
     attackSpeed?: number; // 秒 (1.875s 等)
     canMoveAttack?: boolean; // === 新增：是否允许移动攻击 ===
+    visual?: {
+        type: 'emoji';
+        value: string;
+        color?: string;
+        shouldMirrorIcon?: boolean; // true: 玩家反向(默认), false: 电脑反向
+    };
 }
 
 export const UNIT_CONFIG: Record<string, UnitStats> = {
     [UnitType.Worker]: {
         cost: { food: 50 }, time: 200, hp: 10, damage: 0, def_m: 0, def_r: 0,
-        range: 1, speed: 0, tags: [UnitTag.Worker], label: '村民', lane: 0
+        range: 1, speed: 0, tags: [UnitTag.Worker], label: '村民', lane: 0,
+        visual: { type: 'emoji', value: '👨‍🌾' }
     },
     [UnitType.Spearman]: {
         cost: { food: 60, wood: 20 }, time: 150, hp: 90, damage: 8, def_m: 0, def_r: 0,
         range: 5, speed: 1.25,
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Light],
-        label: '长枪兵', lane: 0, attackType: 'melee', attackSpeed: 1.875, canMoveAttack: true
+        label: '长枪兵', lane: 0, attackType: 'melee', attackSpeed: 1.875, canMoveAttack: true,
+        visual: { type: 'emoji', value: '🔱' }
     },
     [UnitType.ManAtArms]: {
         cost: { food: 100, gold: 20 }, time: 150, hp: 140, damage: 11, def_m: 2, def_r: 3,
         range: 3.75, speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Heavy],
-        label: '武士', lane: 0, attackType: 'melee', attackSpeed: 1.375, canMoveAttack: true
+        label: '武士', lane: 0, attackType: 'melee', attackSpeed: 1.375, canMoveAttack: true,
+        visual: { type: 'emoji', value: '🗡️' }
     },
     [UnitType.Longbowman]: {
         cost: { food: 40, wood: 50 }, time: 150, hp: 70, damage: 6, def_m: 0, def_r: 0,
         range: 11, // === 修改：射程提升 ===
         speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Ranged, UnitTag.Light],
-        label: '长弓兵', lane: 1, widthScale: 0.5, attackType: 'ranged', attackSpeed: 1.625
+        label: '长弓兵', lane: 1, widthScale: 0.5, attackType: 'ranged', attackSpeed: 1.625,
+        visual: { type: 'emoji', value: '🏹', shouldMirrorIcon: false }
     },
     [UnitType.Horseman]: {
         cost: { food: 100, wood: 20 },
@@ -49,14 +59,16 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         hp: 125, damage: 9, def_m: 0, def_r: 2,
         range: 3.75, speed: 1.875,
         tags: [UnitTag.Cavalry, UnitTag.Melee, UnitTag.Light],
-        label: '骑手', lane: 2, attackType: 'melee', attackSpeed: 1.75, canMoveAttack: true
+        label: '骑手', lane: 2, attackType: 'melee', attackSpeed: 1.75, canMoveAttack: true,
+        visual: { type: 'emoji', value: '🐎' }
     },
     [UnitType.Knight]: {
         cost: { food: 140, gold: 100 }, time: 350, // 35s * 10
         hp: 230, damage: 24, def_m: 4, def_r: 4,
         range: 3.75, speed: 1.625,
         tags: [UnitTag.Cavalry, UnitTag.Melee, UnitTag.Heavy],
-        label: '骑士', lane: 2, attackType: 'melee', attackSpeed: 1.5, canMoveAttack: true
+        label: '骑士', lane: 2, attackType: 'melee', attackSpeed: 1.5, canMoveAttack: true,
+        visual: { type: 'emoji', value: '🦁' }
     }
 };
 
