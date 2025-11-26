@@ -112,8 +112,13 @@ export class AISystem {
         // 3.6 [优先级 6] 铁匠铺升级
         const blacksmith = me.buildings.find((b: any) => b.type === BuildingType.Blacksmith);
         if (blacksmith && blacksmith.queue.length === 0) {
-            this.tryUpgradeTech(me, blacksmith);
-            return; // 暂停后续生产，攒钱升级铁匠铺
+            // 检查是否还有可升级的科技
+            const hasAvailableTech = ['atk_m', 'def_m', 'atk_r', 'def_r'].some(type => me.techLevels[type] < 3);
+
+            if (hasAvailableTech) {
+                this.tryUpgradeTech(me, blacksmith);
+                return; // 暂停后续生产，攒钱升级铁匠铺
+            }
         }
 
         // 3.7 [优先级 7] 生产对应的兵
