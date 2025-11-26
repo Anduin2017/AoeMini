@@ -136,15 +136,22 @@ export class Blacksmith extends Building {
         const conf = TECH_CONFIG[techId];
 
         if (conf) {
-            list.push({
-                id: techId,
-                icon: '⚡',
-                label: `${labelBase} Lv.${nextLevel}`,
-                cost: conf.cost,
-                time: conf.time,
-                type: 'tech',
-                desc: conf.description
-            });
+            // 检查是否已经在全局队列中 (防止多个铁匠铺同时研究同一个)
+            const isQueued = f.buildings.some((b: any) =>
+                b.type === BuildingType.Blacksmith && b.queue.some((q: any) => q.type === techId)
+            );
+
+            if (!isQueued) {
+                list.push({
+                    id: techId,
+                    icon: '⚡',
+                    label: `${labelBase} Lv.${nextLevel}`,
+                    cost: conf.cost,
+                    time: conf.time,
+                    type: 'tech',
+                    desc: conf.description
+                });
+            }
         }
     }
 }
