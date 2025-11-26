@@ -204,10 +204,22 @@ export class AISystem {
 
         // 4. 计算最缺少的单位
         // 算法：计算 (当前数量 / 目标比例)，得分最低的即为最缺少的
-        let bestUnit = UnitType.Spearman;
+
+        // 判定是否进入后期高质量部队阶段
+        const minRes = Math.min(me.resources.food, me.resources.wood, me.resources.gold);
+        const shouldUpgradeQuality = minRes > 2000 && me.currentPop > 180;
+
+        let bestUnit = shouldUpgradeQuality ? UnitType.ManAtArms : UnitType.Spearman;
         let minScore = Infinity;
 
         AISystem.UNIT_ORDER.forEach((uType, index) => {
+            // 后期不再生产低质量兵种
+            if (shouldUpgradeQuality) {
+                if (uType === UnitType.Spearman || uType === UnitType.Longbowman || uType === UnitType.Horseman) {
+                    return;
+                }
+            }
+
             const ratio = targetRatios[index];
             if (ratio > 0) {
                 const count = myCounts[uType] || 0;
