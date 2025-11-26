@@ -103,7 +103,11 @@ export class EconomySystem {
 
         if (type === UnitType.Worker) {
             f.totalWorkers++;
-            f.idleWorkers++;
+            if (f.type === FactionType.Player) {
+                f.workers.food++; // 自动分配去挖肉
+            } else {
+                f.idleWorkers++;
+            }
             return;
         }
 
