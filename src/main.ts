@@ -30,19 +30,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return `
-            <button class="group relative px-8 py-4 bg-gray-800 hover:bg-blue-600 border-2 border-gray-700 hover:border-blue-400 text-white rounded-xl font-bold transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-between"
+            <button class="group relative px-6 py-4 bg-gray-800 hover:bg-blue-600 border-2 border-gray-700 hover:border-blue-400 text-white rounded-xl font-bold transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-between w-full"
                 data-key="${key}">
                 ${badgeHtml}
-                <span class="text-2xl mr-4 group-hover:animate-bounce">${(diff as any).emoji}</span>
-                <span class="text-xl tracking-wider">${diff.label}</span>
-                <span class="text-2xl ml-4 opacity-0 group-hover:opacity-100 transition-opacity">➜</span>
+                <div class="flex items-center text-left">
+                    <span class="text-3xl mr-4 group-hover:animate-bounce">${(diff as any).emoji}</span>
+                    <div class="flex flex-col">
+                        <span class="tracking-wider">${diff.label}</span>
+                        <span class="text-xs text-gray-400 group-hover:text-blue-100 font-normal mt-1">${(diff as any).shortText}</span>
+                    </div>
+                </div>
+                <span class="text-2xl ml-2 opacity-0 group-hover:opacity-100 transition-opacity">➜</span>
             </button>
         `;
     }).join('');
 
     container.innerHTML = `
-        <h1 class="text-5xl font-bold text-white mb-12 drop-shadow-lg">选择难度</h1>
-        <div class="flex flex-col gap-4 w-80">
+        <div class="flex flex-col gap-4 w-96">
             ${buttonsHtml}
         </div>
         <div class="mt-8 text-gray-500 text-sm">选择你的对手强度</div>
