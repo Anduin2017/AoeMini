@@ -52,10 +52,11 @@ export abstract class Unit extends Entity {
         this.bonusAttack = conf.bonusAttack; // 绑定加成函数
 
         // === 核心修正：attackSpeed (秒) -> cooldown (ticks) ===
-        // 1.875s / 0.1s = 18.75 -> 19 ticks (假设逻辑刻是 0.1s)
-        // 用户要求：attackSpeed / 0.1
+        // attackSpeed 是秒，tickRate 是毫秒/tick
+        // 例如：attackSpeed = 6.875s, tickRate = 50ms
+        // cooldown = 6.875s / (50ms/tick) = 6.875 / 0.05 = 137.5 ticks
         if (conf.attackSpeed) {
-            this.maxAttackCooldown = Math.round(conf.attackSpeed / 0.1);
+            this.maxAttackCooldown = Math.round(conf.attackSpeed / (tickRate / 1000));
         } else {
             this.maxAttackCooldown = 15;
         }

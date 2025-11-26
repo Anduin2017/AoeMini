@@ -27,9 +27,9 @@ interface UnitStats {
     };
     // === 新增：AOE 与 攻城属性 ===
     aoeRadius?: number;       // 溅射半径 (0-100 坐标系)
-    aoeMaxTargets?: number;   // 最大溅射目标数
     aoeDamage?: number;       // 溅射伤害 (固定值)
     bonusBaseDamage?: number; // 对基地的额外伤害
+    projectileFlightTime?: number; // 炮弹飞行时间（秒），用于延迟结算
 }
 
 export const UNIT_CONFIG: Record<string, UnitStats> = {
@@ -100,9 +100,10 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         // === 新增：对远程单位造成 +9 伤害 ===
         bonusAttack: (tags: UnitTag[]) => {
             if (tags.includes(UnitTag.Ranged)) return 9;
+            if (tags.includes(UnitTag.Siege)) return 9;
             return 0;
         },
-        bonusDesc: "+9 vs 远程单位"
+        bonusDesc: "+9 vs 远程单位， +9 vs 攻城单位"
     },
     [UnitType.Knight]: {
         cost: { food: 140, gold: 100 }, time: 350, // 35s * 10
@@ -115,7 +116,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
     },
     [UnitType.Mangonel]: {
         cost: { wood: 400, gold: 200 }, time: 400,
-        hp: 130, damage: 40, def_m: 0, def_r: 0, // 假设有一定的远程防御
+        hp: 130, damage: 40, def_m: 0, def_r: 0,
         range: 12, speed: 0.75,
         tags: [UnitTag.Siege],
         label: '轻型投石机', lane: 3, attackType: 'ranged', attackSpeed: 6.875,
@@ -123,7 +124,8 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         visual: { type: 'emoji', value: '🛞' },
         aoeRadius: 1.6,
         aoeDamage: 40,
-        bonusBaseDamage: 240
+        bonusBaseDamage: 240,
+        projectileFlightTime: 2.7 // 炮弹飞行2.7逻辑秒（基于tick=100ms，实际时间取决于难度）
     }
 };
 

@@ -18,8 +18,62 @@ export class CombatSystem {
     public update() {
         this.processFaction(this.game.player, this.game.enemy, 1);
         this.processFaction(this.game.enemy, this.game.player, -1);
+        this.processDelayedDamage();
         this.cleanupDead();
         this.processTurrets();
+    }
+
+    private processDelayedDamage() {
+        const currentTick = this.game.tickCount;
+        const toExecute = this.game.delayedDamageQueue.filter(d => d.executionTick <= currentTick);
+
+        if (toExecute.length > 0) {
+            console.log(`[Mangonel] Executing ${toExecute.length} delayed damage(s) at tick ${currentTick}`);
+        }
+
+        toExecute.forEach(damage => {
+            const { attacker, target, impactPos, impactLane, enemyFaction } = damage;
+
+            // 获取攻击者的配置
+            const uConfig = UNIT_CONFIG[attacker.type];
+            const radius = uConfig.aoeRadius || 1.6;
+            const splashDmg = uConfig.aoeDamage || 40;
+
+            // 获取当前存活的敌人
+            const currentEnemies = enemyFaction.units.filter((e: any) => e.hp > 0);
+
+            // 查找爆炸范围内的受害者
+            const victims = currentEnemies.filter((e: any) => {
+                if (target !== "base" && e.lane !== impactLane) return false;
+                if (target === "base" && e.lane !== attacker.lane) return false;
+                return Math.abs(e.pos - impactPos) <= radius;
+            });
+
+            // 伤害结算
+            victims.forEach((v: any) => {
+                const def = v.def_r;
+                const dist = Math.abs(v.pos - impactPos);
+                const normalizedDist = Math.min(dist / radius, 1);
+                const falloffFactor = Math.pow(1 - normalizedDist, 2);
+                const rawDmg = splashDmg * falloffFactor;
+                const actualSplash = Math.max(1, rawDmg - def);
+
+                v.hp -= actualSplash;
+                Helpers.spawnFloater(v.pos, `-${actualSplash.toFixed(1)}`, '#ef4444');
+            });
+
+            // 基地伤害
+            if (target === "base") {
+                let baseDmg = attacker.damage;
+                if (uConfig.bonusBaseDamage) baseDmg += uConfig.bonusBaseDamage;
+                const actualBaseDmg = Math.max(1, baseDmg - 50);
+                enemyFaction.baseHp -= actualBaseDmg;
+                Helpers.spawnFloater(impactPos, `-${actualBaseDmg}`, '#d946ef');
+            }
+        });
+
+        // 清理已执行的伤害
+        this.game.delayedDamageQueue = this.game.delayedDamageQueue.filter(d => d.executionTick > currentTick);
     }
 
     // 1. 调度逻辑
@@ -118,87 +172,45 @@ export class CombatSystem {
 
             if (u.attackCooldown <= 0) {
                 u.attackCooldown = u.maxAttackCooldown;
-                u.attackAnimTimer = 3;
+                // 投石机的攻击动画应该持续到炮弹落地
+                if (uConfig.projectileFlightTime) {
+                    // projectileFlightTime 是"逻辑秒"，每单位 = 0.1s (基于 tickRate=100ms)
+                    // 转换为 ticks：逻辑秒 / 0.1 = ticks
+                    const animTicks = Math.round(uConfig.projectileFlightTime / 0.1);
+                    u.attackAnimTimer = animTicks;
+                } else {
+                    u.attackAnimTimer = 3;
+                }
 
                 // === 投石机特殊逻辑 (弹道打击) ===
-                if (u.type === UnitType.Mangonel) {
-                    const flightTime = 3600; // 3.6s (原 1.2s * 3)
+                if (uConfig.projectileFlightTime) {
+                    // 计算延迟帧数：projectileFlightTime 是"逻辑秒"单位（假设 tickRate=100ms）
+                    const flightTimeSec = uConfig.projectileFlightTime;
+                    const delayTicks = Math.round(flightTimeSec / 0.1);
+                    const executionTick = this.game.tickCount + delayTicks;
+
+                    console.log(`[Mangonel] Fire at tick ${this.game.tickCount}, will hit at tick ${executionTick} (delay: ${delayTicks} ticks, flightTime: ${flightTimeSec} logical seconds)`);
+
                     const impactPos = target === "base" ? enemyBaseEdge : target.pos;
-                    const impactLane = target === "base" ? u.lane : target.lane; // 假设打基地时沿当前路
+                    const impactLane = target === "base" ? u.lane : target.lane;
 
                     // 1. 创建视觉投射物
-                    this.createProjectile(u, target, dir, u.owner === FactionType.Player ? '#ea580c' : '#f97316', 0.025); // 速度极慢
+                    // progress 从 0 到 1，每个 tick 增加 speed
+                    // 需要在 delayTicks 个 tick 后到达 progress = 1
+                    // 所以 speed = 1 / delayTicks
+                    const projectileSpeed = 1 / delayTicks;
+                    this.createProjectile(u, target, dir, u.owner === FactionType.Player ? '#ea580c' : '#f97316', projectileSpeed);
 
-                    // 2. 延迟造成区域伤害
-                    setTimeout(() => {
-                        // 重新获取该位置的所有敌人
-                        const currentEnemies = enemies.filter(e => e.hp > 0); // 确保还活着
-                        const radius = uConfig.aoeRadius || 1.6;
-                        const splashDmg = uConfig.aoeDamage || 40;
-
-                        // 查找爆炸点附近的单位 (必须在同一 Lane 或相近 Lane? 这里简化为 X 轴判定，因为 AOE 不跨 Lane)
-                        // 题目明确：AOE 不跨 Lane。
-                        // 所以必须 filter e.lane === impactLane (如果是打单位)
-                        // 如果打基地，impactPos 是边缘，可能溅射到门口的单位?
-                        // 假设投石机只打同一 Lane 的单位。
-
-                        const victims = currentEnemies.filter(e => {
-                            if (target !== "base" && e.lane !== impactLane) return false;
-                            // 如果打基地，可能溅射到所有 Lane? 暂且限制为同 Lane，或者基地附近的单位
-                            // 简化：只炸同 Lane
-                            if (target === "base" && e.lane !== u.lane) return false;
-
-                            return Math.abs(e.pos - impactPos) <= radius;
-                        });
-
-                        // 伤害结算
-                        victims.forEach(v => {
-                            const def = v.def_r; // 远程防御
-
-                            // 计算距离衰减
-                            const dist = Math.abs(v.pos - impactPos);
-                            // 二次衰减公式: Damage = BaseDamage * (1 - dist/radius)²
-                            // 中心(dist=0) -> 100% 伤害 (1.0)
-                            // 边缘(dist=radius) -> 0% 伤害 (0.0)
-                            const normalizedDist = Math.min(dist / radius, 1); // 确保不超过1
-                            const falloffFactor = Math.pow(1 - normalizedDist, 2);
-                            const rawDmg = splashDmg * falloffFactor;
-
-                            const actualSplash = Math.max(1, rawDmg - def);
-                            v.hp -= actualSplash;
-                            Helpers.spawnFloater(v.pos, `-${actualSplash.toFixed(1)}`, '#ef4444');
-                        });
-
-                        // 如果打的是基地，结算基地伤害
-                        if (target === "base") {
-                            let baseDmg = u.damage;
-                            if (uConfig.bonusBaseDamage) baseDmg += uConfig.bonusBaseDamage;
-                            const actualBaseDmg = Math.max(1, baseDmg - 50); // 基地远程防御 50
-                            enemyFaction.baseHp -= actualBaseDmg;
-                            Helpers.spawnFloater(impactPos, `-${actualBaseDmg}`, '#d946ef');
-                        } else {
-                            // 如果主目标还在爆炸范围内，它也会受到 splashDmg (上面 victims 已经包含了它)
-                            // 但是投石机对主目标有额外伤害吗？
-                            // 题目说：它本身攻击有一个目标... 对基地伤害+240... 但是对溅射的目标，只有40伤害。
-                            // 这意味着主目标受到的伤害 = 基础伤害(40) + 加成。
-                            // 溅射目标受到 40。
-                            // 如果我们把主目标也算在 victims 里，它受了 40。
-                            // 我们需要给主目标补上 (TotalDamage - 40) 的差值?
-                            // 或者：主目标单独结算，victims 排除主目标。
-                            // 题目："对溅射的目标，只有40伤害"。
-                            // 让我们把主目标单独拿出来。
-                            // 但是！"投石机几乎无法对移动的骑兵产生伤害"。
-                            // 这意味着如果主目标跑了，它就不应该受到“主目标伤害”，甚至可能连溅射伤害都吃不到。
-                            // 所以：所有伤害都应该是基于位置的。
-                            // 如果主目标还在位置上，它就是 victims 之一。
-                            // 此时它受到 40 点伤害。
-                            // 那它的 +80 vs Ranged 怎么算？
-                            // 只有当它确实被击中时。
-                            // 我们可以这样：遍历 victims，如果 v.id === targetId，则应用额外伤害。
-
-                            // 修正 victims 循环：
-                        }
-                    }, flightTime);
+                    // 2. 将伤害结算加入延迟队列
+                    this.game.delayedDamageQueue.push({
+                        executionTick,
+                        attacker: u,
+                        target: target,
+                        impactPos,
+                        impactLane,
+                        enemyFaction,
+                        enemies: [...enemies]
+                    });
 
                     // 投石机不需要立即显示伤害，return
                     return true;

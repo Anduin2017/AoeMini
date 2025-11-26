@@ -19,6 +19,7 @@ export class Game {
     public isAIControllingPlayer: boolean = false; // AI 托管标记
 
     public projectiles: Projectile[] = [];
+    public delayedDamageQueue: any[] = []; // 延迟伤害队列（用于投石机等）
     public worldWidth: number = 0;
     public baseWidthPct: number = 6;
     public tickRate: number = 50;
