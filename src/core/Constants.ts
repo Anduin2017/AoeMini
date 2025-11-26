@@ -37,13 +37,13 @@ export const CONSTANTS = {
 
     // === 难度配置 ===
     DIFFICULTY_LEVELS: {
-        VERYEASY: { label: '非常简单', workers: 1, emoji: '🐥', tickRate: 150, shortText: '我只想休息。' },
-        EASY: { label: '简单', workers: 4, emoji: '👶', tickRate: 100, shortText: '我没玩过帝国时代。' },
-        MEDIUM: { label: '中等', workers: 6, emoji: '🙂', tickRate: 100, shortText: '我稍微理解帝国时代。' },
-        HARD: { label: '困难', workers: 9, emoji: '⚔️', tickRate: 75, shortText: '我熟练游玩帝国时代。' },
-        VERY_HARD: { label: '极难', workers: 13, emoji: '🔥', tickRate: 75, shortText: '我是帝国时代的专家！' },
-        EXPERT: { label: '专家', workers: 18, emoji: '👹', tickRate: 75, shortText: '我认为玩家一定能战胜电脑！' },
-        INSANE: { label: '疯狂', workers: 25, emoji: '💀', tickRate: 50, shortText: '我愿意被电脑折磨！' },
-        INFERNO: { label: '炼狱', workers: 37, emoji: '☠️', tickRate: 35, shortText: '我十分享受死亡！！' }
+        VERYEASY: { label: '非常简单', workers: 1, maxWorkers: 10, emoji: '🐥', tickRate: 150, shortText: '我只想休息。' },
+        EASY: { label: '简单', workers: 4, maxWorkers: 30, emoji: '👶', tickRate: 100, shortText: '我没玩过帝国时代。' },
+        MEDIUM: { label: '中等', workers: 6, maxWorkers: 50, emoji: '🙂', tickRate: 100, shortText: '我稍微理解帝国时代。' },
+        HARD: { label: '困难', workers: 9, maxWorkers: 70, emoji: '⚔️', tickRate: 75, shortText: '我熟练游玩帝国时代。' },
+        VERY_HARD: { label: '极难', workers: 13, maxWorkers: 80, emoji: '🔥', tickRate: 75, shortText: '我是帝国时代的专家！' },
+        EXPERT: { label: '专家', workers: 18, maxWorkers: 85, emoji: '👹', tickRate: 75, shortText: '我认为玩家一定能战胜电脑！' },
+        INSANE: { label: '疯狂', workers: 25, maxWorkers: 90, emoji: '💀', tickRate: 50, shortText: '我愿意被电脑折磨！' },
+        INFERNO: { label: '炼狱', workers: 37, maxWorkers: 95, emoji: '☠️', tickRate: 35, shortText: '我十分享受死亡！！' }
     }
 };

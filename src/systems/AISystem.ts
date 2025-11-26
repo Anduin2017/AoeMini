@@ -81,7 +81,11 @@ export class AISystem {
         }
 
         // 3.2 [优先级 2] 持续生产农民
-        if (me.totalWorkers < 70) {
+        // @ts-ignore
+        const diffConfig = CONSTANTS.DIFFICULTY_LEVELS[this.game.difficultyKey] || CONSTANTS.DIFFICULTY_LEVELS.MEDIUM;
+        const maxWorkers = (diffConfig as any).maxWorkers || 50;
+
+        if (me.totalWorkers < maxWorkers) {
             const tcs = me.buildings.filter((b: any) => b.type === BuildingType.TownCenter);
             tcs.forEach((tc: any) => {
                 if (tc.queue.length < 2) this.tryQueueUnit(me, tc, UnitType.Worker);
