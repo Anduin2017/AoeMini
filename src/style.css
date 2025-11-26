@@ -1112,3 +1112,59 @@ canvas {
 .rounded {
     border-radius: 0.25rem;
 }
+
+/* === Badge Utilities === */
+.-top-3 {
+    top: -0.75rem;
+}
+
+.-right-3 {
+    right: -0.75rem;
+}
+
+.border {
+    border-width: 1px;
+}
+
+.bg-yellow-500 {
+    background-color: #eab308;
+}
+
+.text-black {
+    color: #000000;
+}
+
+.px-2 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.py-1 {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+.rounded-full {
+    border-radius: 9999px;
+}
+
+.shadow-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.rotate-12 {
+    --tw-rotate: 12deg;
+    transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.border-yellow-300 {
+    border-color: #fde047;
+}
+
+.block {
+    display: block;
+}
+
+.mt-2 {
+    margin-top: 0.5rem;
+}

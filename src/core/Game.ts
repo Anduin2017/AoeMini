@@ -8,6 +8,8 @@ import { AISystem } from "../systems/AISystem";
 import { UIManager } from "../ui/UIManager";
 import { TownCenter } from "../entities/buildings/ConcreteBuildings";
 
+import { CONSTANTS } from "./Constants";
+
 export class Game {
     public player: Faction;
     public enemy: Faction;
@@ -39,7 +41,14 @@ export class Game {
     private static entityIdCounter: number = 0;
     public static nextId(): number { return ++this.entityIdCounter; }
 
-    constructor(difficultyWorkers: number = 9) {
+    public difficultyKey: string = 'MEDIUM'; // 默认为中等
+
+    constructor(difficultyKey: string = 'MEDIUM') {
+        this.difficultyKey = difficultyKey;
+        // @ts-ignore
+        const diffConfig = CONSTANTS.DIFFICULTY_LEVELS[difficultyKey as any] || CONSTANTS.DIFFICULTY_LEVELS.MEDIUM;
+        const difficultyWorkers = diffConfig.workers;
+
         this.player = new Faction(FactionType.Player, 6); // 玩家固定 6 农民
         this.enemy = new Faction(FactionType.Enemy, difficultyWorkers); // 电脑根据难度
 
@@ -92,16 +101,46 @@ export class Game {
         const titleEl = document.getElementById('end-title')!;
         const reasonEl = document.getElementById('end-reason')!;
 
+        // 计算耗时
+        // TICK_RATE 是每帧的毫秒数 (80ms)
+        const totalMs = this.tickCount * CONSTANTS.TICK_RATE;
+        const seconds = Math.floor(totalMs / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        const timeStr = `${minutes}分${remainingSeconds}秒`;
+
         if (isVictory) {
             titleEl.innerText = "VICTORY";
-            // 使用 style.css 中的工具类
             titleEl.className = "text-5xl font-bold mb-4 text-green-500";
+
+            // 保存进度
+            this.saveProgress(seconds);
+
+            // @ts-ignore
+            const diffLabel = CONSTANTS.DIFFICULTY_LEVELS[this.difficultyKey].label;
+            reasonEl.innerHTML = `${message}<br><span class="text-sm text-gray-400 mt-2 block">难度: ${diffLabel} | 耗时: ${timeStr}</span>`;
+
         } else {
             titleEl.innerText = "DEFEAT";
             titleEl.className = "text-5xl font-bold mb-4 text-red-500";
+            reasonEl.innerText = message;
         }
+    }
 
-        reasonEl.innerText = message;
+    private saveProgress(seconds: number) {
+        try {
+            const key = 'aoemini_progress';
+            const data = JSON.parse(localStorage.getItem(key) || '{}');
+            const currentBest = data[this.difficultyKey];
+
+            if (!currentBest || seconds < currentBest) {
+                data[this.difficultyKey] = seconds;
+                localStorage.setItem(key, JSON.stringify(data));
+                console.log(`🏆 New Record for ${this.difficultyKey}: ${seconds}s`);
+            }
+        } catch (e) {
+            console.error("Failed to save progress", e);
+        }
     }
 
     private debugAI() {

@@ -12,21 +12,38 @@ declare global {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 读取进度
+    const progress = JSON.parse(localStorage.getItem('aoemini_progress') || '{}');
+
     // 创建难度选择界面
     const container = document.createElement('div');
     container.id = 'difficulty-screen';
     container.className = 'fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-50';
+
+    const buttonsHtml = Object.entries(CONSTANTS.DIFFICULTY_LEVELS).map(([key, diff]) => {
+        const bestTime = progress[key];
+        let badgeHtml = '';
+        if (bestTime) {
+            const m = Math.floor(bestTime / 60);
+            const s = bestTime % 60;
+            badgeHtml = `<span class="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-md transform rotate-12 border border-yellow-300">🏆 ${m}m${s}s</span>`;
+        }
+
+        return `
+            <button class="group relative px-8 py-4 bg-gray-800 hover:bg-blue-600 border-2 border-gray-700 hover:border-blue-400 text-white rounded-xl font-bold transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-between"
+                data-key="${key}">
+                ${badgeHtml}
+                <span class="text-2xl mr-4 group-hover:animate-bounce">${(diff as any).emoji}</span>
+                <span class="text-xl tracking-wider">${diff.label}</span>
+                <span class="text-2xl ml-4 opacity-0 group-hover:opacity-100 transition-opacity">➜</span>
+            </button>
+        `;
+    }).join('');
+
     container.innerHTML = `
         <h1 class="text-5xl font-bold text-white mb-12 drop-shadow-lg">选择难度</h1>
         <div class="flex flex-col gap-4 w-80">
-            ${Object.entries(CONSTANTS.DIFFICULTY_LEVELS).map(([key, diff]) => `
-                <button class="group relative px-8 py-4 bg-gray-800 hover:bg-blue-600 border-2 border-gray-700 hover:border-blue-400 text-white rounded-xl font-bold transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-between"
-                    data-workers="${diff.workers}">
-                    <span class="text-2xl mr-4 group-hover:animate-bounce">${(diff as any).emoji}</span>
-                    <span class="text-xl tracking-wider">${diff.label}</span>
-                    <span class="text-2xl ml-4 opacity-0 group-hover:opacity-100 transition-opacity">➜</span>
-                </button>
-            `).join('')}
+            ${buttonsHtml}
         </div>
         <div class="mt-8 text-gray-500 text-sm">选择你的对手强度</div>
     `;
@@ -35,15 +52,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // 绑定点击事件
     container.querySelectorAll('button').forEach(btn => {
         btn.addEventListener('click', () => {
-            const workers = parseInt(btn.getAttribute('data-workers') || '9');
+            const key = btn.getAttribute('data-key') || 'MEDIUM';
             container.remove(); // 移除界面
-            startGame(workers);
+            startGame(key);
         });
     });
 });
 
-function startGame(aiWorkers: number) {
-    const game = new Game(aiWorkers);
+function startGame(difficultyKey: string) {
+    const game = new Game(difficultyKey);
 
     // 1. 资源秘籍
     window.show_me_the_money = () => {
@@ -74,7 +91,7 @@ function startGame(aiWorkers: number) {
         }
     };
 
-    console.log(`Minimalist Empire Engine Started! Difficulty: AI has ${aiWorkers} workers.`);
+    console.log(`Minimalist Empire Engine Started! Difficulty: ${difficultyKey}`);
     console.log("Cheats:");
     console.log("  - show_me_the_money(): Get resources");
     console.log("  - operation_cwal(): Instant build/research");

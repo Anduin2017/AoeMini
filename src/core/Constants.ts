@@ -40,9 +40,9 @@ export const CONSTANTS = {
         EASY: { label: '简单', workers: 4, emoji: '👶' },
         MEDIUM: { label: '中等', workers: 6, emoji: '🙂' },
         HARD: { label: '困难', workers: 9, emoji: '⚔️' },
-        VERY_HARD: { label: '极难', workers: 11, emoji: '🔥' },
-        EXPERT: { label: '专家', workers: 13, emoji: '👹' },
-        INSANE: { label: '疯狂', workers: 15, emoji: '💀' },
-        INFERNO: { label: '炼狱', workers: 20, emoji: '☠️' }
+        VERY_HARD: { label: '极难', workers: 13, emoji: '🔥' },
+        EXPERT: { label: '专家', workers: 18, emoji: '👹' },
+        INSANE: { label: '疯狂', workers: 25, emoji: '💀' },
+        INFERNO: { label: '炼狱', workers: 37, emoji: '☠️' }
     }
 };
