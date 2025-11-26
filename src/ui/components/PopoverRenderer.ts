@@ -113,6 +113,9 @@ export class PopoverRenderer {
     private renderBuildMenu() {
         this.container.innerHTML = `<div class="popover-title">建造建筑</div>`;
 
+        const shortcuts = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'];
+        let index = 0;
+
         Object.entries(BUILDING_CONFIG).forEach(([type, conf]) => {
             // === 修复：允许建造城镇中心 (移除了 if type == TownCenter return) ===
 
@@ -130,7 +133,9 @@ export class PopoverRenderer {
                         ${conf.cost.wood ? conf.cost.wood + '木 ' : ''}${conf.cost.stone ? conf.cost.stone + '石' : ''}
                     </div>
                 </div>
+                <div style="position:absolute; top:4px; right:6px; font-size:10px; color:rgba(255,255,255,0.3); font-weight:bold;">${shortcuts[index] || ''}</div>
             `;
+            index++;
 
             btn.onclick = () => {
                 const p = this.game.player;
@@ -168,7 +173,8 @@ export class PopoverRenderer {
         if (options.length === 0) {
             this.container.innerHTML += `<div class="text-xs text-gray-500 text-center p-2">无可用操作</div>`;
         } else {
-            options.forEach(opt => {
+            const shortcuts = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'];
+            options.forEach((opt, idx) => {
                 const btn = document.createElement('div');
                 btn.className = 'menu-btn produce-action-btn';
                 btn.dataset.costFood = (opt.cost.food || 0).toString();
@@ -188,6 +194,7 @@ export class PopoverRenderer {
                         <span>${opt.label}</span>
                         <span class="btn-cost">${costStr}</span>
                     </div>
+                    <div style="position:absolute; top:4px; right:6px; font-size:10px; color:rgba(255,255,255,0.3); font-weight:bold;">${shortcuts[idx] || ''}</div>
                 `;
 
                 btn.onclick = () => {

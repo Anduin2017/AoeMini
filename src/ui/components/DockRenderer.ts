@@ -30,7 +30,7 @@ export class DockRenderer {
         const div = document.createElement('div');
         div.className = 'dock-icon build-icon';
         div.id = 'dock-btn-build';
-        div.innerHTML = '🔨';
+        div.innerHTML = '🔨<div style="position:absolute; bottom:2px; left:4px; font-size:10px; color:rgba(255,255,255,0.7); font-weight:bold; pointer-events:none;">B</div>';
         this.dockEl.appendChild(div);
         this.buildBtn = div;
     }
@@ -116,7 +116,7 @@ export class DockRenderer {
             }
 
             // 更新视觉状态 (这个操作开销很小，不影响布局)
-            this.updateIconVisuals(icon, item);
+            this.updateIconVisuals(icon, item, domIndex + 1);
 
             if (activeId === item.id) icon.classList.add('active');
             else icon.classList.remove('active');
@@ -146,6 +146,7 @@ export class DockRenderer {
             <div class="icon-progress-bg" style="display:none"><div class="icon-progress-fill"></div></div>
             <div class="icon-badge" style="display:none"></div>
             <div class="const-overlay" style="display:none"></div>
+            <div class="shortcut-key" style="position:absolute; bottom:2px; left:4px; font-size:10px; color:rgba(255,255,255,0.7); font-weight:bold; pointer-events:none;"></div>
         `;
         return el;
     }
@@ -155,11 +156,16 @@ export class DockRenderer {
         return BUILDING_CONFIG[item.entity.type]?.icon || '?';
     }
 
-    private updateIconVisuals(icon: HTMLElement, item: any) {
+    private updateIconVisuals(icon: HTMLElement, item: any, index: number) {
         const bg = icon.querySelector('.icon-progress-bg') as HTMLElement;
         const fill = icon.querySelector('.icon-progress-fill') as HTMLElement;
         const badge = icon.querySelector('.icon-badge') as HTMLElement;
         const overlay = icon.querySelector('.const-overlay') as HTMLElement;
+        const shortcut = icon.querySelector('.shortcut-key') as HTMLElement;
+
+        if (shortcut) {
+            shortcut.innerText = index <= 9 ? index.toString() : '';
+        }
 
         if (item.type === 'construction') {
             icon.classList.add('constructing');

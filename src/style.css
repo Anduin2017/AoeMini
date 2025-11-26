@@ -214,6 +214,22 @@ canvas {
     box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
 }
 
+.key-hint {
+    font-size: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 1px 4px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.tactic-btn.active .key-hint {
+    background: rgba(0, 0, 0, 0.2);
+    color: rgba(0, 0, 0, 0.7);
+}
+
 .lane-toggle-btn {
     padding: 0 10px;
     font-size: 12px;
@@ -621,6 +637,7 @@ canvas {
     gap: 10px;
     font-size: 0.9rem;
     transition: all 0.1s;
+    position: relative;
 }
 
 .menu-btn:hover:not(:disabled) {

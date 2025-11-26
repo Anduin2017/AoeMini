@@ -50,7 +50,7 @@ export class UIManager {
 
             // 3. 菜单选项 (Q, W, E, R)
             if (this.activePopoverId) {
-                const map: Record<string, number> = { 'Q': 0, 'W': 1, 'E': 2, 'R': 3 };
+                const map: Record<string, number> = { 'Q': 0, 'W': 1, 'E': 2, 'R': 3, 'T': 4, 'Y': 5, 'U': 6, 'I': 7, 'O': 8, 'P': 9 };
                 if (map[key] !== undefined) {
                     const btns = document.querySelectorAll('#popover-container .menu-btn');
                     const btn = btns[map[key]] as HTMLElement;
