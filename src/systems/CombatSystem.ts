@@ -53,13 +53,23 @@ export class CombatSystem {
             victims.forEach((v: any) => {
                 const def = v.def_r;
                 const dist = Math.abs(v.pos - impactPos);
+
+                // 计算基础伤害（包含加成）
+                let baseDmg = splashDmg; // 40
+                if (attacker.bonusAttack) {
+                    baseDmg += attacker.bonusAttack(v.tags); // 对远程单位 +80
+                }
+
+                // 应用距离衰减到总伤害
                 const normalizedDist = Math.min(dist / radius, 1);
                 const falloffFactor = Math.pow(1 - normalizedDist, 2);
-                const rawDmg = splashDmg * falloffFactor;
+                const rawDmg = baseDmg * falloffFactor;
+
                 const actualSplash = Math.max(1, rawDmg - def);
 
                 v.hp -= actualSplash;
-                Helpers.spawnFloater(v.pos, `-${actualSplash.toFixed(1)}`, '#ef4444');
+                const color = Helpers.getDamageColor(actualSplash);
+                Helpers.spawnFloater(v.pos, `-${actualSplash.toFixed(1)}`, color);
             });
 
             // 基地伤害

@@ -122,6 +122,11 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         label: '轻型投石机', lane: 3, attackType: 'ranged', attackSpeed: 6.875,
         widthScale: 1.8,
         visual: { type: 'emoji', value: '🛞' },
+        bonusAttack: (tags: UnitTag[]) => {
+            if (tags.includes(UnitTag.Ranged)) return 80;
+            return 0;
+        },
+        bonusDesc: "+80 vs 远程单位",
         aoeRadius: 1.6,
         aoeDamage: 40,
         bonusBaseDamage: 240,
