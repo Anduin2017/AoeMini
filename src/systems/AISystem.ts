@@ -62,6 +62,7 @@ export class AISystem {
             this.game.laneStances[0] = stance;
             this.game.laneStances[1] = stance;
             this.game.laneStances[2] = stance;
+            this.game.laneStances[3] = stance;
         } else {
             this.game.enemyStance = stance;
         }
