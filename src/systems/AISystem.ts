@@ -69,7 +69,7 @@ export class AISystem {
         // === 3. 核心决策逻辑 ===
 
         // 3.0 分析局势，决定出什么兵
-        const desiredUnit = this.getCounterUnit(opponent.units);
+        const desiredUnit = this.getCounterUnit(me, opponent.units);
 
         // 3.1 [优先级 1] 避免卡人口
         if (me.popCap - me.currentPop < 7 && me.popCap < CONSTANTS.MAX_TOTAL_POP) {
@@ -132,60 +132,135 @@ export class AISystem {
         }
     }
 
+    // === AI 配比配置 ===
+    private static readonly UNIT_ORDER = [
+        UnitType.Spearman,
+        UnitType.ManAtArms,
+        UnitType.Longbowman,
+        UnitType.Crossbowman,
+        UnitType.Horseman,
+        UnitType.Knight,
+        UnitType.Mangonel
+    ];
+
+    private static readonly COUNTER_RATIOS: Record<string, number[]> = {
+        [UnitType.Spearman]: [2, 4, 4, 2, 1, 1, 1],
+        [UnitType.ManAtArms]: [0, 2, 0, 4, 1, 2, 0],
+        [UnitType.Longbowman]: [0, 2, 2, 0, 4, 3, 1],
+        [UnitType.Crossbowman]: [2, 0, 3, 2, 4, 1, 2],
+        [UnitType.Horseman]: [4, 2, 0, 2, 2, 2, 0],
+        [UnitType.Knight]: [4, 2, 0, 4, 1, 2, 0],
+        [UnitType.Mangonel]: [2, 3, 0, 0, 4, 3, 1]
+    };
+
     // === 核心算法：克制分析 ===
-    private getCounterUnit(playerUnits: any[]): UnitType {
-        if (playerUnits.length === 0) return UnitType.Spearman; // 默认出长枪
+    private getCounterUnit(me: any, opponentUnits: any[]): UnitType {
+        // 1. 统计对手兵种数量，找出主力
+        const opponentCounts: Record<string, number> = {};
+        let maxType: UnitType | null = null;
+        let maxCount = -1;
 
-        // 1. 统计玩家兵种数量
-        const counts: Record<string, number> = {};
-        let infantryCount = 0;
-
-        playerUnits.forEach(u => {
-            counts[u.type] = (counts[u.type] || 0) + 1;
-            // 统计步兵数量 (不含攻城器)
-            // 检查 UnitTag.Infantry
-            const config = UNIT_CONFIG[u.type];
-            if (config && config.tags.includes(UnitTag.Infantry)) {
-                infantryCount++;
+        opponentUnits.forEach((u: any) => {
+            if (u.type !== UnitType.Worker) {
+                opponentCounts[u.type] = (opponentCounts[u.type] || 0) + 1;
+                if (opponentCounts[u.type] > maxCount) {
+                    maxCount = opponentCounts[u.type];
+                    maxType = u.type as UnitType;
+                }
             }
         });
 
-        // === 新增规则 1: 玩家步兵超过 20 -> 投石机 ===
-        if (infantryCount > 20) {
-            return UnitType.Mangonel;
+        // 如果对手没有军队，默认针对长枪兵（或者默认出长弓骚扰）
+        if (!maxType) {
+            // 如果完全没兵，默认按对手是长枪兵来配比（均衡发展），或者直接出长弓
+            // 这里为了让 AI 动起来，如果没有敌人，默认假设敌人是长枪兵，进行均衡配比
+            maxType = UnitType.Spearman;
         }
 
-        // 2. 找到最多的兵种
-        let maxType: UnitType = UnitType.Worker; // 默认
-        let maxCount = -1;
+        // 2. 获取目标配比
+        // 如果 maxType 不在配置表中（比如是新单位），默认用长枪兵的配比
+        const targetRatios = AISystem.COUNTER_RATIOS[maxType] || AISystem.COUNTER_RATIOS[UnitType.Spearman];
 
-        // 排除农民，只看战斗单位
-        for (const type of Object.keys(counts)) {
-            if (type !== UnitType.Worker) {
-                if (counts[type] > maxCount) {
-                    maxCount = counts[type];
-                    maxType = type as UnitType;
+        // 3. 统计我方当前兵种数量 (包括正在生产的？暂时只算现有的，简化逻辑)
+        // 优化：应该包含生产队列中的，否则会瞬间造很多同一种
+        const myCounts: Record<string, number> = {};
+
+        // 3.1 统计现有单位
+        me.units.forEach((u: any) => {
+            myCounts[u.type] = (myCounts[u.type] || 0) + 1;
+        });
+
+        // 3.2 统计生产队列中的单位
+        me.buildings.forEach((b: any) => {
+            b.queue.forEach((item: any) => {
+                myCounts[item.type] = (myCounts[item.type] || 0) + 1;
+            });
+        });
+
+        // 4. 计算最缺少的单位
+        // 算法：计算 (当前数量 / 目标比例)，得分最低的即为最缺少的
+        let bestUnit = UnitType.Spearman;
+        let minScore = Infinity;
+
+        AISystem.UNIT_ORDER.forEach((uType, index) => {
+            const ratio = targetRatios[index];
+            if (ratio > 0) {
+                const count = myCounts[uType] || 0;
+                // score = count / ratio
+                // 为了避免除以 0 (虽然 ratio > 0)，以及让 0/2 比 0/1 更优先 (需要更多)，
+                // 我们可以用 (count) / ratio。
+                // 例如：
+                // A: count 0, ratio 2 => score 0
+                // B: count 0, ratio 1 => score 0
+                // 这样无法区分。
+                // 改进：score = count / ratio。
+                // 如果 count 都是 0，score 都是 0。此时应该优先 ratio 大的。
+                // 所以当 score 相等时，取 ratio 大的。
+
+                const score = count / ratio;
+
+                if (score < minScore) {
+                    minScore = score;
+                    bestUnit = uType;
+                } else if (score === minScore) {
+                    // 如果得分相同（比如都是 0），优先造比例要求更高的
+                    const currentBestIndex = AISystem.UNIT_ORDER.indexOf(bestUnit);
+                    const currentBestRatio = targetRatios[currentBestIndex];
+                    if (ratio > currentBestRatio) {
+                        bestUnit = uType;
+                    }
                 }
             }
+        });
+
+        // Debug: 仅针对敌方 AI 输出日志
+        if (me === this.game.enemy) {
+            this.debugAI(maxType, targetRatios, myCounts, bestUnit);
         }
 
-        // === 新增规则 2: 玩家投石机最多 -> 骑手 ===
-        if (maxType === UnitType.Mangonel) {
-            return UnitType.Horseman;
-        }
+        return bestUnit;
+    }
 
-        if (maxCount === -1) return UnitType.Longbowman; // 只有农民，出长弓骚扰
+    private debugAI(opponentMain: string | null, targetRatios: number[], myCounts: Record<string, number>, decision: string) {
+        // 每 50 tick 输出一次 (约 5 秒)
+        if (this.game.tickCount % 50 !== 0) return;
 
-        // 3. 根据克制关系返回
-        switch (maxType) {
-            case UnitType.Spearman: return UnitType.ManAtArms; // 长枪 -> 武士/长弓 (武士更优)
-            case UnitType.ManAtArms: return UnitType.Crossbowman; // 武士 -> 弩手
-            case UnitType.Crossbowman: return UnitType.Horseman; // 弩手 -> 骑手
-            case UnitType.Horseman: return UnitType.Spearman; // 骑手 -> 长枪
-            case UnitType.Knight: return UnitType.Spearman; // 骑士 -> 长枪
-            case UnitType.Longbowman: return UnitType.Knight; // 长弓 -> 骑士
-            default: return UnitType.Longbowman;
-        }
+        console.groupCollapsed(`[AI Debug] Tick ${this.game.tickCount} | Countering: ${opponentMain || 'None'} | Decision: ${decision}`);
+
+        const data = AISystem.UNIT_ORDER.map((uType, index) => {
+            const ratio = targetRatios[index];
+            const count = myCounts[uType] || 0;
+            const score = ratio > 0 ? (count / ratio).toFixed(2) : 'N/A';
+            return {
+                'Unit': uType,
+                'Target Ratio': ratio,
+                'Current Count': count,
+                'Score (Count/Ratio)': score
+            };
+        });
+
+        console.table(data);
+        console.groupEnd();
     }
 
     private getProductionBuildingFor(uType: UnitType): BuildingType | null {

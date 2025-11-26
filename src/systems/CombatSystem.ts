@@ -27,10 +27,6 @@ export class CombatSystem {
         const currentTick = this.game.tickCount;
         const toExecute = this.game.delayedDamageQueue.filter(d => d.executionTick <= currentTick);
 
-        if (toExecute.length > 0) {
-            console.log(`[Mangonel] Executing ${toExecute.length} delayed damage(s) at tick ${currentTick}`);
-        }
-
         toExecute.forEach(damage => {
             const { attacker, target, impactPos, impactLane, enemyFaction } = damage;
 
@@ -198,8 +194,6 @@ export class CombatSystem {
                     const flightTimeSec = uConfig.projectileFlightTime;
                     const delayTicks = Math.round(flightTimeSec / 0.1);
                     const executionTick = this.game.tickCount + delayTicks;
-
-                    console.log(`[Mangonel] Fire at tick ${this.game.tickCount}, will hit at tick ${executionTick} (delay: ${delayTicks} ticks, flightTime: ${flightTimeSec} logical seconds)`);
 
                     const impactPos = target === "base" ? enemyBaseEdge : target.pos;
                     const impactLane = target === "base" ? u.lane : target.lane;

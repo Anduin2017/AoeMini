@@ -70,8 +70,7 @@ export class Game {
         this.loop.start();
         (window as any).game = this;
 
-        // AI 调试
-        setInterval(() => this.debugAI(), 3000);
+
     }
 
     public update() {
@@ -147,17 +146,5 @@ export class Game {
         }
     }
 
-    private debugAI() {
-        if (this.gameOver) return;
-        const ai = this.enemy;
-        console.groupCollapsed(`🤖 AI 状态监控 (Tick: ${this.tickCount})`);
-        console.log(`💰 资源: F${Math.floor(ai.resources.food)} W${Math.floor(ai.resources.wood)} G${Math.floor(ai.resources.gold)} S${Math.floor(ai.resources.stone)}`);
-        console.log(`👷 人口: ${ai.currentPop}/${ai.popCap} (闲置: ${ai.idleWorkers})`);
-        console.log(`⚔️ 军队: ${ai.armyCount}`);
-        console.log(`🏗️ 建筑:`, ai.buildings.map(b => `${b.type}(${b.queue.length})`));
-        console.log(`⚔️ 战术姿态: ${this.enemyStance}`);
-        console.log(`⚔️ 科研: AtkM:${ai.techLevels.atk_m} DefM:${ai.techLevels.def_m} AtkR:${ai.techLevels.atk_r} DefR:${ai.techLevels.def_r}`);
-        console.log(`⚔️ 铁匠铺队列: ${ai.buildings.find(b => b.type === BuildingType.Blacksmith)?.queue.length || 0}`);
-        console.groupEnd();
-    }
+
 }

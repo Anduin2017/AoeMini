@@ -127,7 +127,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
             return 0;
         },
         bonusDesc: "+80 vs 远程单位",
-        aoeRadius: 1.6,
+        aoeRadius: 1.8,
         aoeDamage: 40,
         bonusBaseDamage: 240,
         projectileFlightTime: 2.7 // 炮弹飞行2.7逻辑秒（基于tick=100ms，实际时间取决于难度）
