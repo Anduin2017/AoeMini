@@ -37,6 +37,7 @@ export const CONSTANTS = {
 
     // === 难度配置 ===
     DIFFICULTY_LEVELS: {
+        VERYEASY: { label: '非常简单', workers: 1, emoji: '🐥' },
         EASY: { label: '简单', workers: 4, emoji: '👶' },
         MEDIUM: { label: '中等', workers: 6, emoji: '🙂' },
         HARD: { label: '困难', workers: 9, emoji: '⚔️' },
