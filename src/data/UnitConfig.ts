@@ -63,7 +63,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         range: 11, // === 修改：射程提升 ===
         speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Ranged, UnitTag.Light],
-        label: '长弓兵', lane: 1, widthScale: 0.5, attackType: 'ranged', attackSpeed: 1.625,
+        label: '长弓兵', lane: 1, widthScale: 0.7, attackType: 'ranged', attackSpeed: 1.625,
         visual: { type: 'emoji', value: '🏹', shouldMirrorIcon: false },
         // === 新增：对 Light + Melee + Infantry 造成 +6 伤害 ===
         bonusAttack: (tags: UnitTag[]) => {
@@ -79,7 +79,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         range: 10, // 长弓兵(11) - 1
         speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Ranged, UnitTag.Light],
-        label: '弩手', lane: 1, widthScale: 0.5, attackType: 'ranged', attackSpeed: 2.125,
+        label: '弩手', lane: 1, widthScale: 0.7, attackType: 'ranged', attackSpeed: 2.125,
         visual: { type: 'emoji', value: '☦️' }, // 机械臂代表弩? 或者用 🏹
         // === 对 Heavy 单位 +10 ===
         bonusAttack: (tags: UnitTag[]) => {
