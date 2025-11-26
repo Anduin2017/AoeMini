@@ -126,24 +126,58 @@ export class Renderer {
             // === 核心修正：基于 attackType 绘制攻击闪光 ===
             if (u.attackAnimTimer > 0) {
                 const uConfig = UNIT_CONFIG[u.type];
-                // 只有近战才画黄线
+                // 只有近战才画攻击线
                 if (!uConfig.attackType || uConfig.attackType === 'melee') {
-                    this.ctx.strokeStyle = '#ffff00';
+                    // 玩家攻击为黄色，敌人攻击为红色
+                    this.ctx.strokeStyle = u.owner === FactionType.Player ? '#ffff00' : '#ff0000';
                     this.ctx.lineWidth = 2;
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(u.owner === FactionType.Player ? x + 5 : x - 5, laneY - 15);
 
-                    let tx = 0;
+                    // 计算起点 (胸部高度)
+                    const startX = x;
+                    const startY = laneY - 15;
+
+                    let targetX = startX;
+                    let targetY = startY;
+                    let hasTarget = false;
+
                     if (u.targetId === "base") {
                         const targetBasePos = u.owner === FactionType.Player ? CONSTANTS.ENEMY_BASE_POS : CONSTANTS.PLAYER_BASE_POS;
                         const dir = u.owner === FactionType.Player ? 1 : -1;
-                        tx = (targetBasePos - dir * CONSTANTS.BASE_WIDTH / 2) / 100 * w;
-                    } else {
-                        tx = u.owner === FactionType.Player ? x + 30 : x - 30;
+                        targetX = (targetBasePos - dir * CONSTANTS.BASE_WIDTH / 2) / 100 * w;
+                        targetY = h / 2; // 基地中心高度
+                        hasTarget = true;
+                    } else if (u.targetId !== null) {
+                        const target = allUnits.find(t => t.id === u.targetId);
+                        if (target) {
+                            const tRenderPos = target.prevPos + (target.pos - target.prevPos) * alpha;
+                            targetX = (tRenderPos / 100) * w;
+                            const tLaneOffset = CONSTANTS.LANE_CONFIG[target.lane] || 0;
+                            targetY = h / 2 + tLaneOffset - 15;
+                            hasTarget = true;
+                        }
                     }
 
-                    this.ctx.lineTo(tx, laneY - 10);
-                    this.ctx.stroke();
+                    // 默认方向
+                    if (!hasTarget) {
+                        targetX = u.owner === FactionType.Player ? x + 100 : x - 100;
+                        targetY = startY;
+                    }
+
+                    const dx = targetX - startX;
+                    const dy = targetY - startY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    // 只有距离足够才绘制 (避免反向绘制)
+                    const offsetStart = 10;
+                    if (dist > offsetStart) {
+                        const dirX = dx / dist;
+                        const dirY = dy / dist;
+
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(startX + dirX * offsetStart, startY + dirY * offsetStart);
+                        this.ctx.lineTo(targetX, targetY);
+                        this.ctx.stroke();
+                    }
                 }
             }
             // ==========================================
