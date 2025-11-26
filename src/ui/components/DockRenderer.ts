@@ -8,6 +8,7 @@ export class DockRenderer {
     private game: Game;
     private dockEl: HTMLElement;
     private buildBtn: HTMLElement | null = null;
+    public currentSortedItems: any[] = [];
 
     private static SORT_ORDER: Record<string, number> = {
         [BuildingType.TownCenter]: 1,
@@ -44,7 +45,7 @@ export class DockRenderer {
             if (b.isGroupable) {
                 houses.push(b);
             } else {
-                dockItems.set(b.id, {
+                dockItems.set(String(b.id), {
                     id: b.id, type: 'building', entity: b, origin: b,
                     queue: b.queue, isConstruction: false, sortType: b.type
                 });
@@ -74,6 +75,7 @@ export class DockRenderer {
             if (a.isConstruction !== b.isConstruction) return a.isConstruction ? 1 : -1;
             return a.id > b.id ? 1 : -1;
         });
+        this.currentSortedItems = sortedItems;
 
         // 3. === 关键优化：先清理 DOM ===
         // 我们先算出这一帧所有合法的 ID 集合

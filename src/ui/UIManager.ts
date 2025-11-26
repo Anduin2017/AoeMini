@@ -22,6 +22,109 @@ export class UIManager {
 
         this.setupListeners();
         this.setupTooltipListeners();
+        this.setupKeyboardShortcuts();
+        this.setupResourceLongPress();
+    }
+
+    private setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            if (this.game.gameOver) return;
+
+            const key = e.key.toUpperCase();
+
+            // 1. 建筑快捷键 (1-9)
+            if (['1', '2', '3', '4', '5', '6', '7', '8', '9'].includes(key)) {
+                const index = parseInt(key) - 1;
+                const items = this.dockRenderer.currentSortedItems;
+                if (items && items[index]) {
+                    this.handleDockClick(items[index].id, items[index]);
+                }
+                return;
+            }
+
+            // 2. 建造面板 (B)
+            if (key === 'B') {
+                this.handleDockClick('build_menu', { type: 'menu' });
+                return;
+            }
+
+            // 3. 菜单选项 (Q, W, E, R)
+            if (this.activePopoverId) {
+                const map: Record<string, number> = { 'Q': 0, 'W': 1, 'E': 2, 'R': 3 };
+                if (map[key] !== undefined) {
+                    const btns = document.querySelectorAll('#popover-container .menu-btn');
+                    const btn = btns[map[key]] as HTMLElement;
+                    if (btn && btn.style.pointerEvents !== 'none') {
+                        btn.click();
+                        // 添加按键反馈动画
+                        btn.style.transform = 'scale(0.95)';
+                        setTimeout(() => btn.style.transform = '', 100);
+                    }
+                    return;
+                }
+            }
+
+            // 4. 姿态切换 (A, S, D, F, G)
+            // 只有在没有打开菜单或者菜单不是输入框时才触发 (这里没有输入框，所以直接触发)
+            const stanceMap: Record<string, any> = {
+                'A': 'attack',
+                'S': 'hold',
+                'D': 'defend',
+                'F': 'retreat',
+                'G': 'advance'
+            };
+
+            if (stanceMap[key]) {
+                const s = stanceMap[key];
+                this.game.playerStance = s;
+                this.game.laneStances[0] = s;
+                this.game.laneStances[1] = s;
+                this.game.laneStances[2] = s;
+                this.updateStanceUI();
+                Helpers.showToast(`姿态切换: ${s.toUpperCase()}`, '#3b82f6');
+            }
+        });
+    }
+
+    private setupResourceLongPress() {
+        const bindLongPress = (id: string, action: () => void) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+
+            let intervalId: any = null;
+            let timeoutId: any = null;
+
+            const start = () => {
+                if (intervalId || timeoutId) return;
+                // 必须按住 0.6 秒后才开始触发
+                timeoutId = setTimeout(() => {
+                    action(); // 触发第一次
+                    intervalId = setInterval(action, 100); // 10次/秒
+                }, 600);
+            };
+
+            const stop = () => {
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                    timeoutId = null;
+                }
+                if (intervalId) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                }
+            };
+
+            btn.addEventListener('mousedown', start);
+            btn.addEventListener('mouseup', stop);
+            btn.addEventListener('mouseleave', stop);
+            // 防止触摸屏长按弹出菜单
+            btn.addEventListener('contextmenu', (e) => e.preventDefault());
+        };
+
+        (['food', 'wood', 'gold', 'stone'] as ResourceType[]).forEach(r => {
+            bindLongPress(`add-${r}`, () => this.modWork(r, 1));
+            bindLongPress(`sub-${r}`, () => this.modWork(r, -1));
+        });
     }
 
     private setupListeners() {
