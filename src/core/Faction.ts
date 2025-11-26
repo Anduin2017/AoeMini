@@ -26,14 +26,17 @@ export class Faction {
     public turretCooldown: number = 0;
     public techLevels = { atk_m: 0, def_m: 0, atk_r: 0, def_r: 0 };
 
-    constructor(type: FactionType) {
+    constructor(type: FactionType, initialWorkers?: number) {
         this.type = type;
         this.resources = { ...CONSTANTS.INITIAL_RES };
 
         // 初始人口分配 logic
-        const initialW = type === FactionType.Player ? 6 : 9;
-        this.workers = { food: initialW, wood: 0, gold: 0, stone: 0 };
-        this.totalWorkers = initialW;
+        // 玩家默认为 6 (中等难度)，电脑由 Game 传入
+        const defaultWorkers = type === FactionType.Player ? 6 : 9;
+        const startWorkers = initialWorkers !== undefined ? initialWorkers : defaultWorkers;
+
+        this.workers = { food: startWorkers, wood: 0, gold: 0, stone: 0 };
+        this.totalWorkers = startWorkers;
         this.idleWorkers = 0;
         this.turretCooldown = 0;
     }

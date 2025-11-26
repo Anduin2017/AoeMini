@@ -39,9 +39,9 @@ export class Game {
     private static entityIdCounter: number = 0;
     public static nextId(): number { return ++this.entityIdCounter; }
 
-    constructor() {
-        this.player = new Faction(FactionType.Player);
-        this.enemy = new Faction(FactionType.Enemy);
+    constructor(difficultyWorkers: number = 9) {
+        this.player = new Faction(FactionType.Player, 6); // 玩家固定 6 农民
+        this.enemy = new Faction(FactionType.Enemy, difficultyWorkers); // 电脑根据难度
 
         this.player.buildings.push(new TownCenter("p-tc", FactionType.Player));
         this.enemy.buildings.push(new TownCenter("e-tc", FactionType.Enemy));

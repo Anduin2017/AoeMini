@@ -33,5 +33,16 @@ export const CONSTANTS = {
         0: 40,   // 主路 (步兵): 下方
         1: -40,  // 侧路 (射手): 上方
         2: 0     // 中路 (预留): 中间
-    } as Record<number, number>
+    } as Record<number, number>,
+
+    // === 难度配置 ===
+    DIFFICULTY_LEVELS: {
+        EASY: { label: '简单', workers: 4, emoji: '👶' },
+        MEDIUM: { label: '中等', workers: 6, emoji: '🙂' },
+        HARD: { label: '困难', workers: 9, emoji: '⚔️' },
+        VERY_HARD: { label: '极难', workers: 11, emoji: '🔥' },
+        EXPERT: { label: '专家', workers: 13, emoji: '👹' },
+        INSANE: { label: '疯狂', workers: 15, emoji: '💀' },
+        INFERNO: { label: '炼狱', workers: 20, emoji: '☠️' }
+    }
 };
