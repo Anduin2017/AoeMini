@@ -2,11 +2,11 @@ import { Game } from "../core/Game";
 import { FactionType, UnitType, QueueItem, BuildingType, UnitTag } from "../core/Types";
 import { UNIT_CONFIG, BUILDING_CONFIG } from "../data/UnitConfig";
 import { TECH_CONFIG } from "../data/TechConfig";
-import { Worker, Spearman, ManAtArms, Longbowman, Crossbowman, Horseman, Knight } from "../entities/units/ConcreteUnits";
+import { Worker, Spearman, ManAtArms, Longbowman, Crossbowman, Horseman, Knight, Mangonel } from "../entities/units/ConcreteUnits";
 import { Helpers } from "../utils/Helpers";
 import { Building } from "../entities/buildings/Building";
 import { CONSTANTS } from "../core/Constants";
-import { House, TownCenter, Barracks, ArcheryRange, Blacksmith, Stable } from "../entities/buildings/ConcreteBuildings";
+import { House, TownCenter, Barracks, ArcheryRange, Blacksmith, Stable, SiegeWorkshop } from "../entities/buildings/ConcreteBuildings";
 import { Unit } from "../entities/units/Unit";
 
 export class EconomySystem {
@@ -123,6 +123,7 @@ export class EconomySystem {
             case UnitType.Crossbowman: u = new Crossbowman(nextId, f.type, spawnPos, this.game.tickRate); break;
             case UnitType.Horseman: u = new Horseman(nextId, f.type, spawnPos, this.game.tickRate); break;
             case UnitType.Knight: u = new Knight(nextId, f.type, spawnPos, this.game.tickRate); break;
+            case UnitType.Mangonel: u = new Mangonel(nextId, f.type, spawnPos, this.game.tickRate); break;
         }
 
         if (u) {
@@ -168,6 +169,7 @@ export class EconomySystem {
                     case BuildingType.TownCenter: newBuilding = new TownCenter(c.id, f.type); break;
                     case BuildingType.Blacksmith: newBuilding = new Blacksmith(c.id, f.type); break;
                     case BuildingType.Stable: newBuilding = new Stable(c.id, f.type); break;
+                    case BuildingType.SiegeWorkshop: newBuilding = new SiegeWorkshop(c.id, f.type); break;
                     default: newBuilding = new Barracks(c.id, f.type); break;
                 }
 

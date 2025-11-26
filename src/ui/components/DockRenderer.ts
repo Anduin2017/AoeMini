@@ -15,8 +15,9 @@ export class DockRenderer {
         [BuildingType.Barracks]: 2,
         [BuildingType.ArcheryRange]: 3,
         [BuildingType.Stable]: 4,
-        [BuildingType.Blacksmith]: 5,
-        [BuildingType.House]: 6
+        [BuildingType.SiegeWorkshop]: 5,
+        [BuildingType.Blacksmith]: 6,
+        [BuildingType.House]: 7
     };
 
     constructor(game: Game) {

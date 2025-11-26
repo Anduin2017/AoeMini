@@ -29,7 +29,8 @@ export enum UnitType {
     Longbowman = 'longbowman',   // 原 Longbowman
     Crossbowman = 'crossbowman', // 弩手
     Horseman = 'Horseman',             // 骑手 (Rider)
-    Knight = 'knight'            // 骑士
+    Knight = 'knight',           // 骑士
+    Mangonel = 'mangonel'        // 轻型投石机
 }
 
 // 建筑类型标识符
@@ -39,6 +40,7 @@ export enum BuildingType {
     Barracks = 'barracks',
     ArcheryRange = 'archery_range',
     Stable = 'stable',
+    SiegeWorkshop = 'siege_workshop',
     Blacksmith = 'blacksmith'
 }
 

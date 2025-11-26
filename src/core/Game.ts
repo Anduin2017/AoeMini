@@ -36,7 +36,8 @@ export class Game {
     public laneStances: Record<number, StanceType> = {
         0: 'attack', // Infantry
         1: 'attack', // Ranged
-        2: 'attack'  // Cavalry
+        2: 'attack', // Cavalry
+        3: 'attack'  // Siege
     };
 
     private static entityIdCounter: number = 0;

@@ -60,3 +60,10 @@ export class Knight extends Unit {
         this.applyConfig(UNIT_CONFIG[UnitType.Knight], tickRate);
     }
 }
+
+export class Mangonel extends Unit {
+    constructor(id: number, owner: FactionType, pos: number, tickRate: number) {
+        super(id, UnitType.Mangonel, owner, pos);
+        this.applyConfig(UNIT_CONFIG[UnitType.Mangonel], tickRate);
+    }
+}

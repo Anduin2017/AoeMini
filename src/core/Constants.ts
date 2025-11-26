@@ -31,7 +31,8 @@ export const CONSTANTS = {
     LANE_CONFIG: {
         0: 40,   // 主路 (步兵): 下方
         1: -40,  // 侧路 (射手): 上方
-        2: 0     // 中路 (预留): 中间
+        2: 0,    // 中路 (预留): 中间
+        3: 80    // 攻城路: 最下方
     } as Record<number, number>,
 
     // === 难度配置 ===

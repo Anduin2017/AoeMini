@@ -25,6 +25,11 @@ interface UnitStats {
         color?: string;
         shouldMirrorIcon?: boolean; // true: 玩家反向(默认), false: 电脑反向
     };
+    // === 新增：AOE 与 攻城属性 ===
+    aoeRadius?: number;       // 溅射半径 (0-100 坐标系)
+    aoeMaxTargets?: number;   // 最大溅射目标数
+    aoeDamage?: number;       // 溅射伤害 (固定值)
+    bonusBaseDamage?: number; // 对基地的额外伤害
 }
 
 export const UNIT_CONFIG: Record<string, UnitStats> = {
@@ -107,6 +112,18 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         label: '骑士', lane: 2, attackType: 'melee', attackSpeed: 1.5, canMoveAttack: true,
         widthScale: 1.5,
         visual: { type: 'emoji', value: '🦁' }
+    },
+    [UnitType.Mangonel]: {
+        cost: { wood: 400, gold: 200 }, time: 400,
+        hp: 130, damage: 40, def_m: 0, def_r: 0, // 假设有一定的远程防御
+        range: 12, speed: 0.75,
+        tags: [UnitTag.Siege],
+        label: '轻型投石机', lane: 3, attackType: 'ranged', attackSpeed: 6.875,
+        widthScale: 1.8,
+        visual: { type: 'emoji', value: '🛞' },
+        aoeRadius: 1.6,
+        aoeDamage: 40,
+        bonusBaseDamage: 240
     }
 };
 
@@ -116,5 +133,6 @@ export const BUILDING_CONFIG: Record<string, { cost: Cost, time: number, label: 
     'archery_range': { cost: { wood: 150 }, time: 300, label: '靶场', icon: '🏹', desc: '训练远程单位' },
     'stable': { cost: { wood: 150 }, time: 300, label: '马厩', icon: '🐎', desc: '训练骑兵单位' }, // 30s * 10
     'towncenter': { cost: { wood: 400, stone: 350 }, time: 1200, label: '城镇中心', icon: '🏛️', pop: 10, desc: '村民生产建筑' },
-    'blacksmith': { cost: { wood: 150 }, time: 250, label: '铁匠铺', icon: '⚒️', desc: '升级攻击与防御科技' }
+    'blacksmith': { cost: { wood: 150 }, time: 250, label: '铁匠铺', icon: '⚒️', desc: '升级攻击与防御科技' },
+    'siege_workshop': { cost: { wood: 250 }, time: 450, label: '工程武器厂', icon: '🏚️', desc: '生产攻城武器' }
 };

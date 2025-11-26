@@ -1,5 +1,5 @@
 import { Game } from "../core/Game";
-import { UnitType, BuildingType, ResourceType } from "../core/Types";
+import { UnitType, BuildingType, ResourceType, UnitTag } from "../core/Types";
 import { UNIT_CONFIG, BUILDING_CONFIG } from "../data/UnitConfig";
 import { TECH_CONFIG } from "../data/TechConfig";
 import { Building } from "../entities/buildings/Building";
@@ -138,23 +138,41 @@ export class AISystem {
 
         // 1. 统计玩家兵种数量
         const counts: Record<string, number> = {};
+        let infantryCount = 0;
+
         playerUnits.forEach(u => {
             counts[u.type] = (counts[u.type] || 0) + 1;
+            // 统计步兵数量 (不含攻城器)
+            // 检查 UnitTag.Infantry
+            const config = UNIT_CONFIG[u.type];
+            if (config && config.tags.includes(UnitTag.Infantry)) {
+                infantryCount++;
+            }
         });
+
+        // === 新增规则 1: 玩家步兵超过 20 -> 投石机 ===
+        if (infantryCount > 20) {
+            return UnitType.Mangonel;
+        }
 
         // 2. 找到最多的兵种
         let maxType: UnitType = UnitType.Worker; // 默认
         let maxCount = -1;
 
         // 排除农民，只看战斗单位
-        Object.keys(counts).forEach(type => {
+        for (const type of Object.keys(counts)) {
             if (type !== UnitType.Worker) {
                 if (counts[type] > maxCount) {
                     maxCount = counts[type];
                     maxType = type as UnitType;
                 }
             }
-        });
+        }
+
+        // === 新增规则 2: 玩家投石机最多 -> 骑手 ===
+        if (maxType === UnitType.Mangonel) {
+            return UnitType.Horseman;
+        }
 
         if (maxCount === -1) return UnitType.Longbowman; // 只有农民，出长弓骚扰
 
@@ -181,6 +199,8 @@ export class AISystem {
             case UnitType.Horseman:
             case UnitType.Knight:
                 return BuildingType.Stable;
+            case UnitType.Mangonel:
+                return BuildingType.SiegeWorkshop;
             default:
                 return null;
         }

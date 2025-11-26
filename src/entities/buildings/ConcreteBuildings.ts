@@ -40,7 +40,6 @@ export class Barracks extends Building {
 export class ArcheryRange extends Building {
     constructor(id: number | string, owner: FactionType) {
         super(id, BuildingType.ArcheryRange, owner);
-        this.productionList = [UnitType.Longbowman, UnitType.Crossbowman];
     }
 
     public getMenuOptions(factionData: any): MenuOption[] {
@@ -153,5 +152,29 @@ export class Blacksmith extends Building {
                 });
             }
         }
+    }
+}
+
+export class SiegeWorkshop extends Building {
+    constructor(id: number | string, owner: FactionType) {
+        super(id, BuildingType.SiegeWorkshop, owner);
+    }
+
+    public getMenuOptions(factionData: any): MenuOption[] {
+        return [
+            this.createUnitOption(UnitType.Mangonel)
+        ];
+    }
+
+    private createUnitOption(type: string): MenuOption {
+        const conf = UNIT_CONFIG[type];
+        return {
+            id: type,
+            icon: conf.visual?.value || '☄️',
+            label: conf.label,
+            cost: conf.cost,
+            time: conf.time,
+            type: 'unit'
+        };
     }
 }

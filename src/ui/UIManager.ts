@@ -80,6 +80,7 @@ export class UIManager {
                 this.game.laneStances[0] = s;
                 this.game.laneStances[1] = s;
                 this.game.laneStances[2] = s;
+                this.game.laneStances[3] = s;
                 this.updateStanceUI();
                 Helpers.showToast(`姿态切换: ${s.toUpperCase()}`, '#3b82f6');
             }
@@ -138,6 +139,7 @@ export class UIManager {
                     this.game.laneStances[0] = s as any;
                     this.game.laneStances[1] = s as any;
                     this.game.laneStances[2] = s as any;
+                    this.game.laneStances[3] = s as any;
                     this.updateStanceUI();
                 };
             }
@@ -410,9 +412,10 @@ export class UIManager {
         const s0 = this.game.laneStances[0];
         const s1 = this.game.laneStances[1];
         const s2 = this.game.laneStances[2];
+        const s3 = this.game.laneStances[3];
 
-        // 如果三个 Lane 姿态一致，则更新全局姿态并高亮对应按钮
-        if (s0 === s1 && s1 === s2) {
+        // 如果四个 Lane 姿态一致，则更新全局姿态并高亮对应按钮
+        if (s0 === s1 && s1 === s2 && s2 === s3) {
             this.game.playerStance = s0;
         } else {
             // 否则，全局姿态设为一个特殊值或保持原样，但不高亮任何全局按钮
