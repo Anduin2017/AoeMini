@@ -1,5 +1,4 @@
 export const CONSTANTS = {
-    TICK_RATE: 80,
     MAX_QUEUE_SIZE: 5,
     MAX_TOTAL_POP: 200,
 
@@ -37,13 +36,13 @@ export const CONSTANTS = {
 
     // === 难度配置 ===
     DIFFICULTY_LEVELS: {
-        VERYEASY: { label: '非常简单', workers: 1, emoji: '🐥' },
-        EASY: { label: '简单', workers: 4, emoji: '👶' },
-        MEDIUM: { label: '中等', workers: 6, emoji: '🙂' },
-        HARD: { label: '困难', workers: 9, emoji: '⚔️' },
-        VERY_HARD: { label: '极难', workers: 13, emoji: '🔥' },
-        EXPERT: { label: '专家', workers: 18, emoji: '👹' },
-        INSANE: { label: '疯狂', workers: 25, emoji: '💀' },
-        INFERNO: { label: '炼狱', workers: 37, emoji: '☠️' }
+        VERYEASY: { label: '非常简单', workers: 1, emoji: '🐥', tickRate: 150 },
+        EASY: { label: '简单', workers: 4, emoji: '👶', tickRate: 100 },
+        MEDIUM: { label: '中等', workers: 6, emoji: '🙂', tickRate: 100 },
+        HARD: { label: '困难', workers: 9, emoji: '⚔️', tickRate: 75 },
+        VERY_HARD: { label: '极难', workers: 13, emoji: '🔥', tickRate: 75 },
+        EXPERT: { label: '专家', workers: 18, emoji: '👹', tickRate: 75 },
+        INSANE: { label: '疯狂', workers: 25, emoji: '💀', tickRate: 50 },
+        INFERNO: { label: '炼狱', workers: 37, emoji: '☠️', tickRate: 35 }
     }
 };

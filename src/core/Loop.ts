@@ -16,7 +16,7 @@ export class Loop {
 
         let lastTime = performance.now();
         let accumulator = 0;
-        const step = CONSTANTS.TICK_RATE; // 80ms
+        const step = this.game.tickRate;
 
         const loop = (currentTime: number) => {
             if (!this.isRunning) return;

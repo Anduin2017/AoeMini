@@ -4,16 +4,16 @@ import { UNIT_CONFIG } from "../../data/UnitConfig";
 import { CONSTANTS } from "../../core/Constants";
 
 export class Worker extends Unit {
-    constructor(id: number, owner: FactionType, pos: number) {
+    constructor(id: number, owner: FactionType, pos: number, tickRate: number) {
         super(id, UnitType.Worker, owner, pos);
-        this.applyConfig(UNIT_CONFIG[UnitType.Worker]);
+        this.applyConfig(UNIT_CONFIG[UnitType.Worker], tickRate);
     }
 }
 
 export class Spearman extends Unit {
-    constructor(id: number, owner: FactionType, pos: number) {
+    constructor(id: number, owner: FactionType, pos: number, tickRate: number) {
         super(id, UnitType.Spearman, owner, pos);
-        this.applyConfig(UNIT_CONFIG[UnitType.Spearman]);
+        this.applyConfig(UNIT_CONFIG[UnitType.Spearman], tickRate);
     }
 
     // 核心：克制逻辑
@@ -27,36 +27,36 @@ export class Spearman extends Unit {
 }
 
 export class ManAtArms extends Unit {
-    constructor(id: number, owner: FactionType, pos: number) {
+    constructor(id: number, owner: FactionType, pos: number, tickRate: number) {
         super(id, UnitType.ManAtArms, owner, pos);
-        this.applyConfig(UNIT_CONFIG[UnitType.ManAtArms]);
+        this.applyConfig(UNIT_CONFIG[UnitType.ManAtArms], tickRate);
     }
 }
 
 export class Longbowman extends Unit {
-    constructor(id: number, owner: FactionType, pos: number) {
+    constructor(id: number, owner: FactionType, pos: number, tickRate: number) {
         super(id, UnitType.Longbowman, owner, pos);
-        this.applyConfig(UNIT_CONFIG[UnitType.Longbowman]);
+        this.applyConfig(UNIT_CONFIG[UnitType.Longbowman], tickRate);
     }
 }
 
 export class Crossbowman extends Unit {
-    constructor(id: number, owner: FactionType, pos: number) {
+    constructor(id: number, owner: FactionType, pos: number, tickRate: number) {
         super(id, UnitType.Crossbowman, owner, pos);
-        this.applyConfig(UNIT_CONFIG[UnitType.Crossbowman]);
+        this.applyConfig(UNIT_CONFIG[UnitType.Crossbowman], tickRate);
     }
 }
 
 export class Horseman extends Unit {
-    constructor(id: number, owner: FactionType, pos: number) {
+    constructor(id: number, owner: FactionType, pos: number, tickRate: number) {
         super(id, UnitType.Horseman, owner, pos);
-        this.applyConfig(UNIT_CONFIG[UnitType.Horseman]);
+        this.applyConfig(UNIT_CONFIG[UnitType.Horseman], tickRate);
     }
 }
 
 export class Knight extends Unit {
-    constructor(id: number, owner: FactionType, pos: number) {
+    constructor(id: number, owner: FactionType, pos: number, tickRate: number) {
         super(id, UnitType.Knight, owner, pos);
-        this.applyConfig(UNIT_CONFIG[UnitType.Knight]);
+        this.applyConfig(UNIT_CONFIG[UnitType.Knight], tickRate);
     }
 }

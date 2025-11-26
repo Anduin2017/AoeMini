@@ -21,6 +21,7 @@ export class Game {
     public projectiles: Projectile[] = [];
     public worldWidth: number = 0;
     public baseWidthPct: number = 6;
+    public tickRate: number = 50;
 
     public renderer: Renderer;
     public loop: Loop;
@@ -48,6 +49,7 @@ export class Game {
         // @ts-ignore
         const diffConfig = CONSTANTS.DIFFICULTY_LEVELS[difficultyKey as any] || CONSTANTS.DIFFICULTY_LEVELS.MEDIUM;
         const difficultyWorkers = diffConfig.workers;
+        this.tickRate = (diffConfig as any).tickRate || 50;
 
         this.player = new Faction(FactionType.Player, 6); // 玩家固定 6 农民
         this.enemy = new Faction(FactionType.Enemy, difficultyWorkers); // 电脑根据难度
@@ -102,8 +104,8 @@ export class Game {
         const reasonEl = document.getElementById('end-reason')!;
 
         // 计算耗时
-        // TICK_RATE 是每帧的毫秒数 (80ms)
-        const totalMs = this.tickCount * CONSTANTS.TICK_RATE;
+        // TICK_RATE 是每帧的毫秒数
+        const totalMs = this.tickCount * this.tickRate;
         const seconds = Math.floor(totalMs / 1000);
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;

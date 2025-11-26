@@ -38,14 +38,14 @@ export abstract class Unit extends Entity {
         return 0;
     }
 
-    protected applyConfig(conf: any) {
+    protected applyConfig(conf: any, tickRate: number) {
         this.hp = conf.hp;
         this.maxHp = conf.hp;
         this.damage = conf.damage;
         this.def_m = conf.def_m;
         this.def_r = conf.def_r;
         this.range = conf.range;
-        this.speed = conf.speed / (1000 / CONSTANTS.TICK_RATE); // 换算速度
+        this.speed = conf.speed / (1000 / tickRate); // 换算速度
         this.tags = [...conf.tags];
         this.lane = conf.lane;
         this.width = CONSTANTS.UNIT_SIZE_PERCENT * (conf.widthScale || 1);

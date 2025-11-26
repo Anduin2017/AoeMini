@@ -113,12 +113,12 @@ export class EconomySystem {
         const nextId = Game.nextId();
 
         switch (type) {
-            case UnitType.Spearman: u = new Spearman(nextId, f.type, spawnPos); break;
-            case UnitType.ManAtArms: u = new ManAtArms(nextId, f.type, spawnPos); break;
-            case UnitType.Longbowman: u = new Longbowman(nextId, f.type, spawnPos); break;
-            case UnitType.Crossbowman: u = new Crossbowman(nextId, f.type, spawnPos); break;
-            case UnitType.Horseman: u = new Horseman(nextId, f.type, spawnPos); break;
-            case UnitType.Knight: u = new Knight(nextId, f.type, spawnPos); break;
+            case UnitType.Spearman: u = new Spearman(nextId, f.type, spawnPos, this.game.tickRate); break;
+            case UnitType.ManAtArms: u = new ManAtArms(nextId, f.type, spawnPos, this.game.tickRate); break;
+            case UnitType.Longbowman: u = new Longbowman(nextId, f.type, spawnPos, this.game.tickRate); break;
+            case UnitType.Crossbowman: u = new Crossbowman(nextId, f.type, spawnPos, this.game.tickRate); break;
+            case UnitType.Horseman: u = new Horseman(nextId, f.type, spawnPos, this.game.tickRate); break;
+            case UnitType.Knight: u = new Knight(nextId, f.type, spawnPos, this.game.tickRate); break;
         }
 
         if (u) {
