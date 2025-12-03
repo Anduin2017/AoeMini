@@ -1,5 +1,5 @@
 import { Faction } from "./Faction";
-import { FactionType, Projectile, StanceType, BuildingType } from "./Types";
+import { FactionType, Projectile, StanceType, BuildingType, ResourceType } from "./Types";
 import { Renderer } from "./Renderer";
 import { Loop } from "./Loop";
 import { CombatSystem } from "../systems/CombatSystem";
@@ -45,6 +45,7 @@ export class Game {
     public static nextId(): number { return ++this.entityIdCounter; }
 
     public difficultyKey: string = 'MEDIUM'; // 默认为中等
+    public pinnedResource: ResourceType = 'food'; // 默认扎在食物上
 
     constructor(difficultyKey: string = 'MEDIUM') {
         this.difficultyKey = difficultyKey;

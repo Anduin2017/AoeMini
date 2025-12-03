@@ -104,7 +104,8 @@ export class EconomySystem {
         if (type === UnitType.Worker) {
             f.totalWorkers++;
             if (f.type === FactionType.Player) {
-                f.workers.food++; // 自动分配去挖肉
+                const targetRes = this.game.pinnedResource || 'food';
+                f.workers[targetRes]++; // 自动分配去挖大头针指向的资源
             } else {
                 f.idleWorkers++;
             }

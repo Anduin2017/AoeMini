@@ -1,146 +1,224 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>朴素帝国 - Minimalist Empire (Refactored)</title>
-    <link rel="stylesheet" href="/src/style.css">
-</head>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
 
-<body>
-    <div id="toast-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"></div>
+  <body>
+    <div
+      id="toast-container"
+      class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
+    ></div>
 
     <div class="top-bar">
-        <div class="top-group">
-            <div class="top-item text-blue">玩家</div>
-        </div>
-        <div class="top-group right">
-            <div class="top-item text-red">电脑</div>
-        </div>
+      <div class="top-group">
+        <div class="top-item text-blue">玩家</div>
+      </div>
+      <div class="top-group right">
+        <div class="top-item text-red">电脑</div>
+      </div>
     </div>
 
     <div id="game-wrapper">
-        <!-- index.html -->
-        <div class="tactics-bar">
-            <button id="btn-stance-retreat" class="tactic-btn">⏪ 撤退 <span class="key-hint">F</span></button>
-            <button id="btn-stance-defend" class="tactic-btn">🛡️ 防御 <span class="key-hint">D</span></button>
-            <button id="btn-stance-hold" class="tactic-btn">✋ 待命 <span class="key-hint">S</span></button>
-            <button id="btn-stance-attack" class="tactic-btn active">⚔️ 进攻 <span class="key-hint">A</span></button>
-            <button id="btn-stance-advance" class="tactic-btn">🚀 前进 <span class="key-hint">G</span></button>
-            <button id="btn-lane-toggle" class="tactic-btn lane-toggle-btn">▼</button>
+      <!-- index.html -->
+      <div class="tactics-bar">
+        <button id="btn-stance-retreat" class="tactic-btn">
+          ⏪ 撤退 <span class="key-hint">F</span>
+        </button>
+        <button id="btn-stance-defend" class="tactic-btn">
+          🛡️ 防御 <span class="key-hint">D</span>
+        </button>
+        <button id="btn-stance-hold" class="tactic-btn">
+          ✋ 待命 <span class="key-hint">S</span>
+        </button>
+        <button id="btn-stance-attack" class="tactic-btn active">
+          ⚔️ 进攻 <span class="key-hint">A</span>
+        </button>
+        <button id="btn-stance-advance" class="tactic-btn">
+          🚀 前进 <span class="key-hint">G</span>
+        </button>
+        <button id="btn-lane-toggle" class="tactic-btn lane-toggle-btn">
+          ▼
+        </button>
+      </div>
+      <div id="lane-controls" class="lane-controls hidden">
+        <div class="lane-row">
+          <span class="lane-label">🏹 射手</span>
+          <div class="lane-btn-group">
+            <button class="lane-btn" data-lane="1" data-stance="retreat">
+              ⏪
+            </button>
+            <button class="lane-btn" data-lane="1" data-stance="defend">
+              🛡️
+            </button>
+            <button class="lane-btn" data-lane="1" data-stance="hold">
+              ✋
+            </button>
+            <button class="lane-btn active" data-lane="1" data-stance="attack">
+              ⚔️
+            </button>
+            <button class="lane-btn" data-lane="1" data-stance="advance">
+              🚀
+            </button>
+          </div>
         </div>
-        <div id="lane-controls" class="lane-controls hidden">
-            <div class="lane-row">
-                <span class="lane-label">🏹 射手</span>
-                <div class="lane-btn-group">
-                    <button class="lane-btn" data-lane="1" data-stance="retreat">⏪</button>
-                    <button class="lane-btn" data-lane="1" data-stance="defend">🛡️</button>
-                    <button class="lane-btn" data-lane="1" data-stance="hold">✋</button>
-                    <button class="lane-btn active" data-lane="1" data-stance="attack">⚔️</button>
-                    <button class="lane-btn" data-lane="1" data-stance="advance">🚀</button>
-                </div>
-            </div>
-            <div class="lane-row">
-                <span class="lane-label">🐎 骑兵</span>
-                <div class="lane-btn-group">
-                    <button class="lane-btn" data-lane="2" data-stance="retreat">⏪</button>
-                    <button class="lane-btn" data-lane="2" data-stance="defend">🛡️</button>
-                    <button class="lane-btn" data-lane="2" data-stance="hold">✋</button>
-                    <button class="lane-btn active" data-lane="2" data-stance="attack">⚔️</button>
-                    <button class="lane-btn" data-lane="2" data-stance="advance">🚀</button>
-                </div>
-            </div>
-            <div class="lane-row">
-                <span class="lane-label">🛡️ 步兵</span>
-                <div class="lane-btn-group">
-                    <button class="lane-btn" data-lane="0" data-stance="retreat">⏪</button>
-                    <button class="lane-btn" data-lane="0" data-stance="defend">🛡️</button>
-                    <button class="lane-btn" data-lane="0" data-stance="hold">✋</button>
-                    <button class="lane-btn active" data-lane="0" data-stance="attack">⚔️</button>
-                    <button class="lane-btn" data-lane="0" data-stance="advance">🚀</button>
-                </div>
-            </div>
-            <div class="lane-row">
-                <span class="lane-label">☄️ 攻城</span>
-                <div class="lane-btn-group">
-                    <button class="lane-btn" data-lane="3" data-stance="retreat">⏪</button>
-                    <button class="lane-btn" data-lane="3" data-stance="defend">🛡️</button>
-                    <button class="lane-btn" data-lane="3" data-stance="hold">✋</button>
-                    <button class="lane-btn active" data-lane="3" data-stance="attack">⚔️</button>
-                    <button class="lane-btn" data-lane="3" data-stance="advance">🚀</button>
-                </div>
-            </div>
+        <div class="lane-row">
+          <span class="lane-label">🐎 骑兵</span>
+          <div class="lane-btn-group">
+            <button class="lane-btn" data-lane="2" data-stance="retreat">
+              ⏪
+            </button>
+            <button class="lane-btn" data-lane="2" data-stance="defend">
+              🛡️
+            </button>
+            <button class="lane-btn" data-lane="2" data-stance="hold">
+              ✋
+            </button>
+            <button class="lane-btn active" data-lane="2" data-stance="attack">
+              ⚔️
+            </button>
+            <button class="lane-btn" data-lane="2" data-stance="advance">
+              🚀
+            </button>
+          </div>
         </div>
-        <canvas id="bgCanvas"></canvas>
-        <canvas id="gameCanvas"></canvas>
-        <div id="unit-tooltip"></div>
+        <div class="lane-row">
+          <span class="lane-label">🛡️ 步兵</span>
+          <div class="lane-btn-group">
+            <button class="lane-btn" data-lane="0" data-stance="retreat">
+              ⏪
+            </button>
+            <button class="lane-btn" data-lane="0" data-stance="defend">
+              🛡️
+            </button>
+            <button class="lane-btn" data-lane="0" data-stance="hold">
+              ✋
+            </button>
+            <button class="lane-btn active" data-lane="0" data-stance="attack">
+              ⚔️
+            </button>
+            <button class="lane-btn" data-lane="0" data-stance="advance">
+              🚀
+            </button>
+          </div>
+        </div>
+        <div class="lane-row">
+          <span class="lane-label">☄️ 攻城</span>
+          <div class="lane-btn-group">
+            <button class="lane-btn" data-lane="3" data-stance="retreat">
+              ⏪
+            </button>
+            <button class="lane-btn" data-lane="3" data-stance="defend">
+              🛡️
+            </button>
+            <button class="lane-btn" data-lane="3" data-stance="hold">
+              ✋
+            </button>
+            <button class="lane-btn active" data-lane="3" data-stance="attack">
+              ⚔️
+            </button>
+            <button class="lane-btn" data-lane="3" data-stance="advance">
+              🚀
+            </button>
+          </div>
+        </div>
+      </div>
+      <canvas id="bgCanvas"></canvas>
+      <canvas id="gameCanvas"></canvas>
+      <div id="unit-tooltip"></div>
 
-        <div>
-            <div class="hp-bar-container">
-                <div id="p-base-hp" class="hp-bar-fill"></div>
-            </div>
+      <div>
+        <div class="hp-bar-container">
+          <div id="p-base-hp" class="hp-bar-fill"></div>
         </div>
-        <div>
-            <div class="hp-bar-container">
-                <div id="e-base-hp" class="hp-bar-fill"></div>
-            </div>
+      </div>
+      <div>
+        <div class="hp-bar-container">
+          <div id="e-base-hp" class="hp-bar-fill"></div>
         </div>
+      </div>
     </div>
 
     <div id="ui-layer">
-        <div class="resource-widget">
-            <div class="status-header">
-                <div class="status-group" title="人口"><span class="icon-house">🏠</span> <span id="disp-pop"
-                        class="pop-text">0/200</span></div>
-                <div class="status-group" title="空闲村民"><span class="icon-sleep">💤</span> <span id="disp-idle"
-                        class="idle-text">0</span></div>
-            </div>
-            <div class="res-grid">
-                <div class="res-icon">🥩</div>
-                <div class="res-val" id="res-stock-food">0</div>
-                <div class="tiny-btn" id="sub-food">-</div>
-                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val"
-                        id="res-workers-food">0</span></div>
-                <div class="tiny-btn" id="add-food">+</div>
-
-                <div class="res-icon">🌲</div>
-                <div class="res-val" id="res-stock-wood">0</div>
-                <div class="tiny-btn" id="sub-wood">-</div>
-                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val"
-                        id="res-workers-wood">0</span></div>
-                <div class="tiny-btn" id="add-wood">+</div>
-
-                <div class="res-icon">🪙</div>
-                <div class="res-val" id="res-stock-gold">0</div>
-                <div class="tiny-btn" id="sub-gold">-</div>
-                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val"
-                        id="res-workers-gold">0</span></div>
-                <div class="tiny-btn" id="add-gold">+</div>
-
-                <div class="res-icon">🪨</div>
-                <div class="res-val" id="res-stock-stone">0</div>
-                <div class="tiny-btn" id="sub-stone">-</div>
-                <div class="worker-box"><span class="res-w-icon">👤</span><span class="res-w-val"
-                        id="res-workers-stone">0</span></div>
-                <div class="tiny-btn" id="add-stone">+</div>
-            </div>
+      <div class="resource-widget">
+        <div class="status-header">
+          <div class="status-group" title="人口">
+            <span class="icon-house">🏠</span>
+            <span id="disp-pop" class="pop-text">0/200</span>
+          </div>
+          <div class="status-group" title="空闲村民">
+            <span class="icon-sleep">💤</span>
+            <span id="disp-idle" class="idle-text">0</span>
+          </div>
         </div>
+        <div class="res-grid">
+          <div class="pin-btn active" id="pin-food">➜</div>
+          <div class="res-icon">🥩</div>
+          <div class="res-val" id="res-stock-food">0</div>
+          <div class="tiny-btn" id="sub-food">-</div>
+          <div class="worker-box">
+            <span class="res-w-icon">👤</span
+            ><span class="res-w-val" id="res-workers-food">0</span>
+          </div>
+          <div class="tiny-btn" id="add-food">+</div>
 
-        <div class="dock-container" id="dock">
-            <div class="dock-icon build-icon" id="dock-build_menu">🔨</div>
+          <div class="pin-btn" id="pin-wood">➜</div>
+          <div class="res-icon">🌲</div>
+          <div class="res-val" id="res-stock-wood">0</div>
+          <div class="tiny-btn" id="sub-wood">-</div>
+          <div class="worker-box">
+            <span class="res-w-icon">👤</span
+            ><span class="res-w-val" id="res-workers-wood">0</span>
+          </div>
+          <div class="tiny-btn" id="add-wood">+</div>
+
+          <div class="pin-btn" id="pin-gold">➜</div>
+          <div class="res-icon">🪙</div>
+          <div class="res-val" id="res-stock-gold">0</div>
+          <div class="tiny-btn" id="sub-gold">-</div>
+          <div class="worker-box">
+            <span class="res-w-icon">👤</span
+            ><span class="res-w-val" id="res-workers-gold">0</span>
+          </div>
+          <div class="tiny-btn" id="add-gold">+</div>
+
+          <div class="pin-btn" id="pin-stone">➜</div>
+          <div class="res-icon">🪨</div>
+          <div class="res-val" id="res-stock-stone">0</div>
+          <div class="tiny-btn" id="sub-stone">-</div>
+          <div class="worker-box">
+            <span class="res-w-icon">👤</span
+            ><span class="res-w-val" id="res-workers-stone">0</span>
+          </div>
+          <div class="tiny-btn" id="add-stone">+</div>
         </div>
-        <div id="popover-container" class="popover-menu"></div>
+      </div>
+
+      <div class="dock-container" id="dock">
+        <div class="dock-icon build-icon" id="dock-build_menu">🔨</div>
+      </div>
+      <div id="popover-container" class="popover-menu"></div>
     </div>
 
     <div id="game-over">
-        <h1 id="end-title" class="text-5xl font-bold mb-4 text-white">GAME OVER</h1>
-        <p id="end-reason" class="text-xl text-gray-300 mb-8">游戏结束</p>
-        <button onclick="location.reload()"
-            class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded">再来一局</button>
+      <h1 id="end-title" class="text-5xl font-bold mb-4 text-white">
+        GAME OVER
+      </h1>
+      <p id="end-reason" class="text-xl text-gray-300 mb-8">游戏结束</p>
+      <button
+        onclick="location.reload()"
+        class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded"
+      >
+        再来一局
+      </button>
     </div>
 
     <script type="module" src="/src/main.ts"></script>
-</body>
-
+  </body>
 </html>

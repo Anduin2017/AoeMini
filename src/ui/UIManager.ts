@@ -24,6 +24,7 @@ export class UIManager {
         this.setupTooltipListeners();
         this.setupKeyboardShortcuts();
         this.setupResourceLongPress();
+        this.setupPinListeners();
     }
 
     private setupKeyboardShortcuts() {
@@ -126,6 +127,42 @@ export class UIManager {
             bindLongPress(`add-${r}`, () => this.modWork(r, 1));
             bindLongPress(`sub-${r}`, () => this.modWork(r, -1));
         });
+    }
+
+    private setupPinListeners() {
+        (['food', 'wood', 'gold', 'stone'] as ResourceType[]).forEach(r => {
+            const btn = document.getElementById(`pin-${r}`);
+            if (btn) {
+                btn.onclick = () => {
+                    this.game.pinnedResource = r;
+                    this.updatePinUI();
+                    Helpers.showToast(`新村民将自动采集: ${this.getResourceName(r)}`, '#eab308');
+                };
+            }
+        });
+    }
+
+    private updatePinUI() {
+        (['food', 'wood', 'gold', 'stone'] as ResourceType[]).forEach(r => {
+            const btn = document.getElementById(`pin-${r}`);
+            if (btn) {
+                if (this.game.pinnedResource === r) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            }
+        });
+    }
+
+    private getResourceName(r: string): string {
+        switch (r) {
+            case 'food': return '食物';
+            case 'wood': return '木材';
+            case 'gold': return '黄金';
+            case 'stone': return '石头';
+            default: return r;
+        }
     }
 
     private setupListeners() {
