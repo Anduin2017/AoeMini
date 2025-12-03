@@ -216,25 +216,39 @@ export class Renderer {
         const w = this.canvas.width;
         const h = this.canvas.height;
         const cx = (posPct / 100) * w;
-        const halfW = (CONSTANTS.BASE_WIDTH / 100 * w) / 2;
-        const topY = h / 2 - 40;
-        const bottomY = h / 2 + 40;
+
+        // Width calculation
+        const baseW = (CONSTANTS.BASE_WIDTH / 100 * w);
+        const halfW = baseW / 2;
+
+        // Height calculation (Proportional Scaling)
+        // Target Aspect Ratio: ~1.05 (Height / Width) based on Desktop (80px / 76.8px)
+        const aspectRatio = 1.05;
+        const baseH = baseW * aspectRatio;
+        const halfH = baseH / 2;
+
+        const topY = h / 2 - halfH;
+        const bottomY = h / 2 + halfH;
 
         this.ctx.fillStyle = color;
-        this.ctx.fillRect(cx - halfW, topY, halfW * 2, 80);
+        this.ctx.fillRect(cx - halfW, topY, baseW, baseH);
 
+        // Scale elements relative to baseH
+        const battlementH = baseH * 0.125; // 10 / 80
         const battlementW = halfW * 0.4;
-        this.ctx.fillRect(cx - halfW, topY - 10, battlementW, 10);
-        this.ctx.fillRect(cx + halfW - battlementW, topY - 10, battlementW, 10);
-        this.ctx.fillRect(cx - battlementW / 2, topY - 10, battlementW, 10);
+
+        this.ctx.fillRect(cx - halfW, topY - battlementH, battlementW, battlementH);
+        this.ctx.fillRect(cx + halfW - battlementW, topY - battlementH, battlementW, battlementH);
+        this.ctx.fillRect(cx - battlementW / 2, topY - battlementH, battlementW, battlementH);
 
         this.ctx.strokeStyle = '#1e293b';
-        this.ctx.lineWidth = 3;
-        this.ctx.strokeRect(cx - halfW, topY, halfW * 2, 80);
+        this.ctx.lineWidth = Math.max(1, baseW * 0.04); // Scale line width slightly
+        this.ctx.strokeRect(cx - halfW, topY, baseW, baseH);
 
         this.ctx.fillStyle = '#0f172a';
         const doorW = halfW * 0.8;
-        const doorH = 50;
+        const doorH = baseH * 0.625; // 50 / 80
+
         this.ctx.beginPath();
         this.ctx.moveTo(cx - doorW / 2, bottomY);
         this.ctx.lineTo(cx - doorW / 2, bottomY - doorH + doorW / 2);
@@ -242,12 +256,14 @@ export class Renderer {
         this.ctx.lineTo(cx + doorW / 2, bottomY);
         this.ctx.fill();
         this.ctx.strokeStyle = '#334155';
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = Math.max(1, baseW * 0.025);
         this.ctx.stroke();
 
+        // HP Bar
         const hpBarW = halfW * 2.4;
-        const hpBarH = 6;
-        const hpY = topY - 25;
+        const hpBarH = Math.max(3, baseH * 0.08); // Min 3px
+        const hpY = topY - battlementH - hpBarH - (baseH * 0.06); // Dynamic offset
+
         this.ctx.fillStyle = 'rgba(0,0,0,0.7)';
         this.ctx.fillRect(cx - hpBarW / 2, hpY, hpBarW, hpBarH);
         const hpPct = Math.max(0, faction.baseHp / CONSTANTS.BASE_HP);
