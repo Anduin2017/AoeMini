@@ -26,6 +26,15 @@ export class Faction {
     public turretCooldown: number = 0;
     public techLevels = { atk_m: 0, def_m: 0, atk_r: 0, def_r: 0 };
 
+    // 时代系统
+    public currentAge: number = 1; // 当前时代 (1=黑暗, 2=封建, 3=城堡, 4=帝国)
+    public ageUpProgress: { remaining: number, total: number } | null = null; // 上本进度
+    public ageWorkers: number = 0; // 分配到上本的村民数
+
+    // 采矿场锁系统
+    public miningUnlocked: { gold: boolean, stone: boolean } = { gold: false, stone: false };
+    public miningUnlockQueue: { type: 'gold' | 'stone', ticksLeft: number, totalTicks: number } | null = null;
+
     constructor(type: FactionType, initialWorkers?: number) {
         this.type = type;
         this.resources = { ...CONSTANTS.INITIAL_RES };

@@ -1214,3 +1214,168 @@ canvas {
 .mt-2 {
     margin-top: 0.5rem;
 }
+
+/* === 时代升级行 === */
+.age-up-row {
+    border-top: 1px solid #4b5563;
+    margin-top: 8px;
+    padding-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.age-up-label {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #eab308;
+    text-align: center;
+    text-shadow: 0 0 4px rgba(234, 179, 8, 0.3);
+}
+
+.age-up-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.age-up-btn {
+    background: linear-gradient(135deg, #b45309, #d97706);
+    border: 2px solid #eab308;
+    color: #fff;
+    padding: 4px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    box-shadow: 0 0 8px rgba(234, 179, 8, 0.3);
+}
+
+.age-up-btn:hover {
+    background: linear-gradient(135deg, #d97706, #f59e0b);
+    box-shadow: 0 0 12px rgba(234, 179, 8, 0.5);
+    transform: scale(1.05);
+}
+
+.age-up-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.6);
+    box-shadow: none;
+    transform: none;
+}
+
+.age-up-cost {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-family: monospace;
+}
+
+.age-up-progress-bar {
+    height: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #4b5563;
+}
+
+.age-up-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #eab308, #f59e0b);
+    transition: width 0.2s;
+    border-radius: 3px;
+}
+
+.age-up-worker-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.age-up-pct {
+    font-size: 0.75rem;
+    color: #eab308;
+    font-family: monospace;
+    font-weight: bold;
+    min-width: 32px;
+    text-align: right;
+}
+
+/* === 采矿场锁覆盖层 === */
+.res-grid-wrapper {
+    position: relative;
+}
+
+.mining-lock-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 28px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    z-index: 5;
+    backdrop-filter: blur(2px);
+}
+
+.mining-lock-overlay[data-row="2"] {
+    /* 第3行 (gold): 行高28px * 2 = 56px 偏移 */
+    top: calc(28px * 2);
+}
+
+.mining-lock-overlay[data-row="3"] {
+    /* 第4行 (stone): 行高28px * 3 = 84px 偏移 */
+    top: calc(28px * 3);
+}
+
+.mining-lock-overlay.hidden {
+    display: none;
+}
+
+.mining-unlock-btn {
+    background: linear-gradient(135deg, #374151, #4b5563);
+    border: 1px solid #6b7280;
+    color: #e5e5e5;
+    padding: 2px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: bold;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.mining-unlock-btn:hover {
+    background: linear-gradient(135deg, #4b5563, #6b7280);
+    border-color: #9ca3af;
+    color: white;
+}
+
+.mining-unlock-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.mining-progress-bar {
+    width: 80px;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #4b5563;
+}
+
+.mining-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+    transition: width 0.2s;
+    border-radius: 3px;
+}

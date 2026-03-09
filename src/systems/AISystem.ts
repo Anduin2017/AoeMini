@@ -2,6 +2,7 @@ import { Game } from "../core/Game";
 import { UnitType, BuildingType, ResourceType, UnitTag } from "../core/Types";
 import { UNIT_CONFIG, BUILDING_CONFIG } from "../data/UnitConfig";
 import { TECH_CONFIG } from "../data/TechConfig";
+import { AGE_UP_CONFIG, AGE_MAX_TECH_LEVEL } from "../data/AgeConfig";
 import { Building } from "../entities/buildings/Building";
 import { CONSTANTS } from "../core/Constants";
 
@@ -80,6 +81,12 @@ export class AISystem {
             }
         }
 
+        // 3.1.5 [优先级 1.5] 时代升级 (Age Up) — 必须在生产农民/军队之前，否则资源被花光
+        this.maintainAgeWorkers(me);
+        const savingForAge = this.tryAgeUp(me);
+        // 如果正在攒钱上本且还没开始，暂停后续所有生产（保留资源）
+        if (savingForAge) return;
+
         // 3.2 [优先级 2] 持续生产农民
         // @ts-ignore
         const diffConfig = CONSTANTS.DIFFICULTY_LEVELS[this.game.difficultyKey] || CONSTANTS.DIFFICULTY_LEVELS.MEDIUM;
@@ -92,8 +99,21 @@ export class AISystem {
             });
         }
 
+        // 3.2.5 [优先级 2.5] 解锁采金场 (仅限黄金，永远不解锁石头)
+        if (!me.miningUnlocked.gold && !me.miningUnlockQueue) {
+            if (me.resources.wood >= CONSTANTS.MINING_CAMP_COST.wood) {
+                me.resources.wood -= CONSTANTS.MINING_CAMP_COST.wood;
+                me.miningUnlockQueue = {
+                    type: 'gold' as const,
+                    ticksLeft: CONSTANTS.MINING_CAMP_TICKS,
+                    totalTicks: CONSTANTS.MINING_CAMP_TICKS
+                };
+                console.log('[AI] Starting gold mining camp construction');
+            }
+        }
+
         // 3.3 [优先级 3] 确保产兵建筑队列没满，满了就补建筑
-        const prodBuildingType = this.getProductionBuildingFor(desiredUnit);
+        const prodBuildingType = this.getProductionBuildingFor(desiredUnit, me);
         if (prodBuildingType) {
             const buildings = me.buildings.filter((b: any) => b.type === prodBuildingType);
             const constructions = me.constructions.filter((c: any) => c.type === prodBuildingType);
@@ -105,11 +125,11 @@ export class AISystem {
             }
         }
 
-        // 3.5 [优先级 5] 建造铁匠铺 (如果军队数量 > 8 且没有铁匠铺)
+        // 3.5 [优先级 5] 建造铁匠铺 (如果军队数量 > 8 且没有铁匠铺, 且已到封建时代)
         const hasBlacksmith = me.buildings.some((b: any) => b.type === BuildingType.Blacksmith) ||
             me.constructions.some((c: any) => c.type === BuildingType.Blacksmith);
 
-        if (me.armyCount > 8 && !hasBlacksmith) {
+        if (me.currentAge >= 2 && me.armyCount > 8 && !hasBlacksmith) {
             this.tryBuild(me, BuildingType.Blacksmith);
             return; // 暂停后续生产，攒钱造铁匠铺
         }
@@ -117,8 +137,9 @@ export class AISystem {
         // 3.6 [优先级 6] 铁匠铺升级
         const blacksmith = me.buildings.find((b: any) => b.type === BuildingType.Blacksmith);
         if (blacksmith && blacksmith.queue.length === 0) {
-            // 检查是否还有可升级的科技
-            const hasAvailableTech = ['atk_m', 'def_m', 'atk_r', 'def_r'].some(type => me.techLevels[type] < 3);
+            // 检查是否还有可升级的科技 (受时代科技等级上限限制)
+            const maxLevel = AGE_MAX_TECH_LEVEL[me.currentAge] || 0;
+            const hasAvailableTech = ['atk_m', 'def_m', 'atk_r', 'def_r'].some(type => me.techLevels[type] < maxLevel);
 
             if (hasAvailableTech) {
                 this.tryUpgradeTech(me, blacksmith);
@@ -213,6 +234,10 @@ export class AISystem {
         let minScore = Infinity;
 
         AISystem.UNIT_ORDER.forEach((uType, index) => {
+            // 时代限制：跳过当前时代无法生产的单位
+            const unitMinAge = UNIT_CONFIG[uType]?.minAge || 1;
+            if (unitMinAge > me.currentAge) return;
+
             // 后期不再生产低质量兵种
             if (shouldUpgradeQuality) {
                 if (uType === UnitType.Spearman || uType === UnitType.Longbowman || uType === UnitType.Horseman) {
@@ -280,39 +305,137 @@ export class AISystem {
         console.groupEnd();
     }
 
-    private getProductionBuildingFor(uType: UnitType): BuildingType | null {
-        switch (uType) {
+    private getProductionBuildingFor(desiredUnit: UnitType, me: any): BuildingType | null {
+        let bType: BuildingType | null = null;
+        switch (desiredUnit) {
             case UnitType.Spearman:
             case UnitType.ManAtArms:
-                return BuildingType.Barracks;
+                bType = BuildingType.Barracks; break;
             case UnitType.Longbowman:
             case UnitType.Crossbowman:
-                return BuildingType.ArcheryRange;
+                bType = BuildingType.ArcheryRange; break;
             case UnitType.Horseman:
             case UnitType.Knight:
-                return BuildingType.Stable;
+                bType = BuildingType.Stable; break;
             case UnitType.Mangonel:
-                return BuildingType.SiegeWorkshop;
+                bType = BuildingType.SiegeWorkshop; break;
             default:
                 return null;
         }
+        // 时代限制：如果建筑还不能建造，返回 null
+        const bConf = BUILDING_CONFIG[bType];
+        if (bConf && (bConf.minAge || 1) > me.currentAge) return null;
+        return bType;
+    }
+
+    // === AI 时代升级逻辑 ===
+
+    /**
+     * AI 决定是否开始上本。基于 aiStrategy 和当前时间/时代。
+     * 返回 true 表示 AI 正在攒资源准备上本（应暂停其他花钱行为）。
+     * - fast_feudal: ASAP升2 → 在tick 7800(~13min)升3 → tick 15000(~25min)升4
+     * - fast_castle: ASAP升2 → ASAP升3 → tick 12000(~20min)升4
+     * - fast_imperial: ASAP升2 → ASAP升3 → ASAP升4
+     */
+    private tryAgeUp(me: any): boolean {
+        // 已经帝国时代，不需要上本
+        if (me.currentAge >= 4) return false;
+        // 正在上本中，不需要攒钱（已经扣过了）
+        if (me.ageUpProgress) return false;
+
+        const nextAge = me.currentAge + 1;
+        const config = AGE_UP_CONFIG[nextAge];
+        if (!config) return false;
+
+        // 判断当前策略是否应该启动上本
+        if (!this.shouldAgeUp(me, nextAge)) return false;
+
+        // 检查是否买得起
+        if (!this.canAfford(me, config.cost)) {
+            // 买不起但想上本 → 攒钱，暂停其他花费
+            return true;
+        }
+
+        // 扣资源，启动上本
+        this.payCost(me, config.cost);
+        me.ageUpProgress = { remaining: config.totalWork, total: config.totalWork };
+
+        // 分配村民：50% 总村民 (最少 2)
+        const assignCount = Math.max(2, Math.floor(me.totalWorkers * 0.5));
+        me.ageWorkers = Math.min(assignCount, me.totalWorkers);
+
+        console.log(`[AI] Starting age up to ${nextAge} (${config.label}), assigning ${me.ageWorkers} workers`);
+        return false; // 已经开始上本，不需要再攒钱
+    }
+
+    /**
+     * 根据策略判断 AI 是否应该在当前时刻开始上本
+     */
+    private shouldAgeUp(me: any, nextAge: number): boolean {
+        const strategy = this.game.aiStrategy;
+        const tick = this.game.tickCount;
+
+        switch (strategy) {
+            case 'fast_feudal':
+                // ASAP 升到 2, 然后延迟升 3 和 4
+                if (nextAge === 2) return true; // ASAP
+                if (nextAge === 3) return tick >= 7800;  // ~13 min
+                if (nextAge === 4) return tick >= 15000; // ~25 min
+                return false;
+
+            case 'fast_castle':
+                // ASAP 升到 2 和 3, 延迟升 4
+                if (nextAge === 2) return true; // ASAP
+                if (nextAge === 3) return true; // ASAP
+                if (nextAge === 4) return tick >= 12000; // ~20 min
+                return false;
+
+            case 'fast_imperial':
+                // 全部 ASAP
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * 每次 AI 思考时维持上本村民分配 (50% 总村民, 最少 2)
+     */
+    private maintainAgeWorkers(me: any) {
+        if (!me.ageUpProgress) {
+            // 不在上本状态，确保 ageWorkers 为 0
+            me.ageWorkers = 0;
+            return;
+        }
+
+        // 重新计算理想的上本村民数
+        const targetCount = Math.max(2, Math.floor(me.totalWorkers * 0.5));
+        me.ageWorkers = Math.min(targetCount, me.totalWorkers);
     }
 
     private autoBalanceEconomy(ai: any) {
-        ai.idleWorkers = ai.totalWorkers;
+        // 减去上本工人后再分配
+        const availableWorkers = ai.totalWorkers - ai.ageWorkers;
+        ai.idleWorkers = availableWorkers;
         ai.workers = { food: 0, wood: 0, gold: 0, stone: 0 };
 
-        const resources = [
+        // 只考虑已解锁的资源 (food/wood 始终可用, gold/stone 需要采矿场)
+        const resources: { type: string, amount: number }[] = [
             { type: 'food', amount: ai.resources.food },
-            { type: 'wood', amount: ai.resources.wood },
-            { type: 'gold', amount: ai.resources.gold }
+            { type: 'wood', amount: ai.resources.wood }
         ];
+        if (ai.miningUnlocked.gold) {
+            resources.push({ type: 'gold', amount: ai.resources.gold });
+        }
+        // AI 永远不解锁石头，所以不加 stone
+
         resources.sort((a, b) => a.amount - b.amount);
 
         let targetRes: ResourceType = resources[0].type as ResourceType;
         if (ai.resources.food < 50) targetRes = 'food';
 
-        ai.workers[targetRes] = ai.idleWorkers;
+        ai.workers[targetRes] = availableWorkers;
         ai.idleWorkers = 0;
     }
 
@@ -321,13 +444,16 @@ export class AISystem {
         let bestTechId: string | null = null;
         let minCost = 99999;
 
+        // 当前时代科技等级上限
+        const maxLevel = AGE_MAX_TECH_LEVEL[ai.currentAge] || 0;
+
         // 遍历所有可能的科技 (这里简化，假设我们知道 ID 格式)
         // 实际应该遍历 TECH_CONFIG
         const techTypes = ['atk_m', 'def_m', 'atk_r', 'def_r'];
 
         techTypes.forEach(type => {
             const currentLv = ai.techLevels[type];
-            if (currentLv < 3) {
+            if (currentLv < maxLevel) {
                 const nextId = `tech_${type}_${currentLv + 1}`;
                 const conf = TECH_CONFIG[nextId];
                 if (conf) {
@@ -367,6 +493,10 @@ export class AISystem {
     }
 
     private tryQueueUnit(f: any, building: Building, uType: string): boolean {
+        // 时代限制：不生产当前时代无法解锁的单位
+        const unitMinAge = UNIT_CONFIG[uType]?.minAge || 1;
+        if (unitMinAge > f.currentAge) return false;
+
         const cost = UNIT_CONFIG[uType].cost;
         const time = UNIT_CONFIG[uType].time;
 
@@ -385,6 +515,10 @@ export class AISystem {
     }
 
     private tryBuild(f: any, bType: string) {
+        // 时代限制
+        const bConf = BUILDING_CONFIG[bType];
+        if (bConf && (bConf.minAge || 1) > f.currentAge) return;
+
         // 如果已经在造同类建筑，且不是房子，先别急着造第二个(除非是队列满逻辑触发的)
         // 但这里的逻辑是：如果是队列满触发的，说明确实需要。
         // 所以这里只限制：不要同时造两个一样的建筑 (防止瞬间把资源花光造了10个兵营)

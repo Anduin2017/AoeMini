@@ -1,6 +1,7 @@
 import { Game } from "../core/Game";
 import { ResourceType, FactionType, UnitType } from "../core/Types";
 import { UNIT_CONFIG, BUILDING_CONFIG } from "../data/UnitConfig";
+import { AGE_UP_CONFIG, AGE_LABELS } from "../data/AgeConfig";
 import { Helpers } from "../utils/Helpers";
 import { CONSTANTS } from "../core/Constants";
 // 引入组件
@@ -25,6 +26,8 @@ export class UIManager {
         this.setupKeyboardShortcuts();
         this.setupResourceLongPress();
         this.setupPinListeners();
+        this.setupAgeUpListeners();
+        this.setupMiningLockListeners();
     }
 
     private setupKeyboardShortcuts() {
@@ -134,6 +137,12 @@ export class UIManager {
             const btn = document.getElementById(`pin-${r}`);
             if (btn) {
                 btn.onclick = () => {
+                    // Block pinning to locked mining resources
+                    const p = this.game.player;
+                    if ((r === 'gold' || r === 'stone') && !p.miningUnlocked[r]) {
+                        Helpers.showToast('需要先建造采矿场', '#ef4444');
+                        return;
+                    }
                     this.game.pinnedResource = r;
                     this.updatePinUI();
                     Helpers.showToast(`新村民将自动采集: ${this.getResourceName(r)}`, '#eab308');
@@ -335,8 +344,129 @@ export class UIManager {
         }
     }
 
+    private setupAgeUpListeners() {
+        // Age-up button: starts the age upgrade
+        const ageUpBtn = document.getElementById('age-up-btn');
+        if (ageUpBtn) {
+            ageUpBtn.onclick = () => {
+                const p = this.game.player;
+                const nextAge = p.currentAge + 1;
+                if (nextAge > 4) return;
+                if (p.ageUpProgress) return; // already upgrading
+
+                const config = AGE_UP_CONFIG[nextAge];
+                if (!config) return;
+
+                // Check resources
+                if (p.resources.food < (config.cost.food || 0) || p.resources.gold < (config.cost.gold || 0)) {
+                    Helpers.showToast("资源不足", '#ef4444');
+                    return;
+                }
+
+                // Deduct resources
+                p.resources.food -= (config.cost.food || 0);
+                p.resources.gold -= (config.cost.gold || 0);
+
+                // Start age-up progress
+                p.ageUpProgress = { remaining: config.totalWork, total: config.totalWork };
+
+                // Assign all idle villagers to age-up
+                const idleCount = p.idleWorkers;
+                if (idleCount > 0) {
+                    p.ageWorkers += idleCount;
+                    p.idleWorkers = 0;
+                }
+
+                // If no villagers assigned, assign at least from food
+                if (p.ageWorkers === 0 && p.totalWorkers > 0) {
+                    // Try to pull one from the largest resource group
+                    const maxRes = (['food', 'wood', 'gold', 'stone'] as ResourceType[])
+                        .reduce((a, b) => p.workers[a] > p.workers[b] ? a : b);
+                    if (p.workers[maxRes] > 0) {
+                        p.workers[maxRes]--;
+                        p.ageWorkers++;
+                    }
+                }
+
+                Helpers.showToast(`开始升级到 ${config.label}`, '#eab308');
+            };
+        }
+
+        // +/- age worker buttons
+        const addAgeBtn = document.getElementById('add-age');
+        const subAgeBtn = document.getElementById('sub-age');
+        if (addAgeBtn) addAgeBtn.onclick = () => this.modAgeWork(1);
+        if (subAgeBtn) subAgeBtn.onclick = () => this.modAgeWork(-1);
+
+        // Long-press support for age +/- buttons
+        const bindLongPress = (id: string, action: () => void) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            let intervalId: any = null;
+            let timeoutId: any = null;
+            const start = () => {
+                if (intervalId || timeoutId) return;
+                timeoutId = setTimeout(() => {
+                    action();
+                    intervalId = setInterval(action, 100);
+                }, 600);
+            };
+            const stop = () => {
+                if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
+                if (intervalId) { clearInterval(intervalId); intervalId = null; }
+            };
+            btn.addEventListener('mousedown', start);
+            btn.addEventListener('mouseup', stop);
+            btn.addEventListener('mouseleave', stop);
+            btn.addEventListener('contextmenu', (e) => e.preventDefault());
+        };
+        bindLongPress('add-age', () => this.modAgeWork(1));
+        bindLongPress('sub-age', () => this.modAgeWork(-1));
+    }
+
+    private setupMiningLockListeners() {
+        (['gold', 'stone'] as const).forEach(resType => {
+            const btn = document.getElementById(`unlock-${resType}`);
+            if (btn) {
+                btn.onclick = () => {
+                    const p = this.game.player;
+                    if (p.miningUnlocked[resType]) return;
+                    if (p.miningUnlockQueue) {
+                        Helpers.showToast('已有采矿场正在建造中', '#ef4444');
+                        return;
+                    }
+                    if (p.resources.wood < CONSTANTS.MINING_CAMP_COST.wood) {
+                        Helpers.showToast('木材不足', '#ef4444');
+                        return;
+                    }
+                    // Deduct cost and start building
+                    p.resources.wood -= CONSTANTS.MINING_CAMP_COST.wood;
+                    p.miningUnlockQueue = {
+                        type: resType,
+                        ticksLeft: CONSTANTS.MINING_CAMP_TICKS,
+                        totalTicks: CONSTANTS.MINING_CAMP_TICKS
+                    };
+                    const label = resType === 'gold' ? '采金场' : '采石场';
+                    Helpers.showToast(`开始建造${label}`, '#eab308');
+                };
+            }
+        });
+    }
+
+    private modAgeWork(change: number) {
+        const p = this.game.player;
+        if (!p.ageUpProgress) return;
+        if (change > 0) {
+            if (p.idleWorkers > 0) { p.idleWorkers--; p.ageWorkers++; }
+        } else {
+            if (p.ageWorkers > 0) { p.ageWorkers--; p.idleWorkers++; }
+        }
+    }
+
     private modWork(type: ResourceType, change: number) {
         const p = this.game.player;
+        // Block worker assignment to locked mining resources
+        if ((type === 'gold' || type === 'stone') && !p.miningUnlocked[type]) return;
         if (change > 0) {
             if (p.idleWorkers > 0) { p.idleWorkers--; p.workers[type]++; }
         } else {
@@ -347,16 +477,25 @@ export class UIManager {
     public update() {
         const p = this.game.player;
 
+        // === 采矿场锁 UI 更新 ===
+        this.updateMiningLockUI(p);
+
         // 1. 顶部面板更新
         (['food', 'wood', 'gold', 'stone'] as ResourceType[]).forEach(r => {
             document.getElementById(`res-stock-${r}`)!.innerText = Math.floor(p.resources[r]).toString();
             document.getElementById(`res-workers-${r}`)!.innerText = p.workers[r].toString();
 
             // 按钮置灰逻辑
+            const isLocked = (r === 'gold' || r === 'stone') && !p.miningUnlocked[r];
             const btnAdd = document.getElementById(`add-${r}`);
             const btnSub = document.getElementById(`sub-${r}`);
-            if (btnAdd) { if (p.idleWorkers > 0) btnAdd.classList.remove('disabled'); else btnAdd.classList.add('disabled'); }
-            if (btnSub) { if (p.workers[r] > 0) btnSub.classList.remove('disabled'); else btnSub.classList.add('disabled'); }
+            if (isLocked) {
+                if (btnAdd) btnAdd.classList.add('disabled');
+                if (btnSub) btnSub.classList.add('disabled');
+            } else {
+                if (btnAdd) { if (p.idleWorkers > 0) btnAdd.classList.remove('disabled'); else btnAdd.classList.add('disabled'); }
+                if (btnSub) { if (p.workers[r] > 0) btnSub.classList.remove('disabled'); else btnSub.classList.add('disabled'); }
+            }
         });
 
         const popEl = document.getElementById('disp-pop')!;
@@ -372,6 +511,9 @@ export class UIManager {
 
         document.getElementById('p-base-hp')!.style.width = (p.baseHp / 2000 * 100) + '%';
         document.getElementById('e-base-hp')!.style.width = (this.game.enemy.baseHp / 2000 * 100) + '%';
+
+        // === 时代升级 UI 更新 ===
+        this.updateAgeUI(p);
 
         // 2. 调用组件渲染
         this.dockRenderer.render(this.activePopoverId, (id, item) => {
@@ -395,6 +537,120 @@ export class UIManager {
         } else {
             this.lastTechState = JSON.stringify(p.techLevels);
         }
+    }
+
+    private updateAgeUI(p: any) {
+        const ageRow = document.getElementById('age-up-row');
+        const ageLabel = document.getElementById('age-label');
+        const ageUpBtn = document.getElementById('age-up-btn') as HTMLButtonElement;
+        const ageCost = document.getElementById('age-up-cost');
+        const ageProgressBar = document.getElementById('age-progress-bar');
+        const ageProgressFill = document.getElementById('age-progress-fill');
+        const ageWorkerRow = document.getElementById('age-worker-row');
+        const ageWorkersEl = document.getElementById('age-workers');
+        const agePctEl = document.getElementById('age-pct');
+        const addAgeBtn = document.getElementById('add-age');
+        const subAgeBtn = document.getElementById('sub-age');
+
+        if (!ageRow) return;
+
+        // Hide entire row at Age IV
+        if (p.currentAge >= 4) {
+            ageRow.style.display = 'none';
+            return;
+        }
+        ageRow.style.display = '';
+
+        // Update age label
+        const currentAgeInfo = AGE_LABELS[p.currentAge];
+        if (ageLabel) {
+            ageLabel.innerText = `${currentAgeInfo?.roman || ''} ${currentAgeInfo?.label || ''}`;
+        }
+
+        const nextAge = p.currentAge + 1;
+        const config = AGE_UP_CONFIG[nextAge];
+
+        if (p.ageUpProgress) {
+            // Currently upgrading
+            if (ageUpBtn) ageUpBtn.style.display = 'none';
+            if (ageCost) ageCost.style.display = 'none';
+            if (ageProgressBar) ageProgressBar.style.display = '';
+            if (ageWorkerRow) ageWorkerRow.style.display = '';
+
+            const pct = Math.floor((1 - p.ageUpProgress.remaining / p.ageUpProgress.total) * 100);
+            if (ageProgressFill) ageProgressFill.style.width = pct + '%';
+            if (ageWorkersEl) ageWorkersEl.innerText = p.ageWorkers.toString();
+            if (agePctEl) agePctEl.innerText = pct + '%';
+
+            // +/- button states
+            if (addAgeBtn) {
+                if (p.idleWorkers > 0) addAgeBtn.classList.remove('disabled');
+                else addAgeBtn.classList.add('disabled');
+            }
+            if (subAgeBtn) {
+                if (p.ageWorkers > 0) subAgeBtn.classList.remove('disabled');
+                else subAgeBtn.classList.add('disabled');
+            }
+        } else {
+            // Not upgrading - show button
+            if (ageProgressBar) ageProgressBar.style.display = 'none';
+            if (ageWorkerRow) ageWorkerRow.style.display = 'none';
+
+            if (config) {
+                if (ageUpBtn) {
+                    ageUpBtn.style.display = '';
+                    ageUpBtn.innerText = AGE_LABELS[nextAge]?.roman || `${nextAge}`;
+
+                    // Check affordability
+                    const canAfford = p.resources.food >= (config.cost.food || 0) && p.resources.gold >= (config.cost.gold || 0);
+                    ageUpBtn.disabled = !canAfford;
+                }
+                if (ageCost) {
+                    ageCost.style.display = '';
+                    let costStr = '';
+                    if (config.cost.food) costStr += `${config.cost.food}肉 `;
+                    if (config.cost.gold) costStr += `${config.cost.gold}金`;
+                    ageCost.innerText = costStr;
+                }
+            }
+        }
+    }
+
+    private updateMiningLockUI(p: any) {
+        (['gold', 'stone'] as const).forEach(resType => {
+            const overlay = document.getElementById(`mining-lock-${resType}`);
+            const unlockBtn = document.getElementById(`unlock-${resType}`) as HTMLButtonElement;
+            const progressBar = document.getElementById(`mining-progress-${resType}`);
+            const progressFill = document.getElementById(`mining-progress-fill-${resType}`);
+
+            if (!overlay) return;
+
+            if (p.miningUnlocked[resType]) {
+                // Already unlocked - hide overlay
+                overlay.classList.add('hidden');
+                return;
+            }
+
+            // Still locked - show overlay
+            overlay.classList.remove('hidden');
+
+            // Check if currently building this type
+            if (p.miningUnlockQueue && p.miningUnlockQueue.type === resType) {
+                // Show progress bar, hide button
+                if (unlockBtn) unlockBtn.style.display = 'none';
+                if (progressBar) progressBar.style.display = '';
+                const pct = Math.floor((1 - p.miningUnlockQueue.ticksLeft / p.miningUnlockQueue.totalTicks) * 100);
+                if (progressFill) progressFill.style.width = pct + '%';
+            } else {
+                // Show button, hide progress
+                if (unlockBtn) {
+                    unlockBtn.style.display = '';
+                    // Disable if can't afford or another unlock is in progress
+                    unlockBtn.disabled = p.resources.wood < CONSTANTS.MINING_CAMP_COST.wood || !!p.miningUnlockQueue;
+                }
+                if (progressBar) progressBar.style.display = 'none';
+            }
+        });
     }
 
     private handleDockClick(id: string, item: any) {

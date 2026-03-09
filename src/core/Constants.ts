@@ -35,6 +35,10 @@ export const CONSTANTS = {
         3: 80    // 攻城路: 最下方
     } as Record<number, number>,
 
+    // === 采矿场锁配置 ===
+    MINING_CAMP_COST: { wood: 50 },
+    MINING_CAMP_TICKS: 150, // 15秒 (按100ms/tick计算)
+
     // === 难度配置 ===
     DIFFICULTY_LEVELS: {
         VERYEASY: { label: '非常简单', workers: 1, maxWorkers: 10, emoji: '🐥', tickRate: 150, shortText: '我只想休息。' },

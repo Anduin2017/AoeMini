@@ -46,6 +46,7 @@ export class Game {
 
     public difficultyKey: string = 'MEDIUM'; // 默认为中等
     public pinnedResource: ResourceType = 'food'; // 默认扎在食物上
+    public aiStrategy: 'fast_feudal' | 'fast_castle' | 'fast_imperial' = 'fast_feudal';
 
     constructor(difficultyKey: string = 'MEDIUM') {
         this.difficultyKey = difficultyKey;
@@ -53,6 +54,17 @@ export class Game {
         const diffConfig = CONSTANTS.DIFFICULTY_LEVELS[difficultyKey as any] || CONSTANTS.DIFFICULTY_LEVELS.MEDIUM;
         const difficultyWorkers = diffConfig.workers;
         this.tickRate = (diffConfig as any).tickRate || 50;
+
+        // 随机选择 AI 策略: 40% fast_feudal, 40% fast_castle, 20% fast_imperial
+        const roll = Math.random();
+        if (roll < 0.4) {
+            this.aiStrategy = 'fast_feudal';
+        } else if (roll < 0.8) {
+            this.aiStrategy = 'fast_castle';
+        } else {
+            this.aiStrategy = 'fast_imperial';
+        }
+        console.log(`[AI] Strategy chosen: ${this.aiStrategy}`);
 
         this.player = new Faction(FactionType.Player, 6); // 玩家固定 6 农民
         this.enemy = new Faction(FactionType.Enemy, difficultyWorkers); // 电脑根据难度

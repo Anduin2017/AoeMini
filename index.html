@@ -157,46 +157,81 @@
             <span id="disp-idle" class="idle-text">0</span>
           </div>
         </div>
-        <div class="res-grid">
-          <div class="pin-btn active" id="pin-food">➜</div>
-          <div class="res-icon">🥩</div>
-          <div class="res-val" id="res-stock-food">0</div>
-          <div class="tiny-btn" id="sub-food">-</div>
-          <div class="worker-box">
-            <span class="res-w-icon">👤</span
-            ><span class="res-w-val" id="res-workers-food">0</span>
-          </div>
-          <div class="tiny-btn" id="add-food">+</div>
+        <div class="res-grid-wrapper">
+          <div class="res-grid">
+            <div class="pin-btn active" id="pin-food">➜</div>
+            <div class="res-icon">🥩</div>
+            <div class="res-val" id="res-stock-food">0</div>
+            <div class="tiny-btn" id="sub-food">-</div>
+            <div class="worker-box">
+              <span class="res-w-icon">👤</span
+              ><span class="res-w-val" id="res-workers-food">0</span>
+            </div>
+            <div class="tiny-btn" id="add-food">+</div>
 
-          <div class="pin-btn" id="pin-wood">➜</div>
-          <div class="res-icon">🌲</div>
-          <div class="res-val" id="res-stock-wood">0</div>
-          <div class="tiny-btn" id="sub-wood">-</div>
-          <div class="worker-box">
-            <span class="res-w-icon">👤</span
-            ><span class="res-w-val" id="res-workers-wood">0</span>
-          </div>
-          <div class="tiny-btn" id="add-wood">+</div>
+            <div class="pin-btn" id="pin-wood">➜</div>
+            <div class="res-icon">🌲</div>
+            <div class="res-val" id="res-stock-wood">0</div>
+            <div class="tiny-btn" id="sub-wood">-</div>
+            <div class="worker-box">
+              <span class="res-w-icon">👤</span
+              ><span class="res-w-val" id="res-workers-wood">0</span>
+            </div>
+            <div class="tiny-btn" id="add-wood">+</div>
 
-          <div class="pin-btn" id="pin-gold">➜</div>
-          <div class="res-icon">🪙</div>
-          <div class="res-val" id="res-stock-gold">0</div>
-          <div class="tiny-btn" id="sub-gold">-</div>
-          <div class="worker-box">
-            <span class="res-w-icon">👤</span
-            ><span class="res-w-val" id="res-workers-gold">0</span>
-          </div>
-          <div class="tiny-btn" id="add-gold">+</div>
+            <div class="pin-btn" id="pin-gold">➜</div>
+            <div class="res-icon">🪙</div>
+            <div class="res-val" id="res-stock-gold">0</div>
+            <div class="tiny-btn" id="sub-gold">-</div>
+            <div class="worker-box">
+              <span class="res-w-icon">👤</span
+              ><span class="res-w-val" id="res-workers-gold">0</span>
+            </div>
+            <div class="tiny-btn" id="add-gold">+</div>
 
-          <div class="pin-btn" id="pin-stone">➜</div>
-          <div class="res-icon">🪨</div>
-          <div class="res-val" id="res-stock-stone">0</div>
-          <div class="tiny-btn" id="sub-stone">-</div>
-          <div class="worker-box">
-            <span class="res-w-icon">👤</span
-            ><span class="res-w-val" id="res-workers-stone">0</span>
+            <div class="pin-btn" id="pin-stone">➜</div>
+            <div class="res-icon">🪨</div>
+            <div class="res-val" id="res-stock-stone">0</div>
+            <div class="tiny-btn" id="sub-stone">-</div>
+            <div class="worker-box">
+              <span class="res-w-icon">👤</span
+              ><span class="res-w-val" id="res-workers-stone">0</span>
+            </div>
+            <div class="tiny-btn" id="add-stone">+</div>
           </div>
-          <div class="tiny-btn" id="add-stone">+</div>
+          <!-- 黄金采矿场锁覆盖层 (覆盖第3行) -->
+          <div class="mining-lock-overlay" id="mining-lock-gold" data-row="2">
+            <button class="mining-unlock-btn" id="unlock-gold">🔒 建造采金场 (50🌲)</button>
+            <div class="mining-progress-bar" id="mining-progress-gold" style="display:none;">
+              <div class="mining-progress-fill" id="mining-progress-fill-gold"></div>
+            </div>
+          </div>
+          <!-- 石料采矿场锁覆盖层 (覆盖第4行) -->
+          <div class="mining-lock-overlay" id="mining-lock-stone" data-row="3">
+            <button class="mining-unlock-btn" id="unlock-stone">🔒 建造采石场 (50🌲)</button>
+            <div class="mining-progress-bar" id="mining-progress-stone" style="display:none;">
+              <div class="mining-progress-fill" id="mining-progress-fill-stone"></div>
+            </div>
+          </div>
+        </div>
+        <!-- === 时代升级行 === -->
+        <div class="age-up-row" id="age-up-row">
+          <div class="age-up-label" id="age-label">I 黑暗时代</div>
+          <div class="age-up-controls">
+            <button class="age-up-btn" id="age-up-btn" title="升级到下一时代">II</button>
+            <span class="age-up-cost" id="age-up-cost">400肉 200金</span>
+          </div>
+          <div class="age-up-progress-bar" id="age-progress-bar" style="display:none;">
+            <div class="age-up-progress-fill" id="age-progress-fill"></div>
+          </div>
+          <div class="age-up-worker-row" id="age-worker-row" style="display:none;">
+            <div class="tiny-btn" id="sub-age">-</div>
+            <div class="worker-box">
+              <span class="res-w-icon">👤</span><span class="res-w-val" id="age-workers">0</span>
+            </div>
+            <div class="tiny-btn" id="add-age">+</div>
+            <span class="age-up-pct" id="age-pct">0%</span>
+          </div>
         </div>
       </div>
 

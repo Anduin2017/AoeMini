@@ -2,6 +2,7 @@ import { Game } from "../core/Game";
 import { FactionType, UnitType, QueueItem, BuildingType, UnitTag } from "../core/Types";
 import { UNIT_CONFIG, BUILDING_CONFIG } from "../data/UnitConfig";
 import { TECH_CONFIG } from "../data/TechConfig";
+import { AGE_UP_CONFIG, AGE_LABELS } from "../data/AgeConfig";
 import { Worker, Spearman, ManAtArms, Longbowman, Crossbowman, Horseman, Knight, Mangonel } from "../entities/units/ConcreteUnits";
 import { Helpers } from "../utils/Helpers";
 import { Building } from "../entities/buildings/Building";
@@ -21,6 +22,10 @@ export class EconomySystem {
             this.gather(this.game.player);
             this.gather(this.game.enemy);
         }
+        this.processMiningUnlock(this.game.player);
+        this.processMiningUnlock(this.game.enemy);
+        this.processAgeUp(this.game.player);
+        this.processAgeUp(this.game.enemy);
         this.processQueues(this.game.player);
         this.processQueues(this.game.enemy);
         this.processConstructions(this.game.player);
@@ -33,6 +38,53 @@ export class EconomySystem {
         f.resources.wood += f.workers.wood * RATE;
         f.resources.gold += f.workers.gold * RATE;
         f.resources.stone += f.workers.stone * RATE;
+    }
+
+    private processAgeUp(f: any) {
+        if (!f.ageUpProgress || f.ageWorkers <= 0) return;
+
+        // 作弊检测：瞬间完成
+        if (f.type === FactionType.Player && this.game.isInstantBuild) {
+            f.ageUpProgress.remaining = 0;
+        } else {
+            f.ageUpProgress.remaining -= f.ageWorkers;
+        }
+
+        if (f.ageUpProgress.remaining <= 0) {
+            f.currentAge++;
+            const ageLabel = AGE_LABELS[f.currentAge]?.label || `时代 ${f.currentAge}`;
+
+            // 释放上本村民回空闲
+            f.idleWorkers += f.ageWorkers;
+            f.ageWorkers = 0;
+            f.ageUpProgress = null;
+
+            if (f.type === FactionType.Player) {
+                Helpers.showToast(`进入 ${ageLabel}！`, '#eab308');
+            }
+        }
+    }
+
+    private processMiningUnlock(f: any) {
+        if (!f.miningUnlockQueue) return;
+
+        // 作弊检测：瞬间完成
+        if (f.type === FactionType.Player && this.game.isInstantBuild) {
+            f.miningUnlockQueue.ticksLeft = 0;
+        } else {
+            f.miningUnlockQueue.ticksLeft--;
+        }
+
+        if (f.miningUnlockQueue.ticksLeft <= 0) {
+            const resType = f.miningUnlockQueue.type;
+            f.miningUnlocked[resType] = true;
+            f.miningUnlockQueue = null;
+
+            if (f.type === FactionType.Player) {
+                const label = resType === 'gold' ? '黄金' : '石料';
+                Helpers.showToast(`采矿场建成！可以开采${label}了`, '#22c55e');
+            }
+        }
     }
 
     private processQueues(f: any) {

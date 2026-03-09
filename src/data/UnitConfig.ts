@@ -13,6 +13,7 @@ interface UnitStats {
     tags: UnitTag[];
     label: string;
     lane: number;
+    minAge?: number; // === 新增：最低解锁时代 (1=黑暗, 2=封建, 3=城堡, 4=帝国) ===
     widthScale?: number;
     attackType?: 'melee' | 'ranged';
     attackSpeed?: number; // 秒 (1.875s 等)
@@ -35,14 +36,14 @@ interface UnitStats {
 export const UNIT_CONFIG: Record<string, UnitStats> = {
     [UnitType.Worker]: {
         cost: { food: 50 }, time: 200, hp: 10, damage: 0, def_m: 0, def_r: 0,
-        range: 1, speed: 0, tags: [UnitTag.Worker], label: '村民', lane: 0,
+        range: 1, speed: 0, tags: [UnitTag.Worker], label: '村民', lane: 0, minAge: 1,
         visual: { type: 'emoji', value: '👨‍🌾' }
     },
     [UnitType.Spearman]: {
         cost: { food: 60, wood: 20 }, time: 150, hp: 90, damage: 8, def_m: 0, def_r: 0,
         range: 5, speed: 1.25,
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Light],
-        label: '长枪兵', lane: 0, attackType: 'melee', attackSpeed: 1.875, canMoveAttack: true,
+        label: '长枪兵', lane: 0, minAge: 1, attackType: 'melee', attackSpeed: 1.875, canMoveAttack: true,
         visual: { type: 'emoji', value: '🔱' },
         // === 新增：对骑兵造成 +20 伤害 ===
         bonusAttack: (tags: UnitTag[]) => {
@@ -55,7 +56,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         cost: { food: 100, gold: 20 }, time: 150, hp: 140, damage: 11, def_m: 2, def_r: 3,
         range: 3.75, speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Melee, UnitTag.Heavy],
-        label: '武士', lane: 0, attackType: 'melee', attackSpeed: 1.375, canMoveAttack: true,
+        label: '武士', lane: 0, minAge: 1, attackType: 'melee', attackSpeed: 1.375, canMoveAttack: true,
         visual: { type: 'emoji', value: '🗡️' }
     },
     [UnitType.Longbowman]: {
@@ -63,7 +64,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         range: 11, // === 修改：射程提升 ===
         speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Ranged, UnitTag.Light],
-        label: '长弓兵', lane: 1, widthScale: 0.7, attackType: 'ranged', attackSpeed: 1.625,
+        label: '长弓兵', lane: 1, minAge: 2, widthScale: 0.7, attackType: 'ranged', attackSpeed: 1.625,
         visual: { type: 'emoji', value: '🏹', shouldMirrorIcon: false },
         // === 新增：对 Light + Melee + Infantry 造成 +6 伤害 ===
         bonusAttack: (tags: UnitTag[]) => {
@@ -79,7 +80,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         range: 10, // 长弓兵(11) - 1
         speed: 1.125,
         tags: [UnitTag.Infantry, UnitTag.Ranged, UnitTag.Light],
-        label: '弩手', lane: 1, widthScale: 0.7, attackType: 'ranged', attackSpeed: 2.125,
+        label: '弩手', lane: 1, minAge: 3, widthScale: 0.7, attackType: 'ranged', attackSpeed: 2.125,
         visual: { type: 'emoji', value: '☦️' }, // 机械臂代表弩? 或者用 🏹
         // === 对 Heavy 单位 +10 ===
         bonusAttack: (tags: UnitTag[]) => {
@@ -94,7 +95,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         hp: 125, damage: 9, def_m: 0, def_r: 2,
         range: 3.75, speed: 1.875,
         tags: [UnitTag.Cavalry, UnitTag.Melee, UnitTag.Light],
-        label: '骑手', lane: 2, attackType: 'melee', attackSpeed: 1.75, canMoveAttack: true,
+        label: '骑手', lane: 2, minAge: 2, attackType: 'melee', attackSpeed: 1.75, canMoveAttack: true,
         widthScale: 1.5,
         visual: { type: 'emoji', value: '🐎' },
         // === 新增：对远程单位造成 +9 伤害 ===
@@ -110,7 +111,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         hp: 230, damage: 24, def_m: 4, def_r: 4,
         range: 3.75, speed: 1.625,
         tags: [UnitTag.Cavalry, UnitTag.Melee, UnitTag.Heavy],
-        label: '骑士', lane: 2, attackType: 'melee', attackSpeed: 1.5, canMoveAttack: true,
+        label: '骑士', lane: 2, minAge: 3, attackType: 'melee', attackSpeed: 1.5, canMoveAttack: true,
         widthScale: 1.5,
         visual: { type: 'emoji', value: '🦁' }
     },
@@ -119,7 +120,7 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
         hp: 130, damage: 40, def_m: 0, def_r: 0,
         range: 12, speed: 0.75,
         tags: [UnitTag.Siege],
-        label: '轻型投石机', lane: 3, attackType: 'ranged', attackSpeed: 6.875,
+        label: '轻型投石机', lane: 3, minAge: 3, attackType: 'ranged', attackSpeed: 6.875,
         widthScale: 1.8,
         visual: { type: 'emoji', value: '🛞' },
         bonusAttack: (tags: UnitTag[]) => {
@@ -134,12 +135,12 @@ export const UNIT_CONFIG: Record<string, UnitStats> = {
     }
 };
 
-export const BUILDING_CONFIG: Record<string, { cost: Cost, time: number, label: string, icon: string, pop?: number, desc: string }> = {
-    'house': { cost: { wood: 50 }, time: 150, label: '房屋', icon: '🏠', pop: 10, desc: '提供人口上限' },
-    'barracks': { cost: { wood: 150 }, time: 300, label: '兵营', icon: '⚔️', desc: '训练步兵单位' },
-    'archery_range': { cost: { wood: 150 }, time: 300, label: '靶场', icon: '🏹', desc: '训练远程单位' },
-    'stable': { cost: { wood: 150 }, time: 300, label: '马厩', icon: '🐎', desc: '训练骑兵单位' }, // 30s * 10
-    'towncenter': { cost: { wood: 400, stone: 350 }, time: 1200, label: '城镇中心', icon: '🏛️', pop: 10, desc: '村民生产建筑' },
-    'blacksmith': { cost: { wood: 150 }, time: 250, label: '铁匠铺', icon: '⚒️', desc: '升级攻击与防御科技' },
-    'siege_workshop': { cost: { wood: 250 }, time: 450, label: '工程武器厂', icon: '🏚️', desc: '生产攻城武器' }
+export const BUILDING_CONFIG: Record<string, { cost: Cost, time: number, label: string, icon: string, pop?: number, desc: string, minAge?: number }> = {
+    'house': { cost: { wood: 50 }, time: 150, label: '房屋', icon: '🏠', pop: 10, desc: '提供人口上限', minAge: 1 },
+    'barracks': { cost: { wood: 150 }, time: 300, label: '兵营', icon: '⚔️', desc: '训练步兵单位', minAge: 1 },
+    'archery_range': { cost: { wood: 150 }, time: 300, label: '靶场', icon: '🏹', desc: '训练远程单位', minAge: 2 },
+    'stable': { cost: { wood: 150 }, time: 300, label: '马厩', icon: '🐎', desc: '训练骑兵单位', minAge: 2 }, // 30s * 10
+    'towncenter': { cost: { wood: 400, stone: 350 }, time: 1200, label: '城镇中心', icon: '🏛️', pop: 10, desc: '村民生产建筑', minAge: 2 },
+    'blacksmith': { cost: { wood: 150 }, time: 250, label: '铁匠铺', icon: '⚒️', desc: '升级攻击与防御科技', minAge: 2 },
+    'siege_workshop': { cost: { wood: 250 }, time: 450, label: '工程武器厂', icon: '🏚️', desc: '生产攻城武器', minAge: 3 }
 };

@@ -2,6 +2,7 @@ import { Building, MenuOption } from "./Building";
 import { BuildingType, FactionType, UnitType } from "../../core/Types";
 import { UNIT_CONFIG, BUILDING_CONFIG } from "../../data/UnitConfig";
 import { TECH_CONFIG } from "../../data/TechConfig";
+import { AGE_MAX_TECH_LEVEL } from "../../data/AgeConfig";
 
 export class House extends Building {
     constructor(id: number | string, owner: FactionType) {
@@ -18,10 +19,11 @@ export class Barracks extends Building {
     }
 
     public getMenuOptions(factionData: any): MenuOption[] {
-        return [
-            this.createUnitOption(UnitType.Spearman),
-            this.createUnitOption(UnitType.ManAtArms)
-        ];
+        const options: MenuOption[] = [];
+        const age = factionData.currentAge || 1;
+        if ((UNIT_CONFIG[UnitType.Spearman].minAge || 1) <= age) options.push(this.createUnitOption(UnitType.Spearman));
+        if ((UNIT_CONFIG[UnitType.ManAtArms].minAge || 1) <= age) options.push(this.createUnitOption(UnitType.ManAtArms));
+        return options;
     }
 
     private createUnitOption(type: string): MenuOption {
@@ -43,10 +45,11 @@ export class ArcheryRange extends Building {
     }
 
     public getMenuOptions(factionData: any): MenuOption[] {
-        return [
-            this.createUnitOption(UnitType.Longbowman),
-            this.createUnitOption(UnitType.Crossbowman)
-        ];
+        const options: MenuOption[] = [];
+        const age = factionData.currentAge || 1;
+        if ((UNIT_CONFIG[UnitType.Longbowman].minAge || 1) <= age) options.push(this.createUnitOption(UnitType.Longbowman));
+        if ((UNIT_CONFIG[UnitType.Crossbowman].minAge || 1) <= age) options.push(this.createUnitOption(UnitType.Crossbowman));
+        return options;
     }
 
     private createUnitOption(type: string): MenuOption {
@@ -68,10 +71,11 @@ export class Stable extends Building {
     }
 
     public getMenuOptions(factionData: any): MenuOption[] {
-        return [
-            this.createUnitOption(UnitType.Horseman),
-            this.createUnitOption(UnitType.Knight)
-        ];
+        const options: MenuOption[] = [];
+        const age = factionData.currentAge || 1;
+        if ((UNIT_CONFIG[UnitType.Horseman].minAge || 1) <= age) options.push(this.createUnitOption(UnitType.Horseman));
+        if ((UNIT_CONFIG[UnitType.Knight].minAge || 1) <= age) options.push(this.createUnitOption(UnitType.Knight));
+        return options;
     }
 
     private createUnitOption(type: string): MenuOption {
@@ -130,6 +134,12 @@ export class Blacksmith extends Building {
 
     private addTechOption(list: MenuOption[], f: any, type: string, labelBase: string) {
         const currentLevel = f.techLevels[type] || 0;
+        const age = f.currentAge || 1;
+        const maxLevel = AGE_MAX_TECH_LEVEL[age] || 0;
+
+        // 时代限制：不能超过当前时代的科技等级上限
+        if (currentLevel >= maxLevel) return;
+
         const nextLevel = currentLevel + 1;
         const techId = `tech_${type}_${nextLevel}`;
         const conf = TECH_CONFIG[techId];
@@ -161,9 +171,10 @@ export class SiegeWorkshop extends Building {
     }
 
     public getMenuOptions(factionData: any): MenuOption[] {
-        return [
-            this.createUnitOption(UnitType.Mangonel)
-        ];
+        const options: MenuOption[] = [];
+        const age = factionData.currentAge || 1;
+        if ((UNIT_CONFIG[UnitType.Mangonel].minAge || 1) <= age) options.push(this.createUnitOption(UnitType.Mangonel));
+        return options;
     }
 
     private createUnitOption(type: string): MenuOption {

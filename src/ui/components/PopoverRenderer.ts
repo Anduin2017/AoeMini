@@ -2,6 +2,7 @@ import { Game } from "../../core/Game";
 import { BuildingType } from "../../core/Types";
 import { BUILDING_CONFIG, UNIT_CONFIG } from "../../data/UnitConfig";
 import { TECH_CONFIG } from "../../data/TechConfig";
+import { AGE_LABELS } from "../../data/AgeConfig";
 import { Building } from "../../entities/buildings/Building";
 import { House } from "../../entities/buildings/ConcreteBuildings";
 import { Helpers } from "../../utils/Helpers";
@@ -115,44 +116,63 @@ export class PopoverRenderer {
 
         const shortcuts = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'];
         let index = 0;
+        const playerAge = this.game.player.currentAge || 1;
 
         Object.entries(BUILDING_CONFIG).forEach(([type, conf]) => {
             // === 修复：允许建造城镇中心 (移除了 if type == TownCenter return) ===
+
+            const minAge = conf.minAge || 1;
+            const isLocked = playerAge < minAge;
 
             const btn = document.createElement('div');
             btn.className = 'menu-btn build-action-btn';
             btn.dataset.costWood = (conf.cost.wood || 0).toString();
             btn.dataset.costStone = (conf.cost.stone || 0).toString();
 
-            btn.innerHTML = `
-                <span class="btn-icon">${conf.icon}</span>
-                <div class="btn-info">
-                    <span>${conf.label}</span>
-                    <span class="btn-cost text-xs text-gray-400">${conf.desc}</span>
-                    <div class="btn-cost mt-1">
-                        ${conf.cost.wood ? conf.cost.wood + '木 ' : ''}${conf.cost.stone ? conf.cost.stone + '石' : ''}
+            if (isLocked) {
+                const ageLabel = AGE_LABELS[minAge]?.label || `时代 ${minAge}`;
+                btn.innerHTML = `
+                    <span class="btn-icon" style="opacity:0.4; filter:grayscale(1);">🔒</span>
+                    <div class="btn-info">
+                        <span style="color:#6b7280;">${conf.label}</span>
+                        <span class="btn-cost text-xs" style="color:#ef4444;">需要 ${ageLabel}</span>
                     </div>
-                </div>
-                <div style="position:absolute; top:4px; right:6px; font-size:10px; color:rgba(255,255,255,0.3); font-weight:bold;">${shortcuts[index] || ''}</div>
-            `;
-            index++;
+                    <div style="position:absolute; top:4px; right:6px; font-size:10px; color:rgba(255,255,255,0.3); font-weight:bold;">${shortcuts[index] || ''}</div>
+                `;
+                btn.style.opacity = '0.5';
+                btn.style.pointerEvents = 'none';
+                btn.style.filter = 'grayscale(0.5)';
+            } else {
+                btn.innerHTML = `
+                    <span class="btn-icon">${conf.icon}</span>
+                    <div class="btn-info">
+                        <span>${conf.label}</span>
+                        <span class="btn-cost text-xs text-gray-400">${conf.desc}</span>
+                        <div class="btn-cost mt-1">
+                            ${conf.cost.wood ? conf.cost.wood + '木 ' : ''}${conf.cost.stone ? conf.cost.stone + '石' : ''}
+                        </div>
+                    </div>
+                    <div style="position:absolute; top:4px; right:6px; font-size:10px; color:rgba(255,255,255,0.3); font-weight:bold;">${shortcuts[index] || ''}</div>
+                `;
 
-            btn.onclick = () => {
-                const p = this.game.player;
-                if (p.resources.wood >= (conf.cost.wood || 0) && p.resources.stone >= (conf.cost.stone || 0)) {
-                    p.resources.wood -= (conf.cost.wood || 0);
-                    p.resources.stone -= (conf.cost.stone || 0);
-                    const constId = `const-${Math.floor(Math.random() * 100000)}`;
-                    p.constructions.push({ id: constId, type: type, ticksLeft: conf.time, totalTicks: conf.time });
-                    Helpers.showToast(`${conf.label} 开始建造`, '#3b82f6');
-                    // 触发外部关闭 (通过状态同步)
-                    // 这里稍微有点耦合，理想是 callback，但暂且依赖 Game 状态
-                    // 在 UIManager 里会处理关闭逻辑
-                    document.getElementById('game-wrapper')?.click(); // 模拟点击空白关闭
-                } else {
-                    Helpers.showToast("资源不足");
-                }
-            };
+                btn.onclick = () => {
+                    const p = this.game.player;
+                    if (p.resources.wood >= (conf.cost.wood || 0) && p.resources.stone >= (conf.cost.stone || 0)) {
+                        p.resources.wood -= (conf.cost.wood || 0);
+                        p.resources.stone -= (conf.cost.stone || 0);
+                        const constId = `const-${Math.floor(Math.random() * 100000)}`;
+                        p.constructions.push({ id: constId, type: type, ticksLeft: conf.time, totalTicks: conf.time });
+                        Helpers.showToast(`${conf.label} 开始建造`, '#3b82f6');
+                        // 触发外部关闭 (通过状态同步)
+                        // 这里稍微有点耦合，理想是 callback，但暂且依赖 Game 状态
+                        // 在 UIManager 里会处理关闭逻辑
+                        document.getElementById('game-wrapper')?.click(); // 模拟点击空白关闭
+                    } else {
+                        Helpers.showToast("资源不足");
+                    }
+                };
+            }
+            index++;
             this.container.appendChild(btn);
         });
     }

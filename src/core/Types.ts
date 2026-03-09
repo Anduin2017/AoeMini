@@ -1,5 +1,12 @@
 // === 基础枚举 ===
 
+export enum Age {
+    Dark = 1,
+    Feudal = 2,
+    Castle = 3,
+    Imperial = 4
+}
+
 export enum FactionType {
     Player = 'player',
     Enemy = 'enemy'

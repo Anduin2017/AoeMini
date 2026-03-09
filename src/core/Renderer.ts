@@ -2,6 +2,7 @@ import { Game } from "./Game";
 import { FactionType, UnitType } from "./Types";
 import { CONSTANTS } from "./Constants";
 import { UNIT_CONFIG } from "../data/UnitConfig"; // 引入配置
+import { AGE_LABELS } from "../data/AgeConfig";
 
 export class Renderer {
     private canvas: HTMLCanvasElement;
@@ -272,5 +273,21 @@ export class Renderer {
         this.ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(cx - hpBarW / 2, hpY, hpBarW, hpBarH);
+
+        // Age Roman Numeral (above HP bar)
+        const ageInfo = AGE_LABELS[faction.currentAge];
+        if (ageInfo) {
+            const fontSize = Math.max(18, baseW * 0.55);
+            this.ctx.font = `bold ${fontSize}px serif`;
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'bottom';
+            const ageY = hpY - (baseH * 0.08);
+            // Gold text with dark outline for readability
+            this.ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeText(ageInfo.roman, cx, ageY);
+            this.ctx.fillStyle = '#fbbf24';
+            this.ctx.fillText(ageInfo.roman, cx, ageY);
+        }
     }
 }
